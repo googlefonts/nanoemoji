@@ -16,10 +16,9 @@ make_emoji_font.py $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
-import collections
-from colors import Color
-from fontTools.misc.transform import Transform
+from color_glyph import ColorGlyph
 from fontTools.pens.transformPen import TransformPen
+from itertools import chain
 from nanosvg.svg import SVG
 from nanosvg.svg_pathops import skia_path
 import os
@@ -34,28 +33,11 @@ FLAGS = flags.FLAGS
 # TODO move to config file?
 flags.DEFINE_integer('upem', 1024, 'Units per em.')
 flags.DEFINE_string('family', 'An Emoji Family', 'Family name.')
+flags.DEFINE_enum('flavor', 'colr_0',
+                  ['colr_0', 'colr_1', 'svg', 'cbdt', 'sbix'],
+                  'Type of color font to generate.')
 flags.DEFINE_string('output_file', '/tmp/AnEmojiFamily-Regular.ttf',
                     'Dest file, can be .ttf, .otf, or .ufo')
-
-class ColrGlyph(collections.namedtuple("ColrGlyph", ['name', 'codepoints', 'svg_to_font_xform', 'layers'])):
-    @classmethod
-    def create(_, ufo, filename, codepoints, nsvg):
-        logging.info('ColrGlyph for %s', filename)
-        glyph_name = _glyph_name(codepoints)
-        base_glyph = ufo.newGlyph(glyph_name)
-
-        # Setup access to the glyph
-        if len(codepoints) == 1:
-            base_glyph.unicode = next(iter(codepoints))
-        else:
-            # Multi-codepoint seq; need to setup an rlig => base glyph
-            logging.warning('TODO prepare for rlig => glyph')
-
-        # Grab the transform + (color, glyph) layers for COLR
-        return ColrGlyph(glyph_name,
-                         codepoints,
-                         _transform(filename, ufo.info.unitsPerEm, nsvg),
-                         list(_colored_glyphs(nsvg)))
 
 
 def _codepoints_from_filename(filename):
@@ -74,40 +56,12 @@ def _nanosvg(filename):
     return None
 
 
-def _transform(filename, upem, nsvg):
-    vbox = nsvg.view_box()
-    if vbox is None:
-        logging.warning(f'{filename} has no vbox; no transform will be applied')
-        return Transform()
-    if vbox[0:2] != (0, 0):
-        raise ValueError('viewBox must start at 0,0')
-    x_scale = upem / vbox[2]
-    y_scale = upem / vbox[3]
-    transform = Transform(x_scale, 0, 0, -y_scale, 0, upem)
-    logging.debug('%s %s', os.path.basename(filename), transform)
-    return transform
-
-
 def _inputs(filenames):
     for filename in filenames:
         codepoints = _codepoints_from_filename(filename)
         nanosvg = _nanosvg(filename)
         if codepoints and nanosvg:
             yield (filename, codepoints, nanosvg)
-
-
-def _glyph_name(codepoints):
-    return 'emoji_' + '_'.join(('%04x' % c for c in sorted(codepoints)))
-
-
-def _colored_glyphs(nsvg):
-    """Yields (Color, SVGPath) tuples to draw nsvg."""
-    for shape in nsvg.shapes():
-        if regex.match(r'^url[(]#[^)]+[)]$', shape.fill):
-            logging.warning('TODO process fill=%s (probably gradient)', shape.fill)
-            shape.fill = 'black'
-        paint = Color.fromstring(shape.fill, alpha=shape.opacity)
-        yield (paint, shape)
 
 
 def _ufo(family, upem):
@@ -174,21 +128,22 @@ def main(argv):
     ufo = _ufo(FLAGS.family, FLAGS.upem)
 
     # TODO support more than COLR/CPAL
-    colr_glyphs = [ColrGlyph.create(ufo, filename, codepoints, nsvg)
+    color_glyphs = [ ColorGlyph.create(ufo, filename, codepoints, nsvg)
                    for filename, codepoints, nsvg in inputs]
 
     # Sort colors so the index into colors == index into CPAL palette
-    colors = sorted({c
-                     for g in colr_glyphs
-                     for c, _ in g.layers})
+    colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
+    logging.debug('colors %s', colors)
+
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
 
     # We created glyph_name on the default layer for the base glyph
     # Now create glyph_name on layers 0..N-1 for the colored layers
-    for colr_glyph in colr_glyphs:
+    for color_glyph in color_glyphs:
         layer_to_palette_idx = []
-        for idx, (color, path) in enumerate(colr_glyph.layers):
+        svg_units_to_font_units = color_glyph.transform_for_font_space()
+        for idx, (color, path) in enumerate(color_glyph.as_colored_layers()):
             glyph_layer = _layer(ufo, idx)
 
             # path needs to be draw in specified color on glyph_layer
@@ -196,15 +151,14 @@ def main(argv):
             layer_to_palette_idx.append((glyph_layer.name, palette_idx))
 
             # we've got a colored layer, put a glyph on it
-            glyph = glyph_layer.newGlyph(colr_glyph.name)
+            glyph = glyph_layer.newGlyph(color_glyph.name)
 
-            # Draw the path. Use TransformPen to map SVG space => font space.
-            pen = TransformPen(glyph.getPen(), colr_glyph.svg_to_font_xform)
+            pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
             skia_path(path).draw(pen)
 
 
         # each base glyph contains a list of (layer.name, color_palette_id) in z-order
-        base_glyph = ufo.get(colr_glyph.name)
+        base_glyph = ufo.get(color_glyph.name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_palette_idx
 
 
