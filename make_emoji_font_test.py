@@ -8,6 +8,11 @@ import pytest
         ('emoji_u1f378.svg', (0x1f378,)),
         # Noto Emoji, multiple codepoints
         ('emoji_u1f385_1f3fb.svg', (0x1f385, 0x1f3fb)),
+        # Noto Emoji, lots of codepoints!
+        (
+            'emoji_u1f469_1f3fd_200d_1f91d_200d_1f468_1f3ff.svg',
+            (0x1f469, 0x1f3fd, 0x200d, 0x1f91d, 0x200d, 0x1f468, 0x1f3ff)
+        ),
         # Twemoji, single codepoint
         ('2198.svg', (0x2198,)),
         # Twemoji, multiple codepoints

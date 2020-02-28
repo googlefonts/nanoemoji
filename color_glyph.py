@@ -6,7 +6,7 @@ import regex
 
 
 def _glyph_name(codepoints):
-    return 'emoji_' + '_'.join(('%04x' % c for c in sorted(codepoints)))
+    return 'emoji_' + '_'.join(('%04x' % c for c in codepoints))
 
 
 def _color(shape):

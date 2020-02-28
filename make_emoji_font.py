@@ -28,13 +28,22 @@ import sys
 import ufoLib2
 import ufo2ft
 
+
+_COLOR_FORMAT_GENERATORS = {
+    'colr_0': lambda *args: _populate_colr_v0(*args),
+    'colr_1': lambda *args: _populate_not_impl(*args),
+    'svg': lambda *args: _populate_not_impl(*args),
+    'cbdt': lambda *args: _populate_not_impl(*args),
+    'sbix': lambda *args: _populate_not_impl(*args),
+}
+
 FLAGS = flags.FLAGS
 
 # TODO move to config file?
 flags.DEFINE_integer('upem', 1024, 'Units per em.')
 flags.DEFINE_string('family', 'An Emoji Family', 'Family name.')
-flags.DEFINE_enum('flavor', 'colr_0',
-                  ['colr_0', 'colr_1', 'svg', 'cbdt', 'sbix'],
+flags.DEFINE_enum('color_format', 'colr_0',
+                  sorted(_COLOR_FORMAT_GENERATORS.keys()),
                   'Type of color font to generate.')
 flags.DEFINE_string('output_file', '/tmp/AnEmojiFamily-Regular.ttf',
                     'Dest file, can be .ttf, .otf, or .ufo')
@@ -120,17 +129,11 @@ def _write(ufo, output_file):
     ttfont.save(output_file)
 
 
+def _populate_not_impl(*_):
+    raise NotImplementedError('%s not implemented' % FLAGS.color_format)
 
-def main(argv):
-    inputs = list(_inputs(argv[1:]))
-    logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
 
-    ufo = _ufo(FLAGS.family, FLAGS.upem)
-
-    # TODO support more than COLR/CPAL
-    color_glyphs = [ ColorGlyph.create(ufo, filename, codepoints, nsvg)
-                   for filename, codepoints, nsvg in inputs]
-
+def _populate_colr_v0(ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette
     colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
     logging.debug('colors %s', colors)
@@ -161,6 +164,15 @@ def main(argv):
         base_glyph = ufo.get(color_glyph.name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_palette_idx
 
+
+def main(argv):
+    inputs = list(_inputs(argv[1:]))
+    logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
+
+    ufo = _ufo(FLAGS.family, FLAGS.upem)
+    color_glyphs = [ ColorGlyph.create(ufo, filename, codepoints, nsvg)
+                   for filename, codepoints, nsvg in inputs]
+    _COLOR_FORMAT_GENERATORS[FLAGS.color_format](ufo, color_glyphs)
 
     _write(ufo, FLAGS.output_file)
     logging.info('Wrote %s' % FLAGS.output_file)
