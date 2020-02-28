@@ -191,4 +191,12 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             )
         else:
             raise ValueError(f"invalid or unsupported color string: {s!r}")
-        return (red, green, blue, alpha)
+        return Color(red, green, blue, alpha)
+
+    def to_ufo_color(self):
+        # UFO stores colors as RGBA tuples of decimal [0..1] floats. Here we round to 3
+        # decimal digits, which are sufficient to round-trip Fixed0.8 numbers
+        return (float(f"{self.red / 255:.03f}"),
+                float(f"{self.green / 255:.03f}"),
+                float(f"{self.blue / 255:.03f}"),
+                self.alpha)
