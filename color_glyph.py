@@ -16,7 +16,7 @@ def _color(shape):
     return Color.fromstring(shape.fill, alpha=shape.opacity)
 
 
-class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'name', 'codepoints', 'nsvg'])):
+class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph_name', 'codepoints', 'nsvg'])):
     @staticmethod
     def create(ufo, filename, codepoints, nsvg):
         logging.info(' ColorGlyph for %s', filename)
@@ -32,6 +32,7 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'name', 'codepoint
 
         # Grab the transform + (color, glyph) layers for COLR
         return  ColorGlyph(ufo,
+                           filename,
                            glyph_name,
                            codepoints,
                            nsvg)
@@ -44,12 +45,12 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'name', 'codepoint
             logging.warning(f'{self.ufo.info.familyName} has no vbox; no transform will be applied')
             return Transform()
         if vbox[0:2] != (0, 0):
-            raise ValueError(f'{self.ufo.info.familyName} {self.name} viewBox must start at 0,0')
+            raise ValueError(f'{self.ufo.info.familyName} {self.glyph_name} viewBox must start at 0,0')
         upem = self.ufo.info.unitsPerEm
         x_scale = upem / vbox[2]
         y_scale = upem / vbox[3]
         transform = Transform(x_scale, 0, 0, -y_scale, 0, upem)
-        logging.debug('%s %s %s', self.ufo.info.familyName, self.name, transform)
+        logging.debug('%s %s %s', self.ufo.info.familyName, self.glyph_name, transform)
         return transform
 
     def as_colored_layers(self):

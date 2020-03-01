@@ -16,7 +16,9 @@ make_emoji_font.py $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
+import collections
 from color_glyph import ColorGlyph
+from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
 from itertools import chain
 from nanosvg.svg import SVG
@@ -29,12 +31,24 @@ import ufoLib2
 import ufo2ft
 
 
+# A color font generator.
+#   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
+#   apply_ttfont(ufo, color_glyphs, ttfont) is called second, to allow fixups after ufo2ft
+# If the output file is .ufo then apply_ttfont is not called.
+# Where possible code to the ufo and let apply_ttfont be a nop.
+ColorGenerator = collections.namedtuple('ColorGenerator', ['apply_ufo', 'apply_ttfont'])
+
 _COLOR_FORMAT_GENERATORS = {
-    'colr_0': lambda *args: _populate_colr_v0(*args),
-    'colr_1': lambda *args: _populate_not_impl(*args),
-    'svg': lambda *args: _populate_not_impl(*args),
-    'cbdt': lambda *args: _populate_not_impl(*args),
-    'sbix': lambda *args: _populate_not_impl(*args),
+    'colr_0': ColorGenerator(lambda *args: _colr_v0_ufo(*args),
+                             lambda *_: None),
+    'colr_1': ColorGenerator(lambda *args: _not_impl('ufo', *args),
+                             lambda *args: _not_impl('TTFont', *args)),
+    'svg': ColorGenerator(lambda *_: None,
+                          lambda *args: _svg_ttfont(*args)),
+    'cbdt': ColorGenerator(lambda *args: _not_impl('ufo', *args),
+                           lambda *args: _not_impl('TTFont', *args)),
+    'sbix': ColorGenerator(lambda *args: _not_impl('ufo', *args),
+                           lambda *args: _not_impl('TTFont', *args)),
 }
 
 FLAGS = flags.FLAGS
@@ -79,6 +93,11 @@ def _ufo(family, upem):
     # set various font metadata; see the full list of fontinfo attributes at
     # http://unifiedfontobject.org/versions/ufo3/fontinfo.plist/
     ufo.info.unitsPerEm = upem
+
+    # Must have .notdef and Win 10 Chrome seems to sometimes want .null
+    ufo.newGlyph('.notdef')
+    ufo.newGlyph('.null')
+
     return ufo
 
 
@@ -97,20 +116,9 @@ def _layer(ufo, idx):
     return ufo.layers[name]
 
 
-def _write(ufo, output_file):
-    # Magic Incantation.
-    # the filter below is required to enable the copying of the color layers
-    # to standalone glyphs in the default glyph set used to build the TTFont
-    # TODO(anthrotype) Make this automatic somehow?
-    ufo.lib[ufo2ft.constants.FILTERS_KEY] = [
-        {"name": "Explode Color Layer Glyphs", "pre": True}
-    ]
-
-    format = os.path.splitext(output_file)[1]
-
-    if format == ".ufo":
-        ufo.save(output_file, overwrite=True)
-        return
+def _make_ttfont(format, ufo, color_glyphs):
+    if format == '.ufo':
+        return None
 
     # Use skia-pathops to remove overlaps (i.e. simplify self-overlapping
     # paths) because the default ("booleanOperations") does not support
@@ -125,15 +133,26 @@ def _write(ufo, output_file):
     if not ttfont:
         raise ValueError('Unable to generate ' + output_file)
 
+    # Permit fixups where we can't express something adequately in UFO
+    _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ttfont(ufo, color_glyphs, ttfont)
+
+    return ttfont
+
+
+def _write(ufo, ttfont, output_file):
     logging.info('Writing %s', output_file)
-    ttfont.save(output_file)
+
+    if os.path.splitext(output_file)[1] == ".ufo":
+        ufo.save(output_file, overwrite=True)
+    else:
+        ttfont.save(output_file)
 
 
-def _populate_not_impl(*_):
+def _not_impl(*_):
     raise NotImplementedError('%s not implemented' % FLAGS.color_format)
 
 
-def _populate_colr_v0(ufo, color_glyphs):
+def _colr_v0_ufo(ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette
     colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
     logging.debug('colors %s', colors)
@@ -154,15 +173,32 @@ def _populate_colr_v0(ufo, color_glyphs):
             layer_to_palette_idx.append((glyph_layer.name, palette_idx))
 
             # we've got a colored layer, put a glyph on it
-            glyph = glyph_layer.newGlyph(color_glyph.name)
+            glyph = glyph_layer.newGlyph(color_glyph.glyph_name)
 
             pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
             skia_path(path).draw(pen)
 
 
         # each base glyph contains a list of (layer.name, color_palette_id) in z-order
-        base_glyph = ufo.get(color_glyph.name)
+        base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_palette_idx
+
+    # Magic Incantation.
+    # the filter below is required to enable the copying of the color layers
+    # to standalone glyphs in the default glyph set used to build the TTFont
+    # TODO(anthrotype) Make this automatic somehow?
+    ufo.lib[ufo2ft.constants.FILTERS_KEY] = [
+        {"name": "Explode Color Layer Glyphs", "pre": True}
+    ]
+
+
+def _svg_ttfont(ufo, color_glyphs, ttfont):
+    svg_table = ttLib.newTable('SVG ')
+    svg_table.docList = [(c.nsvg.tostring(),
+                          ttfont.getGlyphID(c.glyph_name), 
+                          ttfont.getGlyphID(c.glyph_name))
+                         for c in color_glyphs]
+    ttfont[svg_table.tableTag] = svg_table
 
 
 def main(argv):
@@ -172,9 +208,12 @@ def main(argv):
     ufo = _ufo(FLAGS.family, FLAGS.upem)
     color_glyphs = [ ColorGlyph.create(ufo, filename, codepoints, nsvg)
                    for filename, codepoints, nsvg in inputs]
-    _COLOR_FORMAT_GENERATORS[FLAGS.color_format](ufo, color_glyphs)
+    _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ufo(ufo, color_glyphs)
 
-    _write(ufo, FLAGS.output_file)
+    format = os.path.splitext(FLAGS.output_file)[1]
+    ttfont = _make_ttfont(format, ufo, color_glyphs)
+
+    _write(ufo, ttfont, FLAGS.output_file)
     logging.info('Wrote %s' % FLAGS.output_file)
 
 
