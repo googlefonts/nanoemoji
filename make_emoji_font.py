@@ -35,7 +35,7 @@ import ufo2ft
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
 #   apply_ttfont(ufo, color_glyphs, ttfont) is called second, to allow fixups after ufo2ft
 # Ideally we delete the ttfont stp in future. Blocking issues:
-#   https://sites.google.com/corp/google.com/novelcoronavirus/travel
+#   https://github.com/unified-font-object/ufo-spec/issues/104
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
 ColorGenerator = collections.namedtuple('ColorGenerator', ['apply_ufo', 'apply_ttfont'])
