@@ -34,6 +34,8 @@ import ufo2ft
 # A color font generator.
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
 #   apply_ttfont(ufo, color_glyphs, ttfont) is called second, to allow fixups after ufo2ft
+# Ideally we delete the ttfont stp in future. Blocking issues:
+#   https://sites.google.com/corp/google.com/novelcoronavirus/travel
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
 ColorGenerator = collections.namedtuple('ColorGenerator', ['apply_ufo', 'apply_ttfont'])
@@ -94,9 +96,11 @@ def _ufo(family, upem):
     # http://unifiedfontobject.org/versions/ufo3/fontinfo.plist/
     ufo.info.unitsPerEm = upem
 
-    # Must have .notdef and Win 10 Chrome seems to sometimes want .null
+    # Must have .notdef and Win 10 Chrome likes a blank gid1 so make that space
     ufo.newGlyph('.notdef')
-    ufo.newGlyph('.null')
+    space = ufo.newGlyph('.space')
+    space.unicodes = [0x0020]
+    ufo.glyphOrder = ['.notdef', '.space']
 
     return ufo
 
@@ -206,12 +210,16 @@ def main(argv):
     logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
 
     ufo = _ufo(FLAGS.family, FLAGS.upem)
-    color_glyphs = [ ColorGlyph.create(ufo, filename, codepoints, nsvg)
-                   for filename, codepoints, nsvg in inputs]
+    color_glyphs = [ColorGlyph.create(ufo, filename, codepoints, nsvg)
+                    for filename, codepoints, nsvg in inputs]
+    ufo.glyphOrder.extend([g.glyph_name for g in color_glyphs])
+
     _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ufo(ufo, color_glyphs)
 
     format = os.path.splitext(FLAGS.output_file)[1]
     ttfont = _make_ttfont(format, ufo, color_glyphs)
+
+    # TODO may wish to nuke 'post' glyph names
 
     _write(ufo, ttfont, FLAGS.output_file)
     logging.info('Wrote %s' % FLAGS.output_file)
