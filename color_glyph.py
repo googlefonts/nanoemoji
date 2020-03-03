@@ -40,16 +40,17 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph
 
     def transform_for_font_space(self):
         """Creates a Transform to map SVG coords to font coords"""
-        vbox = self.nsvg.view_box()
-        if vbox is None:
-            logging.warning(f'{self.ufo.info.familyName} has no vbox; no transform will be applied')
+        view_box = self.nsvg.view_box()
+        if view_box is None:
+            logging.warning(f'{self.ufo.info.familyName} has no viewBox; no transform will be applied')
             return Transform()
-        if vbox[0:2] != (0, 0):
-            raise ValueError(f'{self.ufo.info.familyName} {self.glyph_name} viewBox must start at 0,0')
         upem = self.ufo.info.unitsPerEm
-        x_scale = upem / vbox[2]
-        y_scale = upem / vbox[3]
-        transform = Transform(x_scale, 0, 0, -y_scale, 0, upem)
+        # shift so origin is 0,0
+        dx = -view_box[0]
+        dy = -view_box[1]
+        x_scale = round(upem / abs(view_box[2] + dx), 3)
+        y_scale = round(-1 * upem / abs(view_box[3] + dy), 3)
+        transform = Transform(x_scale, 0, 0, y_scale, dx, dy)
         logging.debug('%s %s %s', self.ufo.info.familyName, self.glyph_name, transform)
         return transform
 

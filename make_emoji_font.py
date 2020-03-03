@@ -20,13 +20,14 @@ import collections
 from color_glyph import ColorGlyph
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
+import gzip
+import io
 from itertools import chain
 from nanosvg.svg import SVG
 from nanosvg.svg_pathops import skia_path
 import os
 import regex
 import sys
-
 import ufoLib2
 import ufo2ft
 
@@ -46,7 +47,9 @@ _COLOR_FORMAT_GENERATORS = {
     'colr_1': ColorGenerator(lambda *args: _not_impl('ufo', *args),
                              lambda *args: _not_impl('TTFont', *args)),
     'svg': ColorGenerator(lambda *_: None,
-                          lambda *args: _svg_ttfont(*args)),
+                          lambda *args: _svg_ttfont(*args, zip=False)),
+    'svgz': ColorGenerator(lambda *_: None,
+                           lambda *args: _svg_ttfont(*args, zip=True)),
     'cbdt': ColorGenerator(lambda *args: _not_impl('ufo', *args),
                            lambda *args: _not_impl('TTFont', *args)),
     'sbix': ColorGenerator(lambda *args: _not_impl('ufo', *args),
@@ -196,9 +199,13 @@ def _colr_v0_ufo(ufo, color_glyphs):
     ]
 
 
-def _svg_ttfont(ufo, color_glyphs, ttfont):
+def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
+    _data_fn = lambda s: s  # nop
+    if zip:
+        _data_fn = lambda s: gzip.compress(s.encode('UTF-8'))
+
     svg_table = ttLib.newTable('SVG ')
-    svg_table.docList = [(c.nsvg.tostring(),
+    svg_table.docList = [(_data_fn(c.nsvg.remove_sizing().tostring()),
                           ttfont.getGlyphID(c.glyph_name), 
                           ttfont.getGlyphID(c.glyph_name))
                          for c in color_glyphs]
