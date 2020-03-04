@@ -103,6 +103,7 @@ def _ufo(family, upem):
     ufo.newGlyph('.notdef')
     space = ufo.newGlyph('.space')
     space.unicodes = [0x0020]
+    space.width = upem
     ufo.glyphOrder = ['.notdef', '.space']
 
     return ufo
@@ -181,6 +182,7 @@ def _colr_v0_ufo(ufo, color_glyphs):
 
             # we've got a colored layer, put a glyph on it
             glyph = glyph_layer.newGlyph(color_glyph.glyph_name)
+            glyph.width = ufo.info.unitsPerEm
 
             pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
             skia_path(path).draw(pen)
@@ -205,7 +207,9 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
         _data_fn = lambda s: gzip.compress(s.encode('UTF-8'))
 
     svg_table = ttLib.newTable('SVG ')
-    svg_table.docList = [(_data_fn(c.nsvg.remove_sizing().tostring()),
+    svg_table.docList = [(_data_fn(c.nsvg
+                                   .remove_attributes('width', 'height')
+                                   .tostring()),
                           ttfont.getGlyphID(c.glyph_name), 
                           ttfont.getGlyphID(c.glyph_name))
                          for c in color_glyphs]

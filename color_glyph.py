@@ -22,6 +22,7 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph
         logging.info(' ColorGlyph for %s', filename)
         glyph_name = _glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
+        base_glyph.width = ufo.info.unitsPerEm
 
         # Setup access to the glyph
         if len(codepoints) == 1:
