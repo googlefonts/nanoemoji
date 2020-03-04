@@ -21,3 +21,8 @@ import pytest
 )
 def test_codepoints_from_filename(filename, codepoints):
     assert codepoints == mef._codepoints_from_filename(filename)
+
+
+# TODO test that width, height are removed from svg
+# TODO test that enable-background is removed from svg
+# TODO test that id=glyph# is added to svg

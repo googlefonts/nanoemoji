@@ -208,7 +208,12 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
 
     svg_table = ttLib.newTable('SVG ')
     svg_table.docList = [(_data_fn(c.nsvg
-                                   .remove_attributes('width', 'height')
+                                    # dumb sizing isn't useful
+                                   .remove_attributes(('width', 'height'))
+                                   # Firefox likes to render blank if present
+                                   .remove_attributes(('enable-background',))
+                                   # Required to match gid
+                                   .set_attributes((('id', f'glyph{c.glyph_id}'),))
                                    .tostring()),
                           ttfont.getGlyphID(c.glyph_name), 
                           ttfont.getGlyphID(c.glyph_name))
@@ -221,9 +226,12 @@ def main(argv):
     logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
 
     ufo = _ufo(FLAGS.family, FLAGS.upem)
-    color_glyphs = [ColorGlyph.create(ufo, filename, codepoints, nsvg)
-                    for filename, codepoints, nsvg in inputs]
-    ufo.glyphOrder.extend([g.glyph_name for g in color_glyphs])
+    base_gid = len(ufo.glyphOrder)
+    color_glyphs = [ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
+                    for idx, (filename, codepoints, nsvg) in enumerate(inputs)]
+    ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
+    for g in color_glyphs:
+        assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
 
     _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ufo(ufo, color_glyphs)
 

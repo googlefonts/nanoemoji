@@ -16,9 +16,9 @@ def _color(shape):
     return Color.fromstring(shape.fill, alpha=shape.opacity)
 
 
-class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph_name', 'codepoints', 'nsvg'])):
+class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph_name', 'glyph_id', 'codepoints', 'nsvg'])):
     @staticmethod
-    def create(ufo, filename, codepoints, nsvg):
+    def create(ufo, filename, glyph_id, codepoints, nsvg):
         logging.info(' ColorGlyph for %s', filename)
         glyph_name = _glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
@@ -35,6 +35,7 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph
         return  ColorGlyph(ufo,
                            filename,
                            glyph_name,
+                           glyph_id,
                            codepoints,
                            nsvg)
 
