@@ -20,7 +20,6 @@ import collections
 from color_glyph import ColorGlyph
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
-import gzip
 import io
 from itertools import chain
 from nanosvg.svg import SVG
@@ -202,19 +201,16 @@ def _colr_v0_ufo(ufo, color_glyphs):
 
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
-    _data_fn = lambda s: s  # nop
-    if zip:
-        _data_fn = lambda s: gzip.compress(s.encode('UTF-8'))
-
     svg_table = ttLib.newTable('SVG ')
-    svg_table.docList = [(_data_fn(c.nsvg
-                                    # dumb sizing isn't useful
-                                   .remove_attributes(('width', 'height'))
-                                   # Firefox likes to render blank if present
-                                   .remove_attributes(('enable-background',))
-                                   # Required to match gid
-                                   .set_attributes((('id', f'glyph{c.glyph_id}'),))
-                                   .tostring()),
+    svg_table.compressed = zip
+    svg_table.docList = [(c.nsvg
+                          # dumb sizing isn't useful
+                          .remove_attributes(('width', 'height'))
+                          # Firefox likes to render blank if present
+                          .remove_attributes(('enable-background',))
+                          # Required to match gid
+                          .set_attributes((('id', f'glyph{c.glyph_id}'),))
+                          .tostring(),
                           ttfont.getGlyphID(c.glyph_name), 
                           ttfont.getGlyphID(c.glyph_name))
                          for c in color_glyphs]

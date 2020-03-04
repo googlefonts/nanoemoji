@@ -50,8 +50,12 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph
         # shift so origin is 0,0
         dx = -view_box[0]
         dy = -view_box[1]
+        # scale to font upem
         x_scale = round(upem / abs(view_box[2] + dx), 3)
-        y_scale = round(-1 * upem / abs(view_box[3] + dy), 3)
+        y_scale = round(upem / abs(view_box[3] + dy), 3)
+        # flip y axis and shift so things are in the right place
+        y_scale = -y_scale
+        dy = dy + upem
         transform = Transform(x_scale, 0, 0, y_scale, dx, dy)
         logging.debug('%s %s %s', self.ufo.info.familyName, self.glyph_name, transform)
         return transform

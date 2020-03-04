@@ -21,16 +21,16 @@ def _test_file(filename):
     "view_box, upem, expected_transform",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, Transform(1, 0, 0, -1, 0, 0)),
+        ("0 0 1024 1024", 1024, Transform(1, 0, 0, -1, 0, 1024)),
 
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, Transform(8, 0, 0, -8, 0, 0)),
+        ("0 0 128 128", 1024, Transform(8, 0, 0, -8, 0, 1024)),
 
         # noto emoji emoji_u26be.svg viewBox. Translate, scale, flip y
-        ("-151 297 128 128", 1024, Transform(3.67, 0, 0, -6.059, 151, -297)),
+        ("-151 297 128 128", 1024, Transform(3.67, 0, 0, -6.059, 151, 1024 - 297)),
 
         # made up example. Translate, scale, flip y
-        ("10 11 20 21", 100, Transform(10, 0, 0, -10, -10, -11)),
+        ("10 11 20 21", 100, Transform(10, 0, 0, -10, -10, 100 - 11)),
     ],
 )
 def test_transform(view_box, upem, expected_transform):
@@ -40,6 +40,7 @@ def test_transform(view_box, upem, expected_transform):
                '/>')
     color_glyph = ColorGlyph.create(_ufo(upem),
                                     'duck',
+                                    1,
                                     [0x0042],
                                     SVG.fromstring(svg_str))
 
