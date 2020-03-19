@@ -1,6 +1,9 @@
+from colors import Color
 from color_glyph import ColorGlyph
 from fontTools.misc.transform import Transform
 from nanosvg.svg import SVG
+import os
+from paint import *
 import pytest
 import ufoLib2
 
@@ -15,6 +18,10 @@ def _ufo(upem):
 
 def _test_file(filename):
     return os.path.join(os.path.dirname(__file__), filename)
+
+
+def _nsvg(filename):
+    return SVG.parse(_test_file(filename)).tonanosvg()
 
 
 @pytest.mark.parametrize(
@@ -45,3 +52,37 @@ def test_transform(view_box, upem, expected_transform):
                                     SVG.fromstring(svg_str))
 
     assert color_glyph.transform_for_font_space() == expected_transform
+
+@pytest.mark.parametrize(
+    "svg_in, expected_paints",
+    [
+        # solid
+        (
+            "solid_rect.svg",
+            {PaintSolid(color=Color.fromstring('blue'))},
+        ),
+
+        # linear
+        (
+            "linear_gradient_rect.svg",
+            {PaintLinearGradient(
+                stops=(
+                    ColorStop(stopOffset=0.1, color=Color.fromstring('blue')),
+                    ColorStop(stopOffset=0.9, color=Color.fromstring('cyan')),
+                ))
+            },
+        ),
+
+        # radial
+
+
+        # TODO transform?
+    ],
+)
+def test_paint_from_shape(svg_in, expected_paints):
+    color_glyph = ColorGlyph.create(_ufo(256),
+                                    'duck',
+                                    1,
+                                    [0x0042],
+                                    _nsvg(svg_in))
+    assert color_glyph.paints() == expected_paints

@@ -31,6 +31,9 @@ import ufoLib2
 import ufo2ft
 
 
+ColorFontConfig = collections.namedtuple(
+    'ColorFontConfig', ['upem', 'family', 'color_format', 'output_format'])
+
 # A color font generator.
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
 #   apply_ttfont(ufo, color_glyphs, ttfont) is called second, to allow fixups after ufo2ft
@@ -40,11 +43,12 @@ import ufo2ft
 # Where possible code to the ufo and let apply_ttfont be a nop.
 ColorGenerator = collections.namedtuple('ColorGenerator', ['apply_ufo', 'apply_ttfont'])
 
+
 _COLOR_FORMAT_GENERATORS = {
-    'colr_0': ColorGenerator(lambda *args: _colr_v0_ufo(*args),
+    'colr_0': ColorGenerator(lambda *args: _colr_ufo(0, *args),
                              lambda *_: None),
-    'colr_1': ColorGenerator(lambda *args: _not_impl('ufo', *args),
-                             lambda *args: _not_impl('TTFont', *args)),
+    'colr_1': ColorGenerator(lambda *args: _colr_ufo(1, *args),
+                             lambda *_: None),
     'svg': ColorGenerator(lambda *_: None,
                           lambda *args: _svg_ttfont(*args, zip=False)),
     'svgz': ColorGenerator(lambda *_: None,
@@ -55,7 +59,9 @@ _COLOR_FORMAT_GENERATORS = {
                            lambda *args: _not_impl('TTFont', *args)),
 }
 
+
 FLAGS = flags.FLAGS
+
 
 # TODO move to config file?
 flags.DEFINE_integer('upem', 1024, 'Units per em.')
@@ -123,8 +129,8 @@ def _layer(ufo, idx):
     return ufo.layers[name]
 
 
-def _make_ttfont(format, ufo, color_glyphs):
-    if format == '.ufo':
+def _make_ttfont(config, ufo, color_glyphs):
+    if config.output_format == '.ufo':
         return None
 
     # Use skia-pathops to remove overlaps (i.e. simplify self-overlapping
@@ -132,16 +138,16 @@ def _make_ttfont(format, ufo, color_glyphs):
     # quadratic bezier curves (qcurve), which may appear
     # when we pass through nanosvg (e.g. arcs or stroked paths).
     ttfont = None
-    if format == ".ttf":
+    if config.output_format == ".ttf":
         ttfont = ufo2ft.compileTTF(ufo, overlapsBackend="pathops")
-    if format == ".otf":
+    if config.output_format == ".otf":
         ttfont = ufo2ft.compileOTF(ufo, overlapsBackend="pathops")
     
     if not ttfont:
-        raise ValueError('Unable to generate ' + output_file)
+        raise ValueError(f'Unable to generate {color_format} {dest_format}')
 
     # Permit fixups where we can't express something adequately in UFO
-    _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ttfont(ufo, color_glyphs, ttfont)
+    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(ufo, color_glyphs, ttfont)
 
     return ttfont
 
@@ -159,7 +165,7 @@ def _not_impl(*_):
     raise NotImplementedError('%s not implemented' % FLAGS.color_format)
 
 
-def _colr_v0_ufo(ufo, color_glyphs):
+def _colr_ufo(colr_version, ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette
     colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
     logging.debug('colors %s', colors)
@@ -170,14 +176,25 @@ def _colr_v0_ufo(ufo, color_glyphs):
     # We created glyph_name on the default layer for the base glyph
     # Now create glyph_name on layers 0..N-1 for the colored layers
     for color_glyph in color_glyphs:
-        layer_to_palette_idx = []
+        # For COLRv0, paint is just the palette index
+        # For COLRv1, it's a data structure describing paint
+        layer_to_paint = []
         svg_units_to_font_units = color_glyph.transform_for_font_space()
-        for idx, (color, path) in enumerate(color_glyph.as_colored_layers()):
+        for idx, (paint, path) in enumerate(color_glyph.as_painted_layers()):
             glyph_layer = _layer(ufo, idx)
 
-            # path needs to be draw in specified color on glyph_layer
-            palette_idx = colors.index(color)
-            layer_to_palette_idx.append((glyph_layer.name, palette_idx))
+            if colr_version == 0:
+                # COLRv0: draw using the first available color on the glyph_layer
+                # Results for gradients will be suboptimal :)
+                color = paint.colors()[0]
+                layer_to_paint.append((glyph_layer.name, colors.index(color)))
+
+            if colr_version == 1:
+                # COLRv0: fill in gradient paint structures
+                layer_to_paint.append((glyph_layer.name, paint.to_ufo_paint(colors)))
+
+            else:
+                raise ValueError('Unsupported COLR version: ' + colr_version)
 
             # we've got a colored layer, put a glyph on it
             glyph = glyph_layer.newGlyph(color_glyph.glyph_name)
@@ -187,9 +204,9 @@ def _colr_v0_ufo(ufo, color_glyphs):
             skia_path(path).draw(pen)
 
 
-        # each base glyph contains a list of (layer.name, color_palette_id) in z-order
+        # each base glyph contains a list of (layer.name, paint info) in z-order
         base_glyph = ufo.get(color_glyph.glyph_name)
-        base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_palette_idx
+        base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
 
     # Magic Incantation.
     # the filter below is required to enable the copying of the color layers
@@ -217,24 +234,39 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
     ttfont[svg_table.tableTag] = svg_table
 
 
-def main(argv):
-    inputs = list(_inputs(argv[1:]))
-    logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
+def _generate_color_font(config, glyph_inputs):
+    """Make a UFO and optionally a TTFont from svgs.
 
-    ufo = _ufo(FLAGS.family, FLAGS.upem)
+    Args:
+        color_font_config: ColorFontConfig
+        glyph_inputs: sequence of (filename, codepoints, nanosvg) tuples
+    """
+    ufo = _ufo(config.family, config.upem)
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
-                    for idx, (filename, codepoints, nsvg) in enumerate(inputs)]
+                    for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
         assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
 
-    _COLOR_FORMAT_GENERATORS[FLAGS.color_format].apply_ufo(ufo, color_glyphs)
+    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(ufo, color_glyphs)
 
-    format = os.path.splitext(FLAGS.output_file)[1]
-    ttfont = _make_ttfont(format, ufo, color_glyphs)
+    ttfont = _make_ttfont(config, ufo, color_glyphs)
 
     # TODO may wish to nuke 'post' glyph names
+
+    return ufo, ttfont
+
+def main(argv):
+    config = ColorFontConfig(upem=FLAGS.upem,
+                             family=FLAGS.family,
+                             color_format=FLAGS.color_format,
+                             output_format=os.path.splitext(FLAGS.output_file)[1])
+
+    inputs = list(_inputs(argv[1:]))
+    logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
+
+    ufo, ttfont = _generate_color_font(config, inputs)
 
     _write(ufo, ttfont, FLAGS.output_file)
     logging.info('Wrote %s' % FLAGS.output_file)
