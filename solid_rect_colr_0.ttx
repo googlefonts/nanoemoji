@@ -56,27 +56,10 @@
   </glyf>
 
   <COLR>
-    <Version value="1"/>
-    <!-- BaseGlyphRecordCount=0 -->
-    <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1Array>
-      <!-- BaseGlyphCount=1 -->
-      <BaseGlyphV1Record index="0">
-        <BaseGlyph value="emoji_e000"/>
-        <LayerV1Array>
-          <!-- LayerCount=1 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="emoji_e000.z_0"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Transparency value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1Array>
-      </BaseGlyphV1Record>
-    </BaseGlyphV1Array>
+    <version value="0"/>
+    <ColorGlyph name="emoji_e000">
+      <layer colorID="0" name="emoji_e000.z_0"/>
+    </ColorGlyph>
   </COLR>
 
   <CPAL>

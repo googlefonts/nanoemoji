@@ -186,15 +186,15 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             if colr_version == 0:
                 # COLRv0: draw using the first available color on the glyph_layer
                 # Results for gradients will be suboptimal :)
-                color = paint.colors()[0]
+                color = next(paint.colors())
                 layer_to_paint.append((glyph_layer.name, colors.index(color)))
 
-            if colr_version == 1:
+            elif colr_version == 1:
                 # COLRv0: fill in gradient paint structures
                 layer_to_paint.append((glyph_layer.name, paint.to_ufo_paint(colors)))
 
             else:
-                raise ValueError('Unsupported COLR version: ' + colr_version)
+                raise ValueError(f'Unsupported COLR version: {colr_version}')
 
             # we've got a colored layer, put a glyph on it
             glyph = glyph_layer.newGlyph(color_glyph.glyph_name)

@@ -5,7 +5,7 @@ Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gra
 from colors import Color, css_color
 import dataclasses
 from enum import Enum
-from typing import Tuple
+from typing import ClassVar, Tuple
 
 
 @dataclasses.dataclass(frozen=True)
@@ -27,7 +27,7 @@ class ColorStop:
 
 @dataclasses.dataclass(frozen=True)
 class PaintSolid:
-  format: int = 1 
+  format: ClassVar[int] = 1
   color: Color = css_color('black')
 
   def colors(self):
@@ -43,7 +43,7 @@ class PaintSolid:
 
 @dataclasses.dataclass(frozen=True)
 class PaintLinearGradient:
-  format: int = 2
+  format: ClassVar[int] = 2
   extend: Extend = Extend.PAD
   stops: Tuple[ColorStop,...] = dataclasses.field(default_factory=lambda: ())
   p0: Point = Point()
@@ -75,7 +75,7 @@ class PaintLinearGradient:
 
 @dataclasses.dataclass(frozen=True)
 class PaintRadialGradient:
-  format: int = 3 
+  format: ClassVar[int] = 3
   extend: Extend = Extend.PAD
   stops: Tuple[ColorStop] = dataclasses.field(default_factory=lambda: ())
   c0: Point = Point()

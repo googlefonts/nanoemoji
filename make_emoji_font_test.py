@@ -7,6 +7,29 @@ import pytest
 def _nsvg(filename):
     return SVG.parse(filename).tonanosvg()
 
+
+def _color_font_config(color_format, svg_in, output_format):
+    return make_emoji_font.ColorFontConfig(
+        upem=100,
+        family='UnitTest',
+        color_format=color_format,
+        output_format=output_format), [(svg_in, (0xE000,), _nsvg(svg_in))]
+
+
+def _check_ttx(svg_in, ttfont, expected_ttx):
+    actual_ttx = io.StringIO()
+    # Timestamps inside files #@$@#%@#
+    ttfont.saveXML(actual_ttx, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
+    actual_ttx = actual_ttx.getvalue()
+
+    result = actual_ttx == open(expected_ttx).read()
+    if not result:
+        tmp_ttx = f'/tmp/{svg_in}.ttx'
+        with open(tmp_ttx, 'w') as f:
+            f.write(actual_ttx)
+    assert result, f'TTX for font from {svg_in} is wrong. diff {expected_ttx} {tmp_ttx}'
+
+
 @pytest.mark.parametrize(
     "filename, codepoints",
     [
@@ -38,33 +61,17 @@ def test_codepoints_from_filename(filename, codepoints):
 
 
 @pytest.mark.parametrize(
-    "svg_in, expected_ttx, output_format",
+    "svg_in, expected_ttx, color_format, output_format",
     [
         # simple fill on rect
-        ('solid_rect.svg', 'solid_rect.ttx', '.ttf'),
+        ('solid_rect.svg', 'solid_rect_colr_0.ttx', 'colr_0', '.ttf'),
+        ('solid_rect.svg', 'solid_rect_colr_1.ttx', 'colr_1', '.ttf'),
 
         # linear gradient on rect
-        ('linear_gradient_rect.svg', 'linear_gradient_rect.ttx', '.ttf'),
+        ('linear_gradient_rect.svg', 'linear_gradient_rect.ttx', 'colr_1', '.ttf'),
     ]
 )
-def test_simple_svg_to_colr(svg_in, expected_ttx, output_format):
-    config = make_emoji_font.ColorFontConfig(
-        upem=100,
-        family='UnitTest',
-        color_format='colr_1',
-        output_format=output_format)
-    glyph_inputs = [(svg_in, (0xE000,), _nsvg(svg_in))]
-
+def test_make_emoji_font(svg_in, expected_ttx, color_format, output_format):
+    config, glyph_inputs = _color_font_config(color_format, svg_in, output_format)
     _, ttfont = make_emoji_font._generate_color_font(config, glyph_inputs)
-
-    actual_ttx = io.StringIO()
-    # Timestamps inside files #@$@#%@#
-    ttfont.saveXML(actual_ttx, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
-    actual_ttx = actual_ttx.getvalue()
-
-    result = actual_ttx == open(expected_ttx).read()
-    if not result:
-        tmp_ttx = f'/tmp/{svg_in}.ttx'
-        with open(tmp_ttx, 'w') as f:
-            f.write(actual_ttx)
-    assert result, f'TTX for font from {svg_in} is wrong. diff {expected_ttx} {tmp_ttx}'
+    _check_ttx(svg_in, ttfont, expected_ttx)
