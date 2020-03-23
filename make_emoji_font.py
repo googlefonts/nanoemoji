@@ -166,8 +166,13 @@ def _not_impl(*_):
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
-    # Sort colors so the index into colors == index into CPAL palette
-    colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
+    # Sort colors so the index into colors == index into CPAL palette.
+    # We only store opaque colors in CPAL for CORLv1, as 'transparency' is
+    # encoded separately.
+    colors = sorted(set(
+        c if colr_version == 0 else c.opaque()
+        for c in chain.from_iterable(g.colors() for g in color_glyphs)
+    ))
     logging.debug('colors %s', colors)
 
     # KISS; use a single global palette

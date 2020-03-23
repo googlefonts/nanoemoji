@@ -200,3 +200,6 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
                 float(f"{self.green / 255:.03f}"),
                 float(f"{self.blue / 255:.03f}"),
                 self.alpha)
+
+    def opaque(self):
+        return self._replace(alpha=1.0)
