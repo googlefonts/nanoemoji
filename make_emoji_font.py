@@ -208,14 +208,6 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
 
-    # Magic Incantation.
-    # the filter below is required to enable the copying of the color layers
-    # to standalone glyphs in the default glyph set used to build the TTFont
-    # TODO(anthrotype) Make this automatic somehow?
-    ufo.lib[ufo2ft.constants.FILTERS_KEY] = [
-        {"name": "Explode Color Layer Glyphs", "pre": True}
-    ]
-
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
     svg_table = ttLib.newTable('SVG ')
