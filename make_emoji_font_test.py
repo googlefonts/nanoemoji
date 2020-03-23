@@ -1,4 +1,7 @@
+import difflib
 import io
+import os
+import sys
 import make_emoji_font
 from nanosvg.svg import SVG
 import pytest
@@ -16,18 +19,35 @@ def _color_font_config(color_format, svg_in, output_format):
         output_format=output_format), [(svg_in, (0xE000,), _nsvg(svg_in))]
 
 
+def _normalize_ttx(ttx):
+    lines = []
+    for line in ttx.splitlines():
+        # Elide ttFont attributes because ttLibVersion may change,
+        # and use os-native line separators so we can run difflib.
+        if line.startswith("<ttFont "):
+            lines.append("<ttFont>" + os.linesep)
+        else:
+            lines.append(line + os.linesep)
+    return lines
+
+
 def _check_ttx(svg_in, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
     ttfont.saveXML(actual_ttx, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
-    actual_ttx = actual_ttx.getvalue()
+    actual = _normalize_ttx(actual_ttx.getvalue())
 
-    result = actual_ttx == open(expected_ttx).read()
-    if not result:
-        tmp_ttx = f'/tmp/{svg_in}.ttx'
-        with open(tmp_ttx, 'w') as f:
-            f.write(actual_ttx)
-    assert result, f'TTX for font from {svg_in} is wrong. diff {expected_ttx} {tmp_ttx}'
+    with open(expected_ttx) as f:
+        expected = _normalize_ttx(f.read())
+    if actual != expected:
+        for line in difflib.unified_diff(
+            expected,
+            actual,
+            fromfile=f'{expected_ttx} (expected)',
+            tofile=f'{expected_ttx} (actual)',
+        ):
+            sys.stderr.write(line)
+        pytest.fail(f'TTX for font from {svg_in} is wrong')
 
 
 @pytest.mark.parametrize(
