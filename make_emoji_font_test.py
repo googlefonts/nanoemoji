@@ -84,8 +84,8 @@ def test_codepoints_from_filename(filename, codepoints):
     "svg_in, expected_ttx, color_format, output_format",
     [
         # simple fill on rect
-        ('solid_rect.svg', 'solid_rect_colr_0.ttx', 'colr_0', '.ttf'),
-        ('solid_rect.svg', 'solid_rect_colr_1.ttx', 'colr_1', '.ttf'),
+        ('rect.svg', 'rect_colr_0.ttx', 'colr_0', '.ttf'),
+        ('rect.svg', 'rect_colr_1.ttx', 'colr_1', '.ttf'),
 
         # linear gradient on rect
         ('linear_gradient_rect.svg', 'linear_gradient_rect.ttx', 'colr_1', '.ttf'),
