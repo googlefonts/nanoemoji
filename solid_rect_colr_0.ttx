@@ -7,6 +7,7 @@
     <GlyphID id="1" name=".space"/>
     <GlyphID id="2" name="emoji_e000"/>
     <GlyphID id="3" name="emoji_e000.z_0"/>
+    <GlyphID id="4" name="emoji_e000.z_1"/>
   </GlyphOrder>
 
   <hmtx>
@@ -14,6 +15,7 @@
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="emoji_e000" width="100" lsb="0"/>
     <mtx name="emoji_e000.z_0" width="100" lsb="20"/>
+    <mtx name="emoji_e000.z_1" width="100" lsb="40"/>
   </hmtx>
 
   <cmap>
@@ -53,20 +55,32 @@
       <instructions/>
     </TTGlyph>
 
+    <TTGlyph name="emoji_e000.z_1" xMin="40" yMin="40" xMax="100" yMax="60">
+      <contour>
+        <pt x="40" y="60" on="1"/>
+        <pt x="40" y="40" on="1"/>
+        <pt x="100" y="40" on="1"/>
+        <pt x="100" y="60" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
   </glyf>
 
   <COLR>
     <version value="0"/>
     <ColorGlyph name="emoji_e000">
-      <layer colorID="0" name="emoji_e000.z_0"/>
+      <layer colorID="1" name="emoji_e000.z_0"/>
+      <layer colorID="0" name="emoji_e000.z_1"/>
     </ColorGlyph>
   </COLR>
 
   <CPAL>
     <version value="0"/>
-    <numPaletteEntries value="1"/>
+    <numPaletteEntries value="2"/>
     <palette index="0">
-      <color index="0" value="#0000FFFF"/>
+      <color index="0" value="#0000FFCC"/>
+      <color index="1" value="#0000FFFF"/>
     </palette>
   </CPAL>
 

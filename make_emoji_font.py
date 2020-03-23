@@ -166,8 +166,13 @@ def _not_impl(*_):
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
-    # Sort colors so the index into colors == index into CPAL palette
-    colors = sorted(set(chain.from_iterable((g.colors() for g in color_glyphs))))
+    # Sort colors so the index into colors == index into CPAL palette.
+    # We only store opaque colors in CPAL for CORLv1, as 'transparency' is
+    # encoded separately.
+    colors = sorted(set(
+        c if colr_version == 0 else c.opaque()
+        for c in chain.from_iterable(g.colors() for g in color_glyphs)
+    ))
     logging.debug('colors %s', colors)
 
     # KISS; use a single global palette
@@ -207,14 +212,6 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         # each base glyph contains a list of (layer.name, paint info) in z-order
         base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
-
-    # Magic Incantation.
-    # the filter below is required to enable the copying of the color layers
-    # to standalone glyphs in the default glyph set used to build the TTFont
-    # TODO(anthrotype) Make this automatic somehow?
-    ufo.lib[ufo2ft.constants.FILTERS_KEY] = [
-        {"name": "Explode Color Layer Glyphs", "pre": True}
-    ]
 
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):

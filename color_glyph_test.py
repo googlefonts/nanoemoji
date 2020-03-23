@@ -59,7 +59,10 @@ def test_transform(view_box, upem, expected_transform):
         # solid
         (
             "solid_rect.svg",
-            {PaintSolid(color=Color.fromstring('blue'))},
+            {
+                PaintSolid(color=Color.fromstring('blue')),
+                PaintSolid(color=Color.fromstring('blue', alpha=0.8)),
+            },
         ),
 
         # linear

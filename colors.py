@@ -162,13 +162,13 @@ def css_color(name):
 
 class Color(collections.namedtuple("Color", "red green blue alpha")):
     @classmethod
-    def fromstring(_, s, alpha=1.0):
+    def fromstring(cls, s, alpha=1.0):
         # https://www.w3.org/TR/css-color-4/#hex-notation
         if s.startswith("#"):
             ss = s[1:]
             if len(ss) in (3, 4):
                 ss = "".join((s + s for s in ss))
-            
+
             if len(ss) in (6, 8):
                 red = int(ss[0:2], 16)
                 green = int(ss[2:4], 16)
@@ -191,7 +191,7 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             )
         else:
             raise ValueError(f"invalid or unsupported color string: {s!r}")
-        return Color(red, green, blue, alpha)
+        return cls(red, green, blue, alpha)
 
     def to_ufo_color(self):
         # UFO stores colors as RGBA tuples of decimal [0..1] floats. Here we round to 3
@@ -200,3 +200,6 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
                 float(f"{self.green / 255:.03f}"),
                 float(f"{self.blue / 255:.03f}"),
                 self.alpha)
+
+    def opaque(self):
+        return self._replace(alpha=1.0)
