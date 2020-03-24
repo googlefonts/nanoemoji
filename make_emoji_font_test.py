@@ -1,6 +1,7 @@
 import difflib
 import io
 import os
+import re
 import sys
 import make_emoji_font
 from nanosvg.svg import SVG
@@ -19,30 +20,22 @@ def _color_font_config(color_format, svg_in, output_format):
         output_format=output_format), [(svg_in, (0xE000,), _nsvg(svg_in))]
 
 
-def _normalize_ttx(ttx):
-    lines = []
-    for line in ttx.splitlines():
-        # Elide ttFont attributes because ttLibVersion may change,
-        # and use os-native line separators so we can run difflib.
-        if line.startswith("<ttFont "):
-            lines.append("<ttFont>" + os.linesep)
-        else:
-            lines.append(line + os.linesep)
-    return lines
-
-
 def _check_ttx(svg_in, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
-    ttfont.saveXML(actual_ttx, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
-    actual = _normalize_ttx(actual_ttx.getvalue())
+    # Use os-native line separators so we can run difflib.
+    ttfont.saveXML(actual_ttx, newlinestr=os.linesep, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
+
+    # Elide ttFont attributes because ttLibVersion may change
+    actual = re.sub(r'\s+ttLibVersion="[^"]+"', '', actual_ttx.getvalue())
 
     with open(expected_ttx) as f:
-        expected = _normalize_ttx(f.read())
+        expected = f.read()
+
     if actual != expected:
         for line in difflib.unified_diff(
-            expected,
-            actual,
+            expected.splitlines(keepends=True),
+            actual.splitlines(keepends=True),
             fromfile=f'{expected_ttx} (expected)',
             tofile=f'{expected_ttx} (actual)',
         ):
