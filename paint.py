@@ -19,6 +19,7 @@ class Extend(Enum):
   REPEAT = 1,
   REFLECT = 2,
 
+
 @dataclasses.dataclass(frozen=True)
 class ColorStop:
   stopOffset: float = 0.
@@ -41,6 +42,20 @@ class PaintSolid:
     }
 
 
+def _ufoColorLine(gradient, colors):
+  return {
+    "stops": [
+        {
+            "offset": stop.stopOffset,
+            "paletteIndex": colors.index(stop.color.opaque()),
+            "transparency": 1.0 - stop.color.alpha,
+        }
+        for stop in gradient.stops
+      ],
+      "extend": gradient.extend.name.lower(),
+  }
+
+
 @dataclasses.dataclass(frozen=True)
 class PaintLinearGradient:
   format: ClassVar[int] = 2
@@ -57,16 +72,7 @@ class PaintLinearGradient:
   def to_ufo_paint(self, colors):
     result = {
         "format": self.format,
-        "colorLine": {
-            "stops": [
-                {
-                    "offset": stop.stopOffset,
-                    "paletteIndex": colors.index(stop.color.opaque()),
-                    "transparency": 1.0 - stop.color.alpha,
-                }
-                for stop in self.stops
-            ]
-        },
+        "colorLine": _ufoColorLine(self, colors),
         "p0": dataclasses.astuple(self.p0),
         "p1": dataclasses.astuple(self.p1),
     }
@@ -88,5 +94,12 @@ class PaintRadialGradient:
   def colors(self):
     for stop in self.stops:
       yield stop.color
+
+  def to_ufo_paint(self, colors):
+    result = {
+        "format": self.format,
+        "colorLine": _ufoColorLine(self, colors),
+    }
+    return result
 
 

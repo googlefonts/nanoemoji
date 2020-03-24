@@ -4,8 +4,14 @@ import collections
 from colors import Color
 from itertools import chain
 from lxml import etree
-from paint import ColorStop, PaintLinearGradient, PaintSolid
+from paint import Extend, ColorStop, PaintLinearGradient, PaintRadialGradient, PaintSolid
 import regex
+
+
+_GRADIENT_INFO = {
+    'linearGradient': (PaintLinearGradient, lambda el: {}),
+    'radialGradient': (PaintRadialGradient, lambda el: {}),
+}
 
 
 def _glyph_name(codepoints):
@@ -22,21 +28,27 @@ def _color_stop(stop_el):
     return ColorStop(stopOffset=int(offset[:-1]) / 100, color=Color.fromstring(color))
 
 
+def _common_gradient_parts(el):
+    spread_method = el.attrib.get('spreadMethod', 'pad').upper()
+    if spread_method not in Extend.__members__:
+        raise ValueError(f'Unknown spreadMethod {spread_method}')
+
+    return {
+        'extend': Extend.__members__[spread_method],
+        'stops': tuple(_color_stop(stop) for stop in el),
+    }
+
+
 def _paint(nsvg, shape):
     match = regex.match(r'^url[(]#([^)]+)[)]$', shape.fill)
     if shape.fill.startswith('url('):
         el = nsvg.resolve_url(shape.fill, '*')
-        tag = etree.QName(el).localname
 
-        if tag == 'linearGradient':
-            if set(el.attrib.keys()) != {'id'}:
-                raise ValueError('Only @id supported for linearGradient')
-            return PaintLinearGradient(stops=tuple(_color_stop(stop) for stop in el))
-        elif tag == 'radialGradient':
-            logging.warning('TODO process radialGradient %s', shape.fill)
-            raise ValueError(f'Unable to handle {el.tag}')
-        else:
-            raise ValueError(f'Unable to handle {el.tag}')
+        grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
+        grad_args = _common_gradient_parts(el)
+        grad_args.update(grad_type_parser(el))
+        return grad_type(**grad_args)
+
     return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
 
 

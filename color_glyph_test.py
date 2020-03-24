@@ -77,9 +77,18 @@ def test_transform(view_box, upem, expected_transform):
         ),
 
         # radial
+        (
+            "radial_gradient_rect.svg",
+            {PaintRadialGradient(
+                extend=Extend.REPEAT,
+                stops=(
+                    ColorStop(stopOffset=0.05, color=Color.fromstring('fuchsia')),
+                    ColorStop(stopOffset=0.75, color=Color.fromstring('orange')),
+                ))
+            },
+        ),
 
-
-        # TODO transform?
+        # TODO gradientTransform => affine2x2
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
