@@ -6,12 +6,7 @@ from colors import Color, css_color
 import dataclasses
 from enum import Enum
 from typing import ClassVar, Tuple
-
-
-@dataclasses.dataclass(frozen=True)
-class Point:
-    x: int = 0
-    y: int = 0
+from nanosvg.geometric_types import Point
 
 
 class Extend(Enum):
