@@ -13,7 +13,11 @@ setup(
         ],
     },
 
-    install_requires=["lxml>=4.0", "skia-pathops>=0.3",],
+    install_requires=[
+        "absl-py>=0.9.0",
+        "lxml>=4.0",
+        "skia-pathops>=0.3",
+    ],
 
     # metadata to display on PyPI
     author="Rod S",
