@@ -4,7 +4,7 @@
     <radialGradient id="grad1"
                     spreadMethod="repeat" >
       <stop offset="5%"  stop-color="fuchsia"/>
-      <stop offset="75%" stop-color="orange"/>
+      <stop offset="0.75" stop-color="orange"/>
     </radialGradient>
   </defs>
   <rect x="2" y="2" width="6" height="2" fill="url(#grad1)" />

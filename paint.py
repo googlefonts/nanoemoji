@@ -68,11 +68,11 @@ class PaintLinearGradient:
         result = {
             "format": self.format,
             "colorLine": _ufoColorLine(self, colors),
-            "p0": dataclasses.astuple(self.p0),
-            "p1": dataclasses.astuple(self.p1),
+            "p0": self.p0,
+            "p1": self.p1,
         }
         if self.p2:
-            result["p2"] = dataclasses.astuple(self.p2)
+            result["p2"] = self.p2
         return result
 
 
@@ -95,5 +95,9 @@ class PaintRadialGradient:
         result = {
             "format": self.format,
             "colorLine": _ufoColorLine(self, colors),
+            "c0": self.c0,
+            "c1": self.c1,
+            "r0": self.r0,
+            "r1": self.r1,
         }
         return result
