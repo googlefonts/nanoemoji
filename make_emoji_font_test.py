@@ -13,21 +13,29 @@ def _nsvg(filename):
 
 
 def _color_font_config(color_format, svg_in, output_format):
-    return make_emoji_font.ColorFontConfig(
-        upem=100,
-        family='UnitTest',
-        color_format=color_format,
-        output_format=output_format), [(svg_in, (0xE000,), _nsvg(svg_in))]
+    return (
+        make_emoji_font.ColorFontConfig(
+            upem=100,
+            family="UnitTest",
+            color_format=color_format,
+            output_format=output_format,
+        ),
+        [(svg_in, (0xE000,), _nsvg(svg_in))],
+    )
 
 
 def _check_ttx(svg_in, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
     # Use os-native line separators so we can run difflib.
-    ttfont.saveXML(actual_ttx, newlinestr=os.linesep, skipTables=['head', 'hhea', 'maxp', 'name', 'post', 'OS/2'])
+    ttfont.saveXML(
+        actual_ttx,
+        newlinestr=os.linesep,
+        skipTables=["head", "hhea", "maxp", "name", "post", "OS/2"],
+    )
 
     # Elide ttFont attributes because ttLibVersion may change
-    actual = re.sub(r'\s+ttLibVersion="[^"]+"', '', actual_ttx.getvalue())
+    actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
 
     with open(expected_ttx) as f:
         expected = f.read()
@@ -36,30 +44,33 @@ def _check_ttx(svg_in, ttfont, expected_ttx):
         for line in difflib.unified_diff(
             expected.splitlines(keepends=True),
             actual.splitlines(keepends=True),
-            fromfile=f'{expected_ttx} (expected)',
-            tofile=f'{expected_ttx} (actual)',
+            fromfile=f"{expected_ttx} (expected)",
+            tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        pytest.fail(f'TTX for font from {svg_in} is wrong')
+        pytest.fail(f"TTX for font from {svg_in} is wrong")
 
 
 @pytest.mark.parametrize(
     "filename, codepoints",
     [
         # Noto Emoji, single codepoint
-        ('emoji_u1f378.svg', (0x1f378,)),
+        ("emoji_u1f378.svg", (0x1F378,)),
         # Noto Emoji, multiple codepoints
-        ('emoji_u1f385_1f3fb.svg', (0x1f385, 0x1f3fb)),
+        ("emoji_u1f385_1f3fb.svg", (0x1F385, 0x1F3FB)),
         # Noto Emoji, lots of codepoints!
         (
-            'emoji_u1f469_1f3fd_200d_1f91d_200d_1f468_1f3ff.svg',
-            (0x1f469, 0x1f3fd, 0x200d, 0x1f91d, 0x200d, 0x1f468, 0x1f3ff)
+            "emoji_u1f469_1f3fd_200d_1f91d_200d_1f468_1f3ff.svg",
+            (0x1F469, 0x1F3FD, 0x200D, 0x1F91D, 0x200D, 0x1F468, 0x1F3FF),
         ),
         # Twemoji, single codepoint
-        ('2198.svg', (0x2198,)),
+        ("2198.svg", (0x2198,)),
         # Twemoji, multiple codepoints
-        ('1f9d1-200d-1f91d-200d-1f9d1.svg', (0x1f9d1, 0x200d, 0x1f91d, 0x200d, 0x1f9d1)),
-    ]
+        (
+            "1f9d1-200d-1f91d-200d-1f9d1.svg",
+            (0x1F9D1, 0x200D, 0x1F91D, 0x200D, 0x1F9D1),
+        ),
+    ],
 )
 def test_codepoints_from_filename(filename, codepoints):
     assert codepoints == make_emoji_font._codepoints_from_filename(filename)
@@ -77,12 +88,11 @@ def test_codepoints_from_filename(filename, codepoints):
     "svg_in, expected_ttx, color_format, output_format",
     [
         # simple fill on rect
-        ('rect.svg', 'rect_colr_0.ttx', 'colr_0', '.ttf'),
-        ('rect.svg', 'rect_colr_1.ttx', 'colr_1', '.ttf'),
-
+        ("rect.svg", "rect_colr_0.ttx", "colr_0", ".ttf"),
+        ("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
         # linear gradient on rect
-        ('linear_gradient_rect.svg', 'linear_gradient_rect.ttx', 'colr_1', '.ttf'),
-    ]
+        ("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
+    ],
 )
 def test_make_emoji_font(svg_in, expected_ttx, color_format, output_format):
     config, glyph_inputs = _color_font_config(color_format, svg_in, output_format)

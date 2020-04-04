@@ -33,7 +33,8 @@ import ufo2ft
 
 
 ColorFontConfig = collections.namedtuple(
-    'ColorFontConfig', ['upem', 'family', 'color_format', 'output_format'])
+    "ColorFontConfig", ["upem", "family", "color_format", "output_format"]
+)
 
 # A color font generator.
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
@@ -42,22 +43,20 @@ ColorFontConfig = collections.namedtuple(
 #   https://github.com/unified-font-object/ufo-spec/issues/104
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
-ColorGenerator = collections.namedtuple('ColorGenerator', ['apply_ufo', 'apply_ttfont'])
+ColorGenerator = collections.namedtuple("ColorGenerator", ["apply_ufo", "apply_ttfont"])
 
 
 _COLOR_FORMAT_GENERATORS = {
-    'colr_0': ColorGenerator(lambda *args: _colr_ufo(0, *args),
-                             lambda *_: None),
-    'colr_1': ColorGenerator(lambda *args: _colr_ufo(1, *args),
-                             lambda *_: None),
-    'svg': ColorGenerator(lambda *_: None,
-                          lambda *args: _svg_ttfont(*args, zip=False)),
-    'svgz': ColorGenerator(lambda *_: None,
-                           lambda *args: _svg_ttfont(*args, zip=True)),
-    'cbdt': ColorGenerator(lambda *args: _not_impl('ufo', *args),
-                           lambda *args: _not_impl('TTFont', *args)),
-    'sbix': ColorGenerator(lambda *args: _not_impl('ufo', *args),
-                           lambda *args: _not_impl('TTFont', *args)),
+    "colr_0": ColorGenerator(lambda *args: _colr_ufo(0, *args), lambda *_: None),
+    "colr_1": ColorGenerator(lambda *args: _colr_ufo(1, *args), lambda *_: None),
+    "svg": ColorGenerator(lambda *_: None, lambda *args: _svg_ttfont(*args, zip=False)),
+    "svgz": ColorGenerator(lambda *_: None, lambda *args: _svg_ttfont(*args, zip=True)),
+    "cbdt": ColorGenerator(
+        lambda *args: _not_impl("ufo", *args), lambda *args: _not_impl("TTFont", *args)
+    ),
+    "sbix": ColorGenerator(
+        lambda *args: _not_impl("ufo", *args), lambda *args: _not_impl("TTFont", *args)
+    ),
 }
 
 
@@ -65,20 +64,26 @@ FLAGS = flags.FLAGS
 
 
 # TODO move to config file?
-flags.DEFINE_integer('upem', 1024, 'Units per em.')
-flags.DEFINE_string('family', 'An Emoji Family', 'Family name.')
-flags.DEFINE_enum('color_format', 'colr_0',
-                  sorted(_COLOR_FORMAT_GENERATORS.keys()),
-                  'Type of color font to generate.')
-flags.DEFINE_string('output_file', '/tmp/AnEmojiFamily-Regular.ttf',
-                    'Dest file, can be .ttf, .otf, or .ufo')
+flags.DEFINE_integer("upem", 1024, "Units per em.")
+flags.DEFINE_string("family", "An Emoji Family", "Family name.")
+flags.DEFINE_enum(
+    "color_format",
+    "colr_0",
+    sorted(_COLOR_FORMAT_GENERATORS.keys()),
+    "Type of color font to generate.",
+)
+flags.DEFINE_string(
+    "output_file",
+    "/tmp/AnEmojiFamily-Regular.ttf",
+    "Dest file, can be .ttf, .otf, or .ufo",
+)
 
 
 def _codepoints_from_filename(filename):
-    match = regex.search(r'(?:[-_]?([0-9a-fA-F]{4,}))+', filename)
+    match = regex.search(r"(?:[-_]?([0-9a-fA-F]{4,}))+", filename)
     if match:
         return tuple(int(s, 16) for s in match.captures(1))
-    logging.warning(f'Bad filename {filename}; unable to extract codepoints')
+    logging.warning(f"Bad filename {filename}; unable to extract codepoints")
     return None
 
 
@@ -86,7 +91,7 @@ def _nanosvg(filename):
     try:
         return SVG.parse(filename).tonanosvg()
     except Exception as e:
-        logging.warning(f'{filename} failed: {e}')
+        logging.warning(f"{filename} failed: {e}")
     return None
 
 
@@ -106,11 +111,11 @@ def _ufo(family, upem):
     ufo.info.unitsPerEm = upem
 
     # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
-    ufo.newGlyph('.notdef')
-    space = ufo.newGlyph('.space')
+    ufo.newGlyph(".notdef")
+    space = ufo.newGlyph(".space")
     space.unicodes = [0x0020]
     space.width = upem
-    ufo.glyphOrder = ['.notdef', '.space']
+    ufo.glyphOrder = [".notdef", ".space"]
 
     return ufo
 
@@ -124,14 +129,14 @@ def _layer(ufo, idx):
 
     The only real significance is z-order so name on that basis.
     """
-    name = f'z_{idx}'
+    name = f"z_{idx}"
     if name not in ufo.layers:
         ufo.newLayer(name)
     return ufo.layers[name]
 
 
 def _make_ttfont(config, ufo, color_glyphs):
-    if config.output_format == '.ufo':
+    if config.output_format == ".ufo":
         return None
 
     # Use skia-pathops to remove overlaps (i.e. simplify self-overlapping
@@ -143,18 +148,20 @@ def _make_ttfont(config, ufo, color_glyphs):
         ttfont = ufo2ft.compileTTF(ufo, overlapsBackend="pathops")
     if config.output_format == ".otf":
         ttfont = ufo2ft.compileOTF(ufo, overlapsBackend="pathops")
-    
+
     if not ttfont:
-        raise ValueError(f'Unable to generate {color_format} {dest_format}')
+        raise ValueError(f"Unable to generate {color_format} {dest_format}")
 
     # Permit fixups where we can't express something adequately in UFO
-    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(ufo, color_glyphs, ttfont)
+    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
+        ufo, color_glyphs, ttfont
+    )
 
     return ttfont
 
 
 def _write(ufo, ttfont, output_file):
-    logging.info('Writing %s', output_file)
+    logging.info("Writing %s", output_file)
 
     if os.path.splitext(output_file)[1] == ".ufo":
         ufo.save(output_file, overwrite=True)
@@ -163,18 +170,20 @@ def _write(ufo, ttfont, output_file):
 
 
 def _not_impl(*_):
-    raise NotImplementedError('%s not implemented' % FLAGS.color_format)
+    raise NotImplementedError("%s not implemented" % FLAGS.color_format)
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for CORLv1, as 'transparency' is
     # encoded separately.
-    colors = sorted(set(
-        c if colr_version == 0 else c.opaque()
-        for c in chain.from_iterable(g.colors() for g in color_glyphs)
-    ))
-    logging.debug('colors %s', colors)
+    colors = sorted(
+        set(
+            c if colr_version == 0 else c.opaque()
+            for c in chain.from_iterable(g.colors() for g in color_glyphs)
+        )
+    )
+    logging.debug("colors %s", colors)
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
@@ -200,7 +209,7 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
                 layer_to_paint.append((glyph_layer.name, paint.to_ufo_paint(colors)))
 
             else:
-                raise ValueError(f'Unsupported COLR version: {colr_version}')
+                raise ValueError(f"Unsupported COLR version: {colr_version}")
 
             # we've got a colored layer, put a glyph on it
             glyph = glyph_layer.newGlyph(color_glyph.glyph_name)
@@ -209,44 +218,46 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
             skia_path(path).draw(pen)
 
-
         # each base glyph contains a list of (layer.name, paint info) in z-order
         base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
 
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
-    svg_table = ttLib.newTable('SVG ')
+    svg_table = ttLib.newTable("SVG ")
     svg_table.compressed = zip
-    svg_table.docList = [(c.nsvg
-                          # dumb sizing isn't useful
-                          .remove_attributes(('width', 'height'))
-                          # Firefox likes to render blank if present
-                          .remove_attributes(('enable-background',))
-                          # Required to match gid
-                          .set_attributes((('id', f'glyph{c.glyph_id}'),))
-                          .tostring(),
-                          ttfont.getGlyphID(c.glyph_name), 
-                          ttfont.getGlyphID(c.glyph_name))
-                         for c in color_glyphs]
+    svg_table.docList = [
+        (
+            c.nsvg
+            # dumb sizing isn't useful
+            .remove_attributes(("width", "height"))
+            # Firefox likes to render blank if present
+            .remove_attributes(("enable-background",))
+            # Required to match gid
+            .set_attributes((("id", f"glyph{c.glyph_id}"),)).tostring(),
+            ttfont.getGlyphID(c.glyph_name),
+            ttfont.getGlyphID(c.glyph_name),
+        )
+        for c in color_glyphs
+    ]
     ttfont[svg_table.tableTag] = svg_table
 
 
 def _generate_fea(rgi_sequences):
     # TODO if this is a qualified sequence create the unqualified version and vice versa
     rules = []
-    rules.append('languagesystem DFLT dflt;')
-    rules.append('languagesystem latn dflt;')
+    rules.append("languagesystem DFLT dflt;")
+    rules.append("languagesystem latn dflt;")
 
-    rules.append('feature rlig {')
+    rules.append("feature rlig {")
     for rgi, target in sorted(rgi_sequences):
         if len(rgi) == 1:
             continue
         glyphs = [glyph_name(cp) for cp in rgi]
-        rules.append('  sub %s by %s;' % (' '.join(glyphs), target))
+        rules.append("  sub %s by %s;" % (" ".join(glyphs), target))
 
-    rules.append('} rlig;')
-    return '\n'.join(rules)
+    rules.append("} rlig;")
+    return "\n".join(rules)
 
 
 def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
@@ -258,13 +269,13 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     """
     all_codepoints = set()
     direct_mapped_codepoints = set()
-    for _, codepoints, _ in glyph_inputs:        
+    for _, codepoints, _ in glyph_inputs:
         if len(codepoints) == 1:
             direct_mapped_codepoints.update(codepoints)
         all_codepoints.update(codepoints)
 
     need_blanks = all_codepoints - direct_mapped_codepoints
-    logging.debug('%d codepoints require blanks', len(need_blanks))
+    logging.debug("%d codepoints require blanks", len(need_blanks))
     glyph_names = []
     for codepoint in need_blanks:
         # Any layer is fine; we aren't going to draw
@@ -286,16 +297,20 @@ def _generate_color_font(config, glyph_inputs):
     _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs)
 
     base_gid = len(ufo.glyphOrder)
-    color_glyphs = [ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
-                    for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)]
+    color_glyphs = [
+        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
+        for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)
+    ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
         assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
 
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(ufo, color_glyphs)
 
-    ufo.features.text = _generate_fea([(c.codepoints, c.glyph_name) for c in color_glyphs])
-    logging.debug('fea:\n%s\n' % ufo.features.text)
+    ufo.features.text = _generate_fea(
+        [(c.codepoints, c.glyph_name) for c in color_glyphs]
+    )
+    logging.debug("fea:\n%s\n" % ufo.features.text)
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 
@@ -303,19 +318,22 @@ def _generate_color_font(config, glyph_inputs):
 
     return ufo, ttfont
 
+
 def main(argv):
-    config = ColorFontConfig(upem=FLAGS.upem,
-                             family=FLAGS.family,
-                             color_format=FLAGS.color_format,
-                             output_format=os.path.splitext(FLAGS.output_file)[1])
+    config = ColorFontConfig(
+        upem=FLAGS.upem,
+        family=FLAGS.family,
+        color_format=FLAGS.color_format,
+        output_format=os.path.splitext(FLAGS.output_file)[1],
+    )
 
     inputs = list(_inputs(argv[1:]))
-    logging.info(f'{len(inputs)}/{len(argv[1:])} inputs prepared successfully')
+    logging.info(f"{len(inputs)}/{len(argv[1:])} inputs prepared successfully")
 
     ufo, ttfont = _generate_color_font(config, inputs)
 
     _write(ufo, ttfont, FLAGS.output_file)
-    logging.info('Wrote %s' % FLAGS.output_file)
+    logging.info("Wrote %s" % FLAGS.output_file)
 
 
 if __name__ == "__main__":
