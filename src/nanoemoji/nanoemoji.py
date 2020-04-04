@@ -17,12 +17,12 @@ from absl import app
 from absl import flags
 from absl import logging
 import collections
-from color_glyph import ColorGlyph
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
-from glyph import glyph_name
 import io
 from itertools import chain
+from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.glyph import glyph_name
 from nanosvg.svg import SVG
 from nanosvg.svg_pathops import skia_path
 import os
@@ -319,7 +319,7 @@ def _generate_color_font(config, glyph_inputs):
     return ufo, ttfont
 
 
-def main(argv):
+def _run(argv):
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
@@ -328,6 +328,9 @@ def main(argv):
     )
 
     inputs = list(_inputs(argv[1:]))
+    if not inputs:
+        sys.exit('Please provide at least one svg filename')
+
     logging.info(f"{len(inputs)}/{len(argv[1:])} inputs prepared successfully")
 
     ufo, ttfont = _generate_color_font(config, inputs)
@@ -336,5 +339,10 @@ def main(argv):
     logging.info("Wrote %s" % FLAGS.output_file)
 
 
+def main():
+    # We don't seem to be __main__ when run as cli tool installed by setuptools
+    app.run(_run)
+
+
 if __name__ == "__main__":
-    app.run(main)
+    app.run(_run)

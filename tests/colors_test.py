@@ -1,4 +1,4 @@
-from colors import Color
+from nanoemoji.colors import Color
 import pytest
 
 

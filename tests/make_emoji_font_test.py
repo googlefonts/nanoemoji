@@ -3,18 +3,22 @@ import io
 import os
 import re
 import sys
-import make_emoji_font
+from nanoemoji import nanoemoji
 from nanosvg.svg import SVG
 import pytest
 
 
+def _locate_test_file(filename):
+    return os.path.join(os.path.dirname(__file__), filename)
+
+
 def _nsvg(filename):
-    return SVG.parse(filename).tonanosvg()
+    return SVG.parse(_locate_test_file(filename)).tonanosvg()
 
 
 def _color_font_config(color_format, svg_in, output_format):
     return (
-        make_emoji_font.ColorFontConfig(
+        nanoemoji.ColorFontConfig(
             upem=100,
             family="UnitTest",
             color_format=color_format,
@@ -37,7 +41,7 @@ def _check_ttx(svg_in, ttfont, expected_ttx):
     # Elide ttFont attributes because ttLibVersion may change
     actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
 
-    with open(expected_ttx) as f:
+    with open(_locate_test_file(expected_ttx)) as f:
         expected = f.read()
 
     if actual != expected:
@@ -76,7 +80,7 @@ def _check_ttx(svg_in, ttfont, expected_ttx):
     ],
 )
 def test_codepoints_from_filename(filename, codepoints):
-    assert codepoints == make_emoji_font._codepoints_from_filename(filename)
+    assert codepoints == nanoemoji._codepoints_from_filename(filename)
 
 
 # TODO test that width, height are removed from svg
@@ -103,5 +107,5 @@ def test_codepoints_from_filename(filename, codepoints):
 )
 def test_make_emoji_font(svg_in, expected_ttx, color_format, output_format):
     config, glyph_inputs = _color_font_config(color_format, svg_in, output_format)
-    _, ttfont = make_emoji_font._generate_color_font(config, glyph_inputs)
+    _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
     _check_ttx(svg_in, ttfont, expected_ttx)

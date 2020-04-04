@@ -1,11 +1,11 @@
 from absl import logging
 from fontTools.misc.transform import Transform
 import collections
-from colors import Color
-import glyph
 from itertools import chain
 from lxml import etree
-from paint import (
+from nanoemoji.colors import Color
+from nanoemoji import glyph
+from nanoemoji.paint import (
     Extend,
     ColorStop,
     PaintLinearGradient,

@@ -2,11 +2,11 @@
 
 Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
-from colors import Color, css_color
 import dataclasses
 from enum import Enum
-from typing import ClassVar, Tuple
+from nanoemoji.colors import Color, css_color
 from nanosvg.geometric_types import Point
+from typing import ClassVar, Tuple
 
 
 class Extend(Enum):

@@ -1,9 +1,9 @@
-from colors import Color
-from color_glyph import ColorGlyph
 from fontTools.misc.transform import Transform
+from nanoemoji.colors import Color
+from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.paint import *
 from nanosvg.svg import SVG
 import os
-from paint import *
 import pytest
 import ufoLib2
 
