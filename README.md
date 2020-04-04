@@ -6,6 +6,6 @@ For example, to build a COLRv1 font with a focus on [handwriting](https://rsheet
 
 ```bash
 pip install -e .
-nanoemoji --help
-nanoemoji --color_format colr_1 $(find ../noto-emoji/svg -name '*.svg')
+nanoemoji --helpfull
+nanoemoji --color_format colr_1 $(find ../noto-emoji/svg -name 'emoji_270d*.svg')
 ```
