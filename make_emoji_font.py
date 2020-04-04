@@ -20,6 +20,7 @@ import collections
 from color_glyph import ColorGlyph
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
+from glyph import glyph_name
 import io
 from itertools import chain
 from nanosvg.svg import SVG
@@ -104,7 +105,7 @@ def _ufo(family, upem):
     # http://unifiedfontobject.org/versions/ufo3/fontinfo.plist/
     ufo.info.unitsPerEm = upem
 
-    # Must have .notdef and Win 10 Chrome likes a blank gid1 so make that space
+    # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
     ufo.newGlyph('.notdef')
     space = ufo.newGlyph('.space')
     space.unicodes = [0x0020]
@@ -231,6 +232,49 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
     ttfont[svg_table.tableTag] = svg_table
 
 
+def _generate_fea(rgi_sequences):
+    # TODO if this is a qualified sequence create the unqualified version and vice versa
+    rules = []
+    rules.append('languagesystem DFLT dflt;')
+    rules.append('languagesystem latn dflt;')
+
+    rules.append('feature rlig {')
+    for rgi, target in sorted(rgi_sequences):
+        if len(rgi) == 1:
+            continue
+        glyphs = [glyph_name(cp) for cp in rgi]
+        rules.append('  sub %s by %s;' % (' '.join(glyphs), target))
+
+    rules.append('} rlig;')
+    return '\n'.join(rules)
+
+
+def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
+    """Ensure all codepoints we use will have a glyph.
+
+    Single codepoint sequences will directly mapped to their glyphs.
+    We need to add a glyph for any codepoint that is only used in a multi-codepoint sequence.
+
+    """
+    all_codepoints = set()
+    direct_mapped_codepoints = set()
+    for _, codepoints, _ in glyph_inputs:        
+        if len(codepoints) == 1:
+            direct_mapped_codepoints.update(codepoints)
+        all_codepoints.update(codepoints)
+
+    need_blanks = all_codepoints - direct_mapped_codepoints
+    logging.debug('%d codepoints require blanks', len(need_blanks))
+    glyph_names = []
+    for codepoint in need_blanks:
+        # Any layer is fine; we aren't going to draw
+        glyph = ufo.newGlyph(glyph_name(codepoint))
+        glyph.unicode = codepoint
+        glyph_names.append(glyph.name)
+
+    ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
+
+
 def _generate_color_font(config, glyph_inputs):
     """Make a UFO and optionally a TTFont from svgs.
 
@@ -239,6 +283,8 @@ def _generate_color_font(config, glyph_inputs):
         glyph_inputs: sequence of (filename, codepoints, nanosvg) tuples
     """
     ufo = _ufo(config.family, config.upem)
+    _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs)
+
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
                     for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)]
@@ -247,6 +293,9 @@ def _generate_color_font(config, glyph_inputs):
         assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
 
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(ufo, color_glyphs)
+
+    ufo.features.text = _generate_fea([(c.codepoints, c.glyph_name) for c in color_glyphs])
+    logging.debug('fea:\n%s\n' % ufo.features.text)
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 

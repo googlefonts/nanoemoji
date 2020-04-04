@@ -2,8 +2,9 @@
      xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
     <linearGradient id="grad1">
+      <!-- % and number -->
       <stop offset="10%"  stop-color="blue" />
-      <stop offset="90%" stop-color="cyan" />
+      <stop offset="0.9" stop-color="cyan" />
     </linearGradient>
   </defs>
   <rect x="2" y="2" width="6" height="2" fill="url(#grad1)" />

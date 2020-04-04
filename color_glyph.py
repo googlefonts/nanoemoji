@@ -2,6 +2,7 @@ from absl import logging
 from fontTools.misc.transform import Transform
 import collections
 from colors import Color
+import glyph
 from itertools import chain
 from lxml import etree
 from paint import Extend, ColorStop, PaintLinearGradient, PaintRadialGradient, PaintSolid
@@ -14,18 +15,16 @@ _GRADIENT_INFO = {
 }
 
 
-def _glyph_name(codepoints):
-    return 'emoji_' + '_'.join(('%04x' % c for c in codepoints))
-
-
 def _color_stop(stop_el):
-    offset = stop_el.attrib.get('offset', '0%')
-    if not offset.endswith('%'):
-        raise ValueError('Only offset %% supported')
+    offset = stop_el.attrib.get('offset', '0')
+    if offset.endswith('%'):
+        offset = float(offset[:-1]) / 100
+    else:
+        offset = float(offset)
     color = stop_el.attrib.get('stop-color', 'black')
     if 'stop-opacity' in stop_el.attrib:
         raise ValueError('<stop stop-opacity/> not supported')
-    return ColorStop(stopOffset=int(offset[:-1]) / 100, color=Color.fromstring(color))
+    return ColorStop(stopOffset=offset, color=Color.fromstring(color))
 
 
 def _common_gradient_parts(el):
@@ -56,16 +55,13 @@ class ColorGlyph(collections.namedtuple("ColorGlyph", ['ufo', 'filename', 'glyph
     @staticmethod
     def create(ufo, filename, glyph_id, codepoints, nsvg):
         logging.info(' ColorGlyph for %s', filename)
-        glyph_name = _glyph_name(codepoints)
+        glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
         base_glyph.width = ufo.info.unitsPerEm
 
-        # Setup access to the glyph
+        # Setup direct access to the glyph if possible
         if len(codepoints) == 1:
             base_glyph.unicode = next(iter(codepoints))
-        else:
-            # Multi-codepoint seq; need to setup an rlig => base glyph
-            logging.warning('TODO prepare for rlig => glyph')
 
         # Grab the transform + (color, glyph) layers for COLR
         return  ColorGlyph(ufo,
