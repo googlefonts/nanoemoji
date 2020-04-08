@@ -80,7 +80,7 @@ flags.DEFINE_string(
 
 
 def _codepoints_from_filename(filename):
-    match = regex.search(r"(?:[-_]?([0-9a-fA-F]{4,}))+", filename)
+    match = regex.search(r"(?:^emoji_u)?(?:[-_]?([0-9a-fA-F]{1,}))+", filename)
     if match:
         return tuple(int(s, 16) for s in match.captures(1))
     logging.warning(f"Bad filename {filename}; unable to extract codepoints")
@@ -97,7 +97,7 @@ def _nanosvg(filename):
 
 def _inputs(filenames):
     for filename in filenames:
-        codepoints = _codepoints_from_filename(filename)
+        codepoints = _codepoints_from_filename(os.path.basename(filename))
         nanosvg = _nanosvg(filename)
         if codepoints and nanosvg:
             yield (filename, codepoints, nanosvg)
