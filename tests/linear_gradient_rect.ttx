@@ -5,26 +5,26 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="unie000"/>
-    <GlyphID id="3" name="unie000.z_0"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.z_0"/>
   </GlyphOrder>
 
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="unie000" width="100" lsb="0"/>
-    <mtx name="unie000.z_0" width="100" lsb="20"/>
+    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000.z_0" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
     <tableVersion version="0"/>
     <cmap_format_4 platformID="0" platEncID="3" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="unie000"/><!-- ???? -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
     </cmap_format_4>
     <cmap_format_4 platformID="3" platEncID="1" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="unie000"/><!-- ???? -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
     </cmap_format_4>
   </cmap>
 
@@ -41,9 +41,9 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="unie000"/><!-- contains no outline data -->
+    <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="unie000.z_0" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="e000.z_0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
         <pt x="20" y="80" on="1"/>
         <pt x="20" y="60" on="1"/>
@@ -62,11 +62,11 @@
     <BaseGlyphV1Array>
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
-        <BaseGlyph value="unie000"/>
+        <BaseGlyph value="e000"/>
         <LayerV1Array>
           <!-- LayerCount=1 -->
           <LayerV1Record index="0">
-            <LayerGlyph value="unie000.z_0"/>
+            <LayerGlyph value="e000.z_0"/>
             <Paint Format="2">
               <ColorLine>
                 <Extend value="pad"/>

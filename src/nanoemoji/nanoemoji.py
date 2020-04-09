@@ -216,7 +216,7 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             glyph.width = ufo.info.unitsPerEm
 
             pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
-            skia_path(path).draw(pen)
+            skia_path(path, color_glyph.nsvg.tolerence).draw(pen)
 
         # each base glyph contains a list of (layer.name, paint info) in z-order
         base_glyph = ufo.get(color_glyph.glyph_name)
