@@ -1,7 +1,9 @@
 language: python
 python:
-  - "3.6"      # current default Python on Travis CI
+  - "3.7"      # we need dataclasses
 install:
+  - pip install --upgrade pip
   - pip install -r requirements.txt
+  - pip install -e .
 script:
-  - pytest
+  - pytest -vv
