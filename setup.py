@@ -10,7 +10,7 @@ setup(
     entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main",],},
     install_requires=[
         "absl-py>=0.9.0",
-        "CairoSVG>=2.4.2"
+        "CairoSVG>=2.4.2",
         "fs==2.4.11",
         "lxml>=4.0",
         "nanosvg>=0.1",
