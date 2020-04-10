@@ -222,6 +222,15 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
 
+        # apparently on Mac (but not Linux?) Chrome treats the base glyph as a mask
+        # paint it black!
+        pen = base_glyph.getPen()
+        pen.moveTo((0, 0))
+        pen.lineTo((ufo.info.unitsPerEm, 0))
+        pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
+        pen.lineTo((0, ufo.info.unitsPerEm))
+        pen.closePath()
+
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
     svg_table = ttLib.newTable("SVG ")
