@@ -222,14 +222,13 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         base_glyph = ufo.get(color_glyph.glyph_name)
         base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
 
-        # apparently on Mac (but not Linux?) Chrome treats the base glyph as a mask
-        # paint it black!
+        # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
+        # extents of the base layer to determine where the glyph might paint. If you
+        # leave the base blank the COLR glyph never renders.
         pen = base_glyph.getPen()
         pen.moveTo((0, 0))
-        pen.lineTo((ufo.info.unitsPerEm, 0))
         pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
-        pen.lineTo((0, ufo.info.unitsPerEm))
-        pen.closePath()
+        pen.endPath()
 
 
 def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
