@@ -29,11 +29,12 @@ def glyph_name(codepoints):
         codepoints = [codepoints]
     name = "_".join((_name(c) for c in codepoints))
     if len(name) > _MAX_NAME_LEN:
-      import hashlib
-      import base64
-      hash = hashlib.sha1()  # don't care if secure
-      hash.update(name.encode('utf-8'))
-      name = base64.b32encode(hash.digest()).decode('utf-8')
+        import hashlib
+        import base64
+
+        hash = hashlib.sha1()  # don't care if secure
+        hash.update(name.encode("utf-8"))
+        name = base64.b32encode(hash.digest()).decode("utf-8")
     if not name[0].isalpha():
-      name = 'g_' + name
+        name = "g_" + name
     return name

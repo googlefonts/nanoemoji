@@ -66,8 +66,8 @@ def _check_ttx(svg_in, ttfont, expected_ttx):
             tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        tmp_file = f'/tmp/{svg_in}.ttx'
-        with open(tmp_file, 'w') as f:
+        tmp_file = f"/tmp/{svg_in}.ttx"
+        with open(tmp_file, "w") as f:
             f.write(actual)
         pytest.fail(f"{tmp_file} (from {svg_in}) != {expected_ttx}")
 
@@ -111,10 +111,8 @@ def test_codepoints_from_filename(filename, codepoints):
         # simple fill on rect
         ("rect.svg", "rect_colr_0.ttx", "colr_0", ".ttf"),
         ("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
-
         # linear gradient on rect
         ("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
-
         # radial gradient on rect
         ("radial_gradient_rect.svg", "radial_gradient_rect.ttx", "colr_1", ".ttf"),
     ],

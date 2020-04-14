@@ -351,7 +351,7 @@ def _run(argv):
 
     inputs = list(_inputs(argv[1:]))
     if not inputs:
-        sys.exit('Please provide at least one svg filename')
+        sys.exit("Please provide at least one svg filename")
 
     logging.info(f"{len(inputs)}/{len(argv[1:])} inputs prepared successfully")
 

@@ -20,7 +20,7 @@
 # everything should succeed
 set -e
 
-black *.py
+black src tests
 pytest
 #pytype
 
