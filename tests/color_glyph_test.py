@@ -88,7 +88,9 @@ def test_transform(view_box, upem, expected_transform):
                     stops=(
                         ColorStop(stopOffset=0.1, color=Color.fromstring("blue")),
                         ColorStop(stopOffset=0.9, color=Color.fromstring("cyan")),
-                    )
+                    ),
+                    p0=Point(200, 800),
+                    p1=Point(800, 800),
                 )
             },
         ),
@@ -102,6 +104,11 @@ def test_transform(view_box, upem, expected_transform):
                         ColorStop(stopOffset=0.05, color=Color.fromstring("fuchsia")),
                         ColorStop(stopOffset=0.75, color=Color.fromstring("orange")),
                     ),
+                    c0=Point(500, 700),
+                    c1=Point(500, 700),
+                    r0=0,
+                    r1=300,
+                    affine2x2=(1.0, 0.0, 0.0, -0.33333333333333337),
                 )
             },
         ),
@@ -109,5 +116,5 @@ def test_transform(view_box, upem, expected_transform):
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
-    color_glyph = ColorGlyph.create(_ufo(256), "duck", 1, [0x0042], _nsvg(svg_in))
+    color_glyph = ColorGlyph.create(_ufo(1000), "duck", 1, [0x0042], _nsvg(svg_in))
     assert color_glyph.paints() == expected_paints

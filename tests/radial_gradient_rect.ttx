@@ -93,15 +93,21 @@
                 </ColorStop>
               </ColorLine>
               <c0>
-                <x value="0"/>
-                <y value="0"/>
+                <x value="50"/>
+                <y value="70"/>
               </c0>
               <c1>
-                <x value="0"/>
-                <y value="0"/>
+                <x value="50"/>
+                <y value="70"/>
               </c1>
               <r0 value="0"/>
-              <r1 value="0"/>
+              <r1 value="30"/>
+              <Affine>
+                <xx value="1.0"/>
+                <xy value="0.0"/>
+                <yx value="0.0"/>
+                <yy value="-0.33333"/>
+              </Affine>
             </Paint>
           </LayerV1Record>
         </LayerV1Array>
