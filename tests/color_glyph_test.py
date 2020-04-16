@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fontTools.misc.transform import Transform
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.paint import *
 from nanosvg.svg import SVG
+from nanosvg.svg_transform import Affine2D
 import os
 import pytest
 import ufoLib2
@@ -42,13 +42,17 @@ def _nsvg(filename):
     "view_box, upem, expected_transform",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, Transform(1, 0, 0, -1, 0, 1024)),
+        ("0 0 1024 1024", 1024, Affine2D(1, 0, 0, -1, 0, 1024)),
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, Transform(8, 0, 0, -8, 0, 1024)),
-        # noto emoji emoji_u26be.svg viewBox. Translate, scale, flip y
-        ("-151 297 128 128", 1024, Transform(3.67, 0, 0, -6.059, 151, 1024 - 297)),
-        # made up example. Translate, scale, flip y
-        ("10 11 20 21", 100, Transform(10, 0, 0, -10, -10, 100 - 11)),
+        ("0 0 128 128", 1024, Affine2D(8, 0, 0, -8, 0, 1024)),
+        # noto emoji emoji_u26be.svg viewBox. Scale, translate, flip y
+        ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, -1352)),
+        # made up example. Scale, translate, flip y
+        (
+            "10 11 20 21",
+            100,
+            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=47.619048),
+        ),
     ],
 )
 def test_transform(view_box, upem, expected_transform):
@@ -62,7 +66,7 @@ def test_transform(view_box, upem, expected_transform):
         _ufo(upem), "duck", 1, [0x0042], SVG.fromstring(svg_str)
     )
 
-    assert color_glyph.transform_for_font_space() == expected_transform
+    assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
 
 
 @pytest.mark.parametrize(

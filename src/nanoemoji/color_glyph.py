@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from absl import logging
-from fontTools.misc.transform import Transform
 import collections
 from itertools import chain
 from lxml import etree
+from nanosvg.svg_transform import Affine2D
 from nanoemoji.colors import Color
 from nanoemoji import glyph
 from nanoemoji.paint import (
@@ -26,7 +26,19 @@ from nanoemoji.paint import (
     PaintRadialGradient,
     PaintSolid,
 )
-import regex
+
+
+def _map_viewbox_to_emsquare(view_box, upem):
+    # scale to font upem
+    x_scale = upem / view_box.w
+    y_scale = upem / view_box.h
+    # shift so origin is 0,0
+    dx = -view_box.x * x_scale
+    dy = -view_box.y * y_scale
+    # flip y axis and shift so things are in the right place
+    y_scale = -y_scale
+    dy = dy + upem
+    return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
 
 
 _GRADIENT_INFO = {
@@ -98,20 +110,8 @@ class ColorGlyph(
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
-            return Transform()
-        upem = self.ufo.info.unitsPerEm
-        # shift so origin is 0,0
-        dx = -view_box[0]
-        dy = -view_box[1]
-        # scale to font upem
-        x_scale = round(upem / abs(view_box[2] + dx), 3)
-        y_scale = round(upem / abs(view_box[3] + dy), 3)
-        # flip y axis and shift so things are in the right place
-        y_scale = -y_scale
-        dy = dy + upem
-        transform = Transform(x_scale, 0, 0, y_scale, dx, dy)
-        logging.debug("%s %s %s", self.ufo.info.familyName, self.glyph_name, transform)
-        return transform
+            return Affine2D.identity()
+        return _map_viewbox_to_emsquare(view_box, self.ufo.info.unitsPerEm)
 
     def as_painted_layers(self):
         """Yields (Paint, SVGPath) tuples to draw nsvg."""
