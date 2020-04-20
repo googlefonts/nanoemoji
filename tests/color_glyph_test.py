@@ -112,7 +112,24 @@ def test_transform(view_box, upem, expected_transform):
                 )
             },
         ),
-        # TODO gradientTransform => affine2x2
+        # radial with gradientTransform
+        (
+            "radial_gradient_transform.svg",
+            {
+                PaintRadialGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("darkblue")),
+                        ColorStop(stopOffset=0.5, color=Color.fromstring("skyblue")),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("darkblue")),
+                    ),
+                    c0=Point(x=506.9851171331012, y=500.0),
+                    c1=Point(x=506.9851171331012, y=500.0),
+                    r0=0,
+                    r1=500,
+                    affine2x2=(1.0, 0.0, 0.36397023426620234, -1.0),
+                )
+            },
+        ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
