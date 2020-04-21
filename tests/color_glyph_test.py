@@ -18,6 +18,7 @@ from nanoemoji.paint import *
 from nanosvg.svg import SVG
 from nanosvg.svg_transform import Affine2D
 import os
+import dataclasses
 import pytest
 import ufoLib2
 
@@ -69,6 +70,31 @@ def test_transform(view_box, upem, expected_transform):
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
 
 
+def _round_gradient_coordinates(paint, prec=6):
+    if isinstance(paint, PaintLinearGradient):
+        return dataclasses.replace(
+            paint,
+            p0=Point(round(paint.p0.x, prec), round(paint.p0.y, prec)),
+            p1=Point(round(paint.p1.x, prec), round(paint.p1.y, prec)),
+            p2=Point(round(paint.p2.x, prec), round(paint.p2.y, prec)),
+        )
+    elif isinstance(paint, PaintRadialGradient):
+        return dataclasses.replace(
+            paint,
+            c0=Point(round(paint.c0.x, prec), round(paint.c0.y, prec)),
+            c1=Point(round(paint.c1.x, prec), round(paint.c1.y, prec)),
+            r0=round(paint.r0, prec),
+            r1=round(paint.r1, prec),
+            affine2x2=(
+                tuple(round(v, prec) for v in paint.affine2x2)
+                if paint.affine2x2 is not None
+                else None
+            ),
+        )
+    else:
+        return paint
+
+
 @pytest.mark.parametrize(
     "svg_in, expected_paints",
     [
@@ -108,7 +134,7 @@ def test_transform(view_box, upem, expected_transform):
                     c1=Point(500, 700),
                     r0=0,
                     r1=300,
-                    affine2x2=(1.0, 0.0, 0.0, -0.33333333333333337),
+                    affine2x2=(1.0, 0.0, 0.0, -0.333333),
                 )
             },
         ),
@@ -122,11 +148,11 @@ def test_transform(view_box, upem, expected_transform):
                         ColorStop(stopOffset=0.5, color=Color.fromstring("skyblue")),
                         ColorStop(stopOffset=1.0, color=Color.fromstring("darkblue")),
                     ),
-                    c0=Point(x=506.9851171331012, y=500.0),
-                    c1=Point(x=506.9851171331012, y=500.0),
+                    c0=Point(x=506.985117, y=500.0),
+                    c1=Point(x=506.985117, y=500.0),
                     r0=0,
                     r1=500,
-                    affine2x2=(1.0, 0.0, 0.36397023426620234, -1.0),
+                    affine2x2=(1.0, 0.0, 0.36397, -1.0),
                 )
             },
         ),
@@ -143,12 +169,36 @@ def test_transform(view_box, upem, expected_transform):
                     ),
                     p0=Point(x=0, y=1000),
                     p1=Point(x=1000, y=1000),
-                    p2=Point(x=499.99999999999994, y=499.99999999999994),
+                    p2=Point(x=500, y=500),
                 )
+            },
+        ),
+        # linear with both gradientTransform and objectBoundingBox
+        (
+            "linear_gradient_transform_2.svg",
+            {
+                PaintLinearGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.05, color=Color.fromstring("gold")),
+                        ColorStop(stopOffset=0.95, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=100, y=550),
+                    p1=Point(x=900, y=550),
+                ),
+                PaintLinearGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.05, color=Color.fromstring("gold")),
+                        ColorStop(stopOffset=0.95, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=450, y=900),
+                    p1=Point(x=450, y=100),
+                ),
             },
         ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
     color_glyph = ColorGlyph.create(_ufo(1000), "duck", 1, [0x0042], _nsvg(svg_in))
-    assert color_glyph.paints() == expected_paints
+    assert {
+        _round_gradient_coordinates(paint) for paint in color_glyph.paints()
+    } == expected_paints
