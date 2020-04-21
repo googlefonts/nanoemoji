@@ -62,15 +62,15 @@ def _get_gradient_units_relative_scale(grad_el, view_box):
 def _get_gradient_transform(grad_el, shape_bbox, view_box, upem):
     transform = _map_viewbox_to_emsquare(view_box, upem)
 
-    if "gradientTransform" in grad_el.attrib:
-        gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
-        transform = transform.concat(gradient_transform)
-
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
     if gradient_units == "objectBoundingBox":
         bbox_space = Rect(0, 0, 1, 1)
         bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
         transform = transform.concat(bbox_transform)
+
+    if "gradientTransform" in grad_el.attrib:
+        gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
+        transform = transform.concat(gradient_transform)
 
     return transform
 
