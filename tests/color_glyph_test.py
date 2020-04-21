@@ -130,6 +130,23 @@ def test_transform(view_box, upem, expected_transform):
                 )
             },
         ),
+        # linear with gradientTransform
+        (
+            "linear_gradient_transform.svg",
+            {
+                PaintLinearGradient(
+                    extend=Extend.REFLECT,
+                    stops=(
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("green")),
+                        ColorStop(stopOffset=0.5, color=Color.fromstring("white")),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=0, y=1000),
+                    p1=Point(x=1000, y=1000),
+                    p2=Point(x=499.99999999999994, y=499.99999999999994),
+                )
+            },
+        ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
