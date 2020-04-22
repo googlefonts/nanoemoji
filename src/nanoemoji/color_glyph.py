@@ -161,7 +161,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
         "r0": r0,
         "r1": r1,
         "affine2x2": (
-            tuple(affine2x2[:4]) if affine2x2 != Affine2D.identity() else None
+            affine2x2[:4] if affine2x2 != Affine2D.identity() else None
         ),
     }
 
