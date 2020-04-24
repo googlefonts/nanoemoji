@@ -16,7 +16,7 @@ from fontTools.misc.transform import Transform
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.paint import *
-from nanosvg.svg import SVG
+from picosvg.svg import SVG
 import os
 import pytest
 import ufoLib2
@@ -35,7 +35,7 @@ def _test_file(filename):
 
 
 def _nsvg(filename):
-    return SVG.parse(_test_file(filename)).tonanosvg()
+    return SVG.parse(_test_file(filename)).topicosvg()
 
 
 @pytest.mark.parametrize(

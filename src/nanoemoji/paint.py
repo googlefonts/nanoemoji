@@ -19,7 +19,7 @@ Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gra
 import dataclasses
 from enum import Enum
 from nanoemoji.colors import Color, css_color
-from nanosvg.geometric_types import Point
+from picosvg.geometric_types import Point
 from typing import ClassVar, Tuple
 
 

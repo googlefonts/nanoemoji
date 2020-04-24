@@ -18,7 +18,7 @@ import os
 import re
 import sys
 from nanoemoji import nanoemoji
-from nanosvg.svg import SVG
+from picosvg.svg import SVG
 import pytest
 
 
@@ -27,7 +27,7 @@ def _locate_test_file(filename):
 
 
 def _nsvg(filename):
-    return SVG.parse(_locate_test_file(filename)).tonanosvg()
+    return SVG.parse(_locate_test_file(filename)).topicosvg()
 
 
 def _color_font_config(color_format, svg_in, output_format):
