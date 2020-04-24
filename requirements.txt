@@ -18,7 +18,7 @@ lxml==4.5.0
 more-itertools==8.2.0
 picosvg>=0.3.3
 packaging==20.3
-pathspec==0.7.0
+pathspec==0.8.0
 Pillow==7.1.1
 pluggy==0.13.1
 py==1.8.1
