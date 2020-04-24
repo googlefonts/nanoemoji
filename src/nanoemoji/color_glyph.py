@@ -16,8 +16,8 @@ from absl import logging
 import collections
 from itertools import chain
 from lxml import etree
-from nanosvg.geometric_types import Point, Rect
-from nanosvg.svg_transform import Affine2D
+from picosvg.geometric_types import Point, Rect
+from picosvg.svg_transform import Affine2D
 from nanoemoji.colors import Color
 from nanoemoji import glyph
 from nanoemoji.paint import (
