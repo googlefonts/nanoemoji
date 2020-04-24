@@ -20,7 +20,7 @@ import dataclasses
 from enum import Enum
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
-from typing import ClassVar, Tuple
+from typing import ClassVar, Optional, Tuple
 
 
 class Extend(Enum):
@@ -72,22 +72,25 @@ class PaintLinearGradient:
     stops: Tuple[ColorStop, ...] = dataclasses.field(default_factory=lambda: ())
     p0: Point = Point()
     p1: Point = Point()
-    p2: Point = None
+    p2: Point = None  # if undefined, default to p1
+
+    def __post_init__(self):
+        # use object.__setattr__ as the dataclass is frozen
+        if self.p2 is None:
+            object.__setattr__(self, "p2", self.p1)
 
     def colors(self):
         for stop in self.stops:
             yield stop.color
 
     def to_ufo_paint(self, colors):
-        result = {
+        return {
             "format": self.format,
             "colorLine": _ufoColorLine(self, colors),
             "p0": self.p0,
             "p1": self.p1,
+            "p2": self.p2,
         }
-        if self.p2:
-            result["p2"] = self.p2
-        return result
 
 
 @dataclasses.dataclass(frozen=True)
@@ -99,7 +102,7 @@ class PaintRadialGradient:
     c1: Point = Point()
     r0: float = 0.0
     r1: float = 0.0
-    # TODO Affine2x2
+    affine2x2: Optional[Tuple[float, float, float, float]] = None
 
     def colors(self):
         for stop in self.stops:
@@ -114,4 +117,6 @@ class PaintRadialGradient:
             "r0": self.r0,
             "r1": self.r1,
         }
+        if self.affine2x2:
+            result["affine"] = self.affine2x2
         return result

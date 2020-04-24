@@ -209,6 +209,12 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         # For COLRv1, it's a data structure describing paint
         layer_to_paint = []
         svg_units_to_font_units = color_glyph.transform_for_font_space()
+        logging.debug(
+            "%s %s %s",
+            ufo.info.familyName,
+            color_glyph.glyph_name,
+            svg_units_to_font_units,
+        )
         for idx, (paint, path) in enumerate(color_glyph.as_painted_layers()):
             glyph_layer = _layer(ufo, idx)
 

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fontTools.misc.transform import Transform
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.paint import *
 from picosvg.svg import SVG
+from picosvg.svg_transform import Affine2D
 import os
+import dataclasses
 import pytest
 import ufoLib2
 
@@ -42,13 +43,17 @@ def _nsvg(filename):
     "view_box, upem, expected_transform",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, Transform(1, 0, 0, -1, 0, 1024)),
+        ("0 0 1024 1024", 1024, Affine2D(1, 0, 0, -1, 0, 1024)),
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, Transform(8, 0, 0, -8, 0, 1024)),
-        # noto emoji emoji_u26be.svg viewBox. Translate, scale, flip y
-        ("-151 297 128 128", 1024, Transform(3.67, 0, 0, -6.059, 151, 1024 - 297)),
-        # made up example. Translate, scale, flip y
-        ("10 11 20 21", 100, Transform(10, 0, 0, -10, -10, 100 - 11)),
+        ("0 0 128 128", 1024, Affine2D(8, 0, 0, -8, 0, 1024)),
+        # noto emoji emoji_u26be.svg viewBox. Scale, translate, flip y
+        ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, -1352)),
+        # made up example. Scale, translate, flip y
+        (
+            "10 11 20 21",
+            100,
+            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=47.619048),
+        ),
     ],
 )
 def test_transform(view_box, upem, expected_transform):
@@ -62,7 +67,32 @@ def test_transform(view_box, upem, expected_transform):
         _ufo(upem), "duck", 1, [0x0042], SVG.fromstring(svg_str)
     )
 
-    assert color_glyph.transform_for_font_space() == expected_transform
+    assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
+
+
+def _round_gradient_coordinates(paint, prec=6):
+    if isinstance(paint, PaintLinearGradient):
+        return dataclasses.replace(
+            paint,
+            p0=Point(round(paint.p0.x, prec), round(paint.p0.y, prec)),
+            p1=Point(round(paint.p1.x, prec), round(paint.p1.y, prec)),
+            p2=Point(round(paint.p2.x, prec), round(paint.p2.y, prec)),
+        )
+    elif isinstance(paint, PaintRadialGradient):
+        return dataclasses.replace(
+            paint,
+            c0=Point(round(paint.c0.x, prec), round(paint.c0.y, prec)),
+            c1=Point(round(paint.c1.x, prec), round(paint.c1.y, prec)),
+            r0=round(paint.r0, prec),
+            r1=round(paint.r1, prec),
+            affine2x2=(
+                tuple(round(v, prec) for v in paint.affine2x2)
+                if paint.affine2x2 is not None
+                else None
+            ),
+        )
+    else:
+        return paint
 
 
 @pytest.mark.parametrize(
@@ -84,7 +114,9 @@ def test_transform(view_box, upem, expected_transform):
                     stops=(
                         ColorStop(stopOffset=0.1, color=Color.fromstring("blue")),
                         ColorStop(stopOffset=0.9, color=Color.fromstring("cyan")),
-                    )
+                    ),
+                    p0=Point(200, 800),
+                    p1=Point(800, 800),
                 )
             },
         ),
@@ -98,12 +130,75 @@ def test_transform(view_box, upem, expected_transform):
                         ColorStop(stopOffset=0.05, color=Color.fromstring("fuchsia")),
                         ColorStop(stopOffset=0.75, color=Color.fromstring("orange")),
                     ),
+                    c0=Point(500, 700),
+                    c1=Point(500, 700),
+                    r0=0,
+                    r1=300,
+                    affine2x2=(1.0, 0.0, 0.0, -0.333333),
                 )
             },
         ),
-        # TODO gradientTransform => affine2x2
+        # radial with gradientTransform
+        (
+            "radial_gradient_transform.svg",
+            {
+                PaintRadialGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("darkblue")),
+                        ColorStop(stopOffset=0.5, color=Color.fromstring("skyblue")),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("darkblue")),
+                    ),
+                    c0=Point(x=506.985117, y=500.0),
+                    c1=Point(x=506.985117, y=500.0),
+                    r0=0,
+                    r1=500,
+                    affine2x2=(1.0, 0.0, 0.36397, -1.0),
+                )
+            },
+        ),
+        # linear with gradientTransform
+        (
+            "linear_gradient_transform.svg",
+            {
+                PaintLinearGradient(
+                    extend=Extend.REFLECT,
+                    stops=(
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("green")),
+                        ColorStop(stopOffset=0.5, color=Color.fromstring("white")),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=0, y=1000),
+                    p1=Point(x=1000, y=1000),
+                    p2=Point(x=500, y=500),
+                )
+            },
+        ),
+        # linear with both gradientTransform and objectBoundingBox
+        (
+            "linear_gradient_transform_2.svg",
+            {
+                PaintLinearGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.05, color=Color.fromstring("gold")),
+                        ColorStop(stopOffset=0.95, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=100, y=550),
+                    p1=Point(x=900, y=550),
+                ),
+                PaintLinearGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.05, color=Color.fromstring("gold")),
+                        ColorStop(stopOffset=0.95, color=Color.fromstring("red")),
+                    ),
+                    p0=Point(x=450, y=900),
+                    p1=Point(x=450, y=100),
+                ),
+            },
+        ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
-    color_glyph = ColorGlyph.create(_ufo(256), "duck", 1, [0x0042], _nsvg(svg_in))
-    assert color_glyph.paints() == expected_paints
+    color_glyph = ColorGlyph.create(_ufo(1000), "duck", 1, [0x0042], _nsvg(svg_in))
+    assert {
+        _round_gradient_coordinates(paint) for paint in color_glyph.paints()
+    } == expected_paints

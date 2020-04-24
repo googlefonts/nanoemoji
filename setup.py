@@ -25,7 +25,7 @@ setup(
     install_requires=[
         "absl-py>=0.9.0",
         "CairoSVG>=2.4.2",
-	"fonttools>=4.8.1",
+        "fonttools>=4.8.1",
         "fs==2.4.11",
         "lxml>=4.0",
         "picosvg>=0.1",
