@@ -199,7 +199,7 @@ def _paint(nsvg, shape, upem):
         grad_args = _common_gradient_parts(el)
         grad_args.update(
             grad_type_parser(
-                el, shape.bounding_box(nsvg.tolerance), nsvg.view_box(), upem
+                el, shape.bounding_box(), nsvg.view_box(), upem
             )
         )
         return grad_type(**grad_args)
