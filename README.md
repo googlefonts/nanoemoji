@@ -1,4 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/rsheeter/nanoemoji.svg)](https://travis-ci.org/rsheeter/nanoemoji)
+[![Travis Build Status](https://travis-ci.org/googlefonts/nanoemoji.svg)](https://travis-ci.org/googlefonts/nanoemoji)
 # nanoemoji
 A wee tool to build color fonts.
 
