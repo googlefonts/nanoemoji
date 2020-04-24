@@ -24,7 +24,7 @@ pluggy==0.13.1
 py==1.8.1
 pyclipper==1.1.0.post3
 pycparser==2.20
-pyparsing==2.4.6
+pyparsing==2.4.7
 pytest==5.4.1
 pytz==2019.3
 regex==2020.4.4
