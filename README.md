@@ -1,6 +1,6 @@
 [![Travis Build Status](https://travis-ci.org/googlefonts/nanoemoji.svg)](https://travis-ci.org/googlefonts/nanoemoji)
 # nanoemoji
-A wee tool to build color fonts.
+A wee tool to build color fonts, including the proposed [COLRv1](https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gradients-spec.md).
 
 For example, to build a COLRv1 font with a focus on [handwriting](https://rsheeter.github.io/android_fonts/emoji.html?q=u:270d) do the following in a [venv](https://docs.python.org/3/library/venv.html):
 
