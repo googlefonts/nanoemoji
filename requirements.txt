@@ -11,12 +11,12 @@ compreffor==0.5.0
 cssselect2==0.3.0
 cu2qu==1.6.7
 defusedxml==0.6.0
-fonttools==4.8.0
+fonttools==4.8.1
 fs==2.4.11
 importlib-metadata==1.6.0
 lxml==4.5.0
 more-itertools==8.2.0
-nanosvg==0.3.0
+picosvg>=0.1
 packaging==20.3
 pathspec==0.7.0
 Pillow==7.1.1

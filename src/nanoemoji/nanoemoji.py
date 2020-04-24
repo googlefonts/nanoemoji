@@ -37,8 +37,8 @@ import io
 from itertools import chain
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
-from nanosvg.svg import SVG
-from nanosvg.svg_pathops import skia_path
+from picosvg.svg import SVG
+from picosvg.svg_pathops import skia_path
 import os
 import regex
 import sys
@@ -101,9 +101,9 @@ def _codepoints_from_filename(filename):
     return None
 
 
-def _nanosvg(filename):
+def _picosvg(filename):
     try:
-        return SVG.parse(filename).tonanosvg()
+        return SVG.parse(filename).topicosvg()
     except Exception as e:
         logging.warning(f"{filename} failed: {e}")
     return None
@@ -112,9 +112,9 @@ def _nanosvg(filename):
 def _inputs(filenames):
     for filename in filenames:
         codepoints = _codepoints_from_filename(os.path.basename(filename))
-        nanosvg = _nanosvg(filename)
-        if codepoints and nanosvg:
-            yield (filename, codepoints, nanosvg)
+        picosvg = _picosvg(filename)
+        if codepoints and picosvg:
+            yield (filename, codepoints, picosvg)
 
 
 def _ufo(family, upem):
@@ -156,7 +156,7 @@ def _make_ttfont(config, ufo, color_glyphs):
     # Use skia-pathops to remove overlaps (i.e. simplify self-overlapping
     # paths) because the default ("booleanOperations") does not support
     # quadratic bezier curves (qcurve), which may appear
-    # when we pass through nanosvg (e.g. arcs or stroked paths).
+    # when we pass through picosvg (e.g. arcs or stroked paths).
     ttfont = None
     if config.output_format == ".ttf":
         ttfont = ufo2ft.compileTTF(ufo, overlapsBackend="pathops")
@@ -319,7 +319,7 @@ def _generate_color_font(config, glyph_inputs):
 
     Args:
         color_font_config: ColorFontConfig
-        glyph_inputs: sequence of (filename, codepoints, nanosvg) tuples
+        glyph_inputs: sequence of (filename, codepoints, picosvg) tuples
     """
     ufo = _ufo(config.family, config.upem)
     _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs)
