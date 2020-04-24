@@ -4,3 +4,5 @@ __pycache__/
 venv/
 build/
 dist/
+.eggs/
+src/nanoemoji/_version.py

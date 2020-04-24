@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Just a toy, enough setuptools to be able to install.
-"""
 from setuptools import setup, find_packages
 
 setup(
     name="nanoemoji",
-    version="0.1",
+    use_scm_version={"write_to": "src/nanoemoji/_version.py"},
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main",],},
+    entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
+    setup_requires=["setuptools_scm"],
     install_requires=[
         "absl-py>=0.9.0",
         "CairoSVG>=2.4.2",
