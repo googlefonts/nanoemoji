@@ -27,7 +27,7 @@ setup(
         "fonttools>=4.8.1",
         "fs==2.4.11",
         "lxml>=4.0",
-        "picosvg>=0.3.3",
+        "picosvg>=0.3.4",
         "regex>=2020.4.4",
         "skia-pathops>=0.3",
         "ufo2ft>=2.13.0",

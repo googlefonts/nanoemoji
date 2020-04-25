@@ -16,7 +16,7 @@ fs==2.4.11
 importlib-metadata==1.6.0
 lxml==4.5.0
 more-itertools==8.2.0
-picosvg>=0.3.3
+picosvg>=0.3.4
 packaging==20.3
 pathspec==0.7.0
 Pillow==7.1.1
