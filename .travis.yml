@@ -21,3 +21,12 @@ install:
   - pip install -e .
 script:
   - pytest -vv
+deploy:
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: C+b9pNQqfsIKahI2eFQx1Q8tdo5zCfcM0f1MjOIVxm71LwxoYtTqP3sb4qeYwp3hT8B3OlEN1Xkv3qsSg9I2YF1x0sZMqSU+qi/EBg9IwMdoxbPbCir9Tnv0BQUyV6cdOWuhqOAyFz3L6gScsBqG9K2VtbTczAVdK55mIUZI1yVNHQUz0yprF6MUzjgRmiH5JK1Z/IkLyf0qv0UmPWWB5VVGv/2TwVD3vdEyxxy3Dv2terJhfZRG7g1qI8tRvuQH/Eu9VeYj0cJzIHVkUfVjfy/OIRttht4jbFAE2kv1CGfnfGXtQoPodGwl7hz5QBmqTviU40It1YxkDgZmcQ+FDGD91qzSDo3YM3zJVfcHvEKbTouGKmIayuRtSukGOKSADub99kIflQ1s9DNcNuSYk/FSvMfI0SjR8XifJyom5CiUGkszcM4ICf4t+b2N6kTx7ddLBK12PVY7HcV4I3BZBt/kVFcFiNT4sN+2wMBtHsrJEPaTHGzyZRgKiY9OyJ99nqeEuGTLIIiUJzrfnCjgUGyIjV25doyeOas7eLVwwJWBv2S8ZS7OtrqkjeTTNcR0dnViOLmiaTqYzmyBRvkh1iYNgc9jFP5dyJ5epW0ChDOtzN26i/7y9R9f58rPHi8LPrSSO+Yj/paPXb/6xQqDmYg4Oya3REUeJoNzOTUMbvU=
+  on:
+    tags: true
+  distributions: "sdist bdist_wheel"
+  skip_existing: true
