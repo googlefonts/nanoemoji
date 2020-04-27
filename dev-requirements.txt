@@ -7,7 +7,7 @@
 appdirs==1.4.3            # via black
 attrs==19.3.0             # via black, pytest, pytype
 black==19.10b0            # via -r dev-requirements.in
-click==7.1.1              # via black
+click==7.1.2              # via black
 decorator==4.4.2          # via networkx
 importlab==0.5.1          # via pytype
 importlib-metadata==1.6.0  # via pluggy, pytest
