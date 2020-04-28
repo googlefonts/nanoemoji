@@ -1,0 +1,9 @@
+# This file only declares the top-level development requirements.
+# Run `pip-compile --upgrade dev-requirements.in` to generate the dev-requirements.txt
+# file, which is used to set up the CI environment.
+# The pip-compile script is part of the pip-tools package:
+# https://github.com/jazzband/pip-tools
+
+black
+pytest
+pytype
