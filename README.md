@@ -1,4 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/googlefonts/nanoemoji.svg)](https://travis-ci.org/googlefonts/nanoemoji)
+[![Travis Build Status](https://travis-ci.org/googlefonts/nanoemoji.svg?branch=master)](https://travis-ci.org/googlefonts/nanoemoji)
 [![PyPI](https://img.shields.io/pypi/v/nanoemoji.svg)](https://pypi.org/project/nanoemoji/)
 [![pyup](https://pyup.io/repos/github/googlefonts/nanoemoji/shield.svg)](https://pyup.io/repos/github/googlefonts/nanoemoji)
 
