@@ -160,9 +160,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
         "c1": c1,
         "r0": r0,
         "r1": r1,
-        "affine2x2": (
-            affine2x2[:4] if affine2x2 != Affine2D.identity() else None
-        ),
+        "affine2x2": (affine2x2[:4] if affine2x2 != Affine2D.identity() else None),
     }
 
 
@@ -198,9 +196,7 @@ def _paint(nsvg, shape, upem):
         grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
         grad_args = _common_gradient_parts(el)
         grad_args.update(
-            grad_type_parser(
-                el, shape.bounding_box(), nsvg.view_box(), upem
-            )
+            grad_type_parser(el, shape.bounding_box(), nsvg.view_box(), upem)
         )
         return grad_type(**grad_args)
 
