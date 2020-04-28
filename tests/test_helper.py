@@ -15,6 +15,7 @@
 import io
 import os
 import re
+from lxml import etree
 from nanoemoji import nanoemoji
 from picosvg.svg import SVG
 
@@ -66,3 +67,36 @@ def assert_expected_ttx(svg_in, ttfont, expected_ttx):
         with open(tmp_file, "w") as f:
             f.write(actual)
         pytest.fail(f"{tmp_file} (from {svg_in}) != {expected_ttx}")
+
+
+# Copied from picosvg
+def drop_whitespace(svg):
+    svg._update_etree()
+    for el in svg.svg_root.iter("*"):
+        if el.text is not None:
+            el.text = el.text.strip()
+        if el.tail is not None:
+            el.tail = el.tail.strip()
+
+
+# Copied from picosvg
+def pretty_print(svg_tree):
+    def _reduce_text(text):
+        text = text.strip() if text else None
+        return text if text else None
+
+    # lxml really likes to retain whitespace
+    for e in svg_tree.iter("*"):
+        e.text = _reduce_text(e.text)
+        e.tail = _reduce_text(e.tail)
+
+    return etree.tostring(svg_tree, pretty_print=True).decode("utf-8")
+
+
+# Copied from picosvg
+def svg_diff(actual_svg: SVG, expected_svg: SVG):
+    drop_whitespace(actual_svg)
+    drop_whitespace(expected_svg)
+    print(f"A: {pretty_print(actual_svg.toetree())}")
+    print(f"E: {pretty_print(expected_svg.toetree())}")
+    assert actual_svg.tostring() == expected_svg.tostring()

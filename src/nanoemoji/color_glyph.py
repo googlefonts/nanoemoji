@@ -29,7 +29,7 @@ from nanoemoji.paint import (
 )
 
 
-def _map_viewbox_to_emsquare(view_box, upem):
+def map_viewbox_to_emsquare(view_box, upem):
     # scale to font upem
     x_scale = upem / view_box.w
     y_scale = upem / view_box.h
@@ -60,7 +60,7 @@ def _get_gradient_units_relative_scale(grad_el, view_box):
 
 
 def _get_gradient_transform(grad_el, shape_bbox, view_box, upem):
-    transform = _map_viewbox_to_emsquare(view_box, upem)
+    transform = map_viewbox_to_emsquare(view_box, upem)
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
     if gradient_units == "objectBoundingBox":
@@ -235,7 +235,7 @@ class ColorGlyph(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
             return Affine2D.identity()
-        return _map_viewbox_to_emsquare(view_box, self.ufo.info.unitsPerEm)
+        return map_viewbox_to_emsquare(view_box, self.ufo.info.unitsPerEm)
 
     def as_painted_layers(self):
         """Yields (Paint, SVGPath) tuples to draw nsvg."""
