@@ -66,11 +66,11 @@ def _get_gradient_transform(grad_el, shape_bbox, view_box, upem):
     if gradient_units == "objectBoundingBox":
         bbox_space = Rect(0, 0, 1, 1)
         bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
-        transform = transform.concat(bbox_transform)
+        transform = Affine2D.product(bbox_transform, transform)
 
     if "gradientTransform" in grad_el.attrib:
         gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
-        transform = transform.concat(gradient_transform)
+        transform = Affine2D.product(gradient_transform, transform)
 
     return transform
 
@@ -153,7 +153,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     r0 = rscale.map_vector((r0, 0)).x
     r1 = rscale.map_vector((r1, 0)).x
 
-    affine2x2 = transform.concat(rscale.inverse())
+    affine2x2 = Affine2D.product(rscale.inverse(), transform)
 
     return {
         "c0": c0,
