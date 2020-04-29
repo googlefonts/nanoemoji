@@ -71,16 +71,21 @@ def test_transform(view_box, upem, expected_transform):
 
 
 def _round_gradient_coordinates(paint, prec=6):
+    # We can't use dataclasses.replace() below because of a bug in the
+    # dataclasses backport for python 3.6:
+    # https://github.com/ericvsmith/dataclasses/issues/143
     if isinstance(paint, PaintLinearGradient):
-        return dataclasses.replace(
-            paint,
+        return PaintLinearGradient(
+            extend=paint.extend,
+            stops=paint.stops,
             p0=Point(round(paint.p0.x, prec), round(paint.p0.y, prec)),
             p1=Point(round(paint.p1.x, prec), round(paint.p1.y, prec)),
             p2=Point(round(paint.p2.x, prec), round(paint.p2.y, prec)),
         )
     elif isinstance(paint, PaintRadialGradient):
-        return dataclasses.replace(
-            paint,
+        return PaintRadialGradient(
+            extend=paint.extend,
+            stops=paint.stops,
             c0=Point(round(paint.c0.x, prec), round(paint.c0.y, prec)),
             c1=Point(round(paint.c1.x, prec), round(paint.c1.y, prec)),
             r0=round(paint.r0, prec),
