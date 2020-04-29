@@ -29,7 +29,9 @@ setup(
         "regex>=2020.4.4",
         "ufo2ft>=2.13.0",
         "ufoLib2>=0.6.2",
+        "dataclasses>=0.7; python_version < '3.7'",
     ],
+    python_requires=">=3.6",
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",
