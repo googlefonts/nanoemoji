@@ -164,7 +164,9 @@ def _make_ttfont(config, ufo, color_glyphs):
         ttfont = ufo2ft.compileOTF(ufo, overlapsBackend="pathops")
 
     if not ttfont:
-        raise ValueError(f"Unable to generate {color_format} {dest_format}")
+        raise ValueError(
+            f"Unable to generate {config.color_format} {config.output_format}"
+        )
 
     # Permit fixups where we can't express something adequately in UFO
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(

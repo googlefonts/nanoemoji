@@ -15,7 +15,7 @@
 from absl import logging
 import collections
 from itertools import chain
-from lxml import etree
+from lxml import etree  # type: ignore
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_transform import Affine2D
 from nanoemoji.colors import Color

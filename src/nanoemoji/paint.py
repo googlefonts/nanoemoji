@@ -69,7 +69,7 @@ def _ufoColorLine(gradient, colors):
 class PaintLinearGradient:
     format: ClassVar[int] = 2
     extend: Extend = Extend.PAD
-    stops: Tuple[ColorStop, ...] = dataclasses.field(default_factory=lambda: ())
+    stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
     p1: Point = Point()
     p2: Point = None  # if undefined, default to p1
@@ -97,7 +97,7 @@ class PaintLinearGradient:
 class PaintRadialGradient:
     format: ClassVar[int] = 3
     extend: Extend = Extend.PAD
-    stops: Tuple[ColorStop] = dataclasses.field(default_factory=lambda: ())
+    stops: Tuple[ColorStop] = tuple()
     c0: Point = Point()
     c1: Point = Point()
     r0: float = 0.0
