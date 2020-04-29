@@ -23,7 +23,7 @@ setup(
     setup_requires=["setuptools_scm"],
     install_requires=[
         "absl-py>=0.9.0",
-        "fonttools[ufo]>=4.8.1",
+        "fonttools[ufo]>=4.9.0",
         "lxml>=4.0",
         "picosvg>=0.3.5",
         "regex>=2020.4.4",
