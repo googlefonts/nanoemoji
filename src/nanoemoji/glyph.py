@@ -15,9 +15,22 @@
 _MAX_NAME_LEN = 63  # fea for some reason insists on this
 
 
+# str.isascii was added with python 3.7
+try:
+    _isascii = str.isascii  # type: ignore
+except AttributeError:
+    def _isascii(s: str) -> bool:
+        try:
+            s.encode("ascii")
+        except UnicodeEncodeError:
+            return False
+        else:
+            return True
+
+
 def _name(cp):
     ch = chr(cp)
-    if ch.isalpha() and ch.isascii():
+    if ch.isalpha() and _isascii(ch):
         return ch
     return "%x" % cp
 
