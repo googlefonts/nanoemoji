@@ -19,21 +19,25 @@ from nanoemoji import nanoemoji
 from colr_to_svg import colr_to_svg
 
 
+# TODO otf test
 @pytest.mark.parametrize(
     "svg_in, expected_svg_out, color_format, output_format",
     [
         # simple fill on rect
         ("rect.svg", "rect_from_colr.svg", "colr_0", ".ttf"),
-        #("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
+        # ("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
         # linear gradient on rect
-        #("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
+        # ("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
         # radial gradient on rect
-        #("radial_gradient_rect.svg", "radial_gradient_rect.ttx", "colr_1", ".ttf"),
+        # ("radial_gradient_rect.svg", "radial_gradient_rect.ttx", "colr_1", ".ttf"),
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_format):
-    config, glyph_inputs = test_helper.color_font_config(color_format, svg_in, output_format)
+    config, glyph_inputs = test_helper.color_font_config(
+        color_format, svg_in, output_format
+    )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
     svg_before = test_helper.picosvg(svg_in)
-    svg_after = colr_to_svg(svg_before.view_box(), ttfont)
-    test_helper.svg_diff(svg_after, test_helper.picosvg(expected_svg_out))
+    svgs_from_font = colr_to_svg(svg_before.view_box(), ttfont)
+    assert len(svgs_from_font) == 1
+    test_helper.svg_diff(svgs_from_font[0], test_helper.picosvg(expected_svg_out))

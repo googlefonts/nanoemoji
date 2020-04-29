@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import io
+import difflib
 import os
 import re
 from lxml import etree
 from nanoemoji import nanoemoji
 from picosvg.svg import SVG
+
 
 def locate_test_file(filename):
     return os.path.join(os.path.dirname(__file__), filename)
