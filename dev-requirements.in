@@ -6,4 +6,5 @@
 
 black
 pytest
-pytype
+# https://github.com/google/pytype/issues/440
+pytype; python_version < '3.8'
