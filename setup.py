@@ -25,7 +25,7 @@ setup(
         "absl-py>=0.9.0",
         "fonttools[ufo]>=4.8.1",
         "lxml>=4.0",
-        "picosvg>=0.3.4",
+        "picosvg>=0.3.5",
         "regex>=2020.4.4",
         "ufo2ft>=2.13.0",
         "ufoLib2>=0.6.2",
