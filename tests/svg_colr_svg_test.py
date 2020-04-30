@@ -24,8 +24,8 @@ from colr_to_svg import colr_to_svg
     "svg_in, expected_svg_out, color_format, output_format",
     [
         # simple fill on rect
-        ("rect.svg", "rect_from_colr.svg", "colr_0", ".ttf"),
-        # ("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
+        ("rect.svg", "rect_from_colr_0.svg", "colr_0", ".ttf"),
+        ("rect.svg", "rect_from_colr_1.svg", "colr_1", ".ttf"),
         # linear gradient on rect
         # ("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
         # radial gradient on rect
