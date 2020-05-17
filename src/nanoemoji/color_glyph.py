@@ -211,7 +211,7 @@ class ColorGlyph(
 ):
     @staticmethod
     def create(ufo, filename, glyph_id, codepoints, nsvg):
-        logging.info(" ColorGlyph for %s (%s)", filename, codepoints)
+        logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
         glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
         base_glyph.width = ufo.info.unitsPerEm
