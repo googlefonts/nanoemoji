@@ -12,64 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import difflib
-import io
-import os
-import re
 import sys
 from nanoemoji import nanoemoji
-from picosvg.svg import SVG
 import pytest
-
-
-def _locate_test_file(filename):
-    return os.path.join(os.path.dirname(__file__), filename)
-
-
-def _nsvg(filename):
-    return SVG.parse(_locate_test_file(filename)).topicosvg()
-
-
-def _color_font_config(color_format, svg_in, output_format):
-    return (
-        nanoemoji.ColorFontConfig(
-            upem=100,
-            family="UnitTest",
-            color_format=color_format,
-            output_format=output_format,
-        ),
-        [(svg_in, (0xE000,), _nsvg(svg_in))],
-    )
-
-
-def _check_ttx(svg_in, ttfont, expected_ttx):
-    actual_ttx = io.StringIO()
-    # Timestamps inside files #@$@#%@#
-    # Use os-native line separators so we can run difflib.
-    ttfont.saveXML(
-        actual_ttx,
-        newlinestr=os.linesep,
-        skipTables=["head", "hhea", "maxp", "name", "post", "OS/2"],
-    )
-
-    # Elide ttFont attributes because ttLibVersion may change
-    actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
-
-    with open(_locate_test_file(expected_ttx)) as f:
-        expected = f.read()
-
-    if actual != expected:
-        for line in difflib.unified_diff(
-            expected.splitlines(keepends=True),
-            actual.splitlines(keepends=True),
-            fromfile=f"{expected_ttx} (expected)",
-            tofile=f"{expected_ttx} (actual)",
-        ):
-            sys.stderr.write(line)
-        tmp_file = f"/tmp/{svg_in}.ttx"
-        with open(tmp_file, "w") as f:
-            f.write(actual)
-        pytest.fail(f"{tmp_file} (from {svg_in}) != {expected_ttx}")
+import test_helper
 
 
 @pytest.mark.parametrize(
@@ -118,6 +64,8 @@ def test_codepoints_from_filename(filename, codepoints):
     ],
 )
 def test_make_emoji_font(svg_in, expected_ttx, color_format, output_format):
-    config, glyph_inputs = _color_font_config(color_format, svg_in, output_format)
+    config, glyph_inputs = test_helper.color_font_config(
+        color_format, svg_in, output_format
+    )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
-    _check_ttx(svg_in, ttfont, expected_ttx)
+    test_helper.assert_expected_ttx(svg_in, ttfont, expected_ttx)

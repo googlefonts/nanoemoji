@@ -61,6 +61,7 @@ ColorGenerator = collections.namedtuple("ColorGenerator", ["apply_ufo", "apply_t
 
 
 _COLOR_FORMAT_GENERATORS = {
+    "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None),
     "colr_0": ColorGenerator(lambda *args: _colr_ufo(0, *args), lambda *_: None),
     "colr_1": ColorGenerator(lambda *args: _colr_ufo(1, *args), lambda *_: None),
     "svg": ColorGenerator(lambda *_: None, lambda *args: _svg_ttfont(*args, zip=False)),
@@ -105,7 +106,7 @@ def _picosvg(filename):
     try:
         return SVG.parse(filename).topicosvg()
     except Exception as e:
-        logging.warning(f"{filename} failed: {e}")
+        logging.warning(f"SVG.parse({filename}) failed: {e}")
     return None
 
 
@@ -187,6 +188,25 @@ def _write(ufo, ttfont, output_file):
 
 def _not_impl(*_):
     raise NotImplementedError("%s not implemented" % FLAGS.color_format)
+
+
+def _glyf_ufo(ufo, color_glyphs):
+    for color_glyph in color_glyphs:
+        svg_units_to_font_units = color_glyph.transform_for_font_space()
+        logging.debug(
+            "%s %s %s",
+            ufo.info.familyName,
+            color_glyph.glyph_name,
+            svg_units_to_font_units,
+        )
+        for idx, (paint, path) in enumerate(color_glyph.as_painted_layers()):
+            glyph_layer = _layer(ufo, idx)
+
+            glyph = ufo.get(color_glyph.glyph_name)
+            glyph.width = ufo.info.unitsPerEm
+
+            pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
+            skia_path(path).draw(pen)
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):

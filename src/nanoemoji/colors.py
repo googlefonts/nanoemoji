@@ -177,6 +177,13 @@ def css_color(name):
     return _CSS_COLORS.get(name, None)
 
 
+def color_name(rgb):
+    for name, value in _CSS_COLORS.items():
+        if value == rgb:
+            return name
+    return None
+
+
 class Color(collections.namedtuple("Color", "red green blue alpha")):
     @classmethod
     def fromstring(cls, s, alpha=1.0):
