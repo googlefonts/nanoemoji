@@ -1,0 +1,5 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <path fill="blue" d="M2,2 V4 H8 V2 Z"/>
+  <path fill="blue" opacity="0.8" d="M4,4 V6 H10 V4 Z"/>
+</svg>
