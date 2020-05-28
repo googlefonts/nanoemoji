@@ -65,7 +65,6 @@ def test_codepoints_from_filename(filename, codepoints):
     ],
 )
 def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
-    print("test", svgs)
     config, glyph_inputs = test_helper.color_font_config(
         color_format, svgs, output_format
     )

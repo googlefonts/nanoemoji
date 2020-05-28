@@ -39,7 +39,10 @@ def color_font_config(color_format, svgs, output_format):
             color_format=color_format,
             output_format=output_format,
         ),
-        [(svg, (0xE000 + idx,), picosvg(svg)) for idx, svg in enumerate(svgs)],
+        [
+            nanoemoji.InputGlyph(svg, (0xE000 + idx,), picosvg(svg))
+            for idx, svg in enumerate(svgs)
+        ],
     )
 
 

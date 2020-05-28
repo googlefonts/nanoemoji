@@ -34,22 +34,33 @@ import collections
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
 import io
-from itertools import chain
+from itertools import chain, groupby
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
 from picosvg.svg import SVG
 from picosvg.svg_pathops import skia_path
 from picosvg.svg_reuse import normalize, affine_between
+from picosvg.svg_types import SVGPath
 import os
 import regex
 import sys
+from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
 import ufoLib2
 import ufo2ft
 
 
-ColorFontConfig = collections.namedtuple(
-    "ColorFontConfig", ["upem", "family", "color_format", "output_format"]
-)
+class ColorFontConfig(NamedTuple):
+    upem: int
+    family: str
+    color_format: str
+    output_format: str
+
+
+class InputGlyph(NamedTuple):
+    filename: str
+    codepoints: Tuple[int, ...]
+    picosvg: SVG
+
 
 # A color font generator.
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
@@ -58,7 +69,9 @@ ColorFontConfig = collections.namedtuple(
 #   https://github.com/unified-font-object/ufo-spec/issues/104
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
-ColorGenerator = collections.namedtuple("ColorGenerator", ["apply_ufo", "apply_ttfont"])
+class ColorGenerator(NamedTuple):
+    apply_ufo: Callable[[ufoLib2.Font, Sequence[ColorGlyph]], None]
+    apply_ttfont: Callable[[ufoLib2.Font, Sequence[ColorGlyph], ttLib.TTFont], None]
 
 
 _COLOR_FORMAT_GENERATORS = {
@@ -111,15 +124,16 @@ def _picosvg(filename):
     return None
 
 
-def _inputs(filenames):
+def _inputs(filenames: Iterable[str]) -> Generator[InputGlyph, None, None]:
     for filename in filenames:
         codepoints = _codepoints_from_filename(os.path.basename(filename))
         picosvg = _picosvg(filename)
         if codepoints and picosvg:
-            yield (filename, codepoints, picosvg)
+            print("InputGlyph", InputGlyph(filename, codepoints, picosvg))  # TEMPORARY
+            yield InputGlyph(filename, codepoints, picosvg)
 
 
-def _ufo(family, upem):
+def _ufo(family: str, upem: int) -> ufoLib2.Font:
     ufo = ufoLib2.Font()
     ufo.info.familyName = family
     # set various font metadata; see the full list of fontinfo attributes at
@@ -337,23 +351,29 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
 
 
+def _find_repeated_shapes(inputs: Iterable[InputGlyph]) -> Mapping[SVGPath, SVGPath]:
+    def _path_key(p: SVGPath) -> str:
+        return normalize(p).d
+
+    all_paths = [path for glyph in inputs for path in glyph.picosvg.shapes()]
+    all_paths.sort(key=_path_key)
+    for normalized, paths in groupby(all_paths, key=_path_key):
+        paths = list(paths)
+        if len(paths) > 1:
+            print(f"{len(paths)} reuses of {normalized}")
 
 
-
-def _generate_color_font(config, glyph_inputs):
-    """Make a UFO and optionally a TTFont from svgs.
-
-    Args:
-        color_font_config: ColorFontConfig
-        glyph_inputs: sequence of (filename, codepoints, picosvg) tuples
-    """
+def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
+    """Make a UFO and optionally a TTFont from svgs."""
     ufo = _ufo(config.family, config.upem)
-    _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs)
+    _ensure_codepoints_will_have_glyphs(ufo, inputs)
+
+    _find_repeated_shapes(inputs)
 
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
         ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, psvg)
-        for idx, (filename, codepoints, psvg) in enumerate(glyph_inputs)
+        for idx, (filename, codepoints, psvg) in enumerate(inputs)
     ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
@@ -384,7 +404,6 @@ def _run(argv):
     inputs = list(_inputs(argv[1:]))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
-
     logging.info(f"{len(inputs)}/{len(argv[1:])} inputs prepared successfully")
 
     ufo, ttfont = _generate_color_font(config, inputs)
