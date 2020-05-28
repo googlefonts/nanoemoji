@@ -34,7 +34,7 @@ from colr_to_svg import colr_to_svg
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_format):
     config, glyph_inputs = test_helper.color_font_config(
-        color_format, svg_in, output_format
+        color_format, (svg_in,), output_format
     )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
     svg_before = test_helper.picosvg(svg_in)

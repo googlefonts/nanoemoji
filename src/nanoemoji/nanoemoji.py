@@ -39,6 +39,7 @@ from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
 from picosvg.svg import SVG
 from picosvg.svg_pathops import skia_path
+from picosvg.svg_reuse import normalize, affine_between
 import os
 import regex
 import sys
@@ -258,7 +259,7 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             glyph.width = ufo.info.unitsPerEm
 
             pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
-            skia_path(path).draw(pen)
+            skia_path(path.as_cmd_seq()).draw(pen)
 
         # each base glyph contains a list of (layer.name, paint info) in z-order
         base_glyph = ufo.get(color_glyph.glyph_name)
@@ -336,6 +337,9 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
 
 
+
+
+
 def _generate_color_font(config, glyph_inputs):
     """Make a UFO and optionally a TTFont from svgs.
 
@@ -348,8 +352,8 @@ def _generate_color_font(config, glyph_inputs):
 
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
-        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
-        for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)
+        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, psvg)
+        for idx, (filename, codepoints, psvg) in enumerate(glyph_inputs)
     ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
