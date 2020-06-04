@@ -13,7 +13,7 @@ importlab==0.5.1          # via pytype
 importlib-metadata==1.6.0  # via pluggy, pytest
 more-itertools==8.3.0     # via pytest
 networkx==2.4             # via importlab
-ninja==1.9.0.post1        # via pytype
+ninja==1.10.0        # via pytype
 packaging==20.4           # via pytest
 pathspec==0.8.0           # via black
 pluggy==0.13.1            # via pytest
