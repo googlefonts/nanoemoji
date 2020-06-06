@@ -59,7 +59,9 @@ def test_codepoints_from_filename(filename, codepoints):
         (("linear_gradient_rect.svg",), "linear_gradient_rect.ttx", "colr_1", ".ttf"),
         # radial gradient on rect
         (("radial_gradient_rect.svg",), "radial_gradient_rect.ttx", "colr_1", ".ttf"),
-        # clocks have so very many reusable parts
+        # reuse shape in different color
+        (("rect.svg", "rect2.svg"), "rects.ttx", "colr_1", ".ttf"),
+        # clocks have composites, reuse of composite, and reuse of shape w/diff color
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks.ttx", "colr_1", ".ttf"),
         # TODO reusable clock parts for glyf, svg, svgz
     ],
