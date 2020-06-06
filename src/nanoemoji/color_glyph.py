@@ -214,11 +214,6 @@ class PaintedLayer(NamedTuple):
     path: SVGPath
     reuses: Tuple[Affine2D]
 
-    @property
-    def reuse_key(self):
-        return (self.paint, self.path.d, self.reuses)
-    
-
 
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
