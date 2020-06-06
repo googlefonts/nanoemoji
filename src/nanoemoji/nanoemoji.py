@@ -14,8 +14,9 @@
 
 """Create an emoji font from a set of SVGs.
 
-UFO handling informed by Cosimo's
-https://gist.github.com/anthrotype/2acbc67c75d6fa5833789ec01366a517
+UFO handling informed by:
+Cosimo's https://gist.github.com/anthrotype/2acbc67c75d6fa5833789ec01366a517
+Notes for https://github.com/googlefonts/ufo2ft/pull/359
 
 For COLR:
     Each SVG file represent one base glyph in the COLR font.
