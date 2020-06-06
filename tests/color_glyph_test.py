@@ -207,3 +207,6 @@ def test_paint_from_shape(svg_in, expected_paints):
     assert {
         _round_gradient_coordinates(paint) for paint in color_glyph.paints()
     } == expected_paints
+
+# TODO test that a composite is NOT formed where paint changes
+

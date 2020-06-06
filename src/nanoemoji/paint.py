@@ -20,7 +20,7 @@ import dataclasses
 from enum import Enum
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
-from typing import ClassVar, Optional, Tuple
+from typing import ClassVar, Generator, Optional, Sequence, Tuple
 
 
 class Extend(Enum):
@@ -36,7 +36,16 @@ class ColorStop:
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintSolid:
+class Paint:
+    def colors(self) -> Generator[Color, None, None]:
+        raise NotImplementedError()
+
+    def to_ufo_paint(self, colors: Sequence[Color]):
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintSolid(Paint):
     format: ClassVar[int] = 1
     color: Color = css_color("black")
 
@@ -66,7 +75,7 @@ def _ufoColorLine(gradient, colors):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintLinearGradient:
+class PaintLinearGradient(Paint):
     format: ClassVar[int] = 2
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop, ...] = tuple()
@@ -94,7 +103,7 @@ class PaintLinearGradient:
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintRadialGradient:
+class PaintRadialGradient(Paint):
     format: ClassVar[int] = 3
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop] = tuple()

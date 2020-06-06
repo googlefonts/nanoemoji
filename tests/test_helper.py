@@ -20,6 +20,7 @@ import sys
 from lxml import etree
 from nanoemoji import nanoemoji
 from picosvg.svg import SVG
+import pytest
 
 
 def locate_test_file(filename):
