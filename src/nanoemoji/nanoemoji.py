@@ -353,7 +353,7 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
     svg_table.compressed = zip
     svg_table.docList = [
         (
-            c.nsvg
+            c.picosvg
             # dumb sizing isn't useful
             .remove_attributes(("width", "height"))
             # Firefox likes to render blank if present

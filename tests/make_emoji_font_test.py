@@ -55,6 +55,7 @@ def test_codepoints_from_filename(filename, codepoints):
         # simple fill on rect
         (("rect.svg",), "rect_colr_0.ttx", "colr_0", ".ttf"),
         (("rect.svg",), "rect_colr_1.ttx", "colr_1", ".ttf"),
+        (("rect.svg",), "rect_svg.ttx", "svg", ".ttf"),
         # linear gradient on rect
         (("linear_gradient_rect.svg",), "linear_gradient_rect.ttx", "colr_1", ".ttf"),
         # radial gradient on rect
