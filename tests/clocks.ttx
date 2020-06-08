@@ -177,9 +177,9 @@
 
     <TTGlyph name="e000.5" xMin="-68" yMin="22" xMax="16" yMax="101">
       <component glyphName="e000.5.component.0" x="0" y="0" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-37" y="63" scalex="0.78125" scaley="-0.78125" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-37" y="138" scalex="0.78125" scaley="-0.78125" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-75" y="100" scalex="0.78125" scaley="-0.78125" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="-37" y="63" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="-37" y="138" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="-75" y="100" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="e000.5.component.0" xMin="9" yMin="47" xMax="16" yMax="53">
