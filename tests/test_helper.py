@@ -16,9 +16,11 @@ import io
 import difflib
 import os
 import re
+import sys
 from lxml import etree
 from nanoemoji import nanoemoji
 from picosvg.svg import SVG
+import pytest
 
 
 def locate_test_file(filename):
@@ -29,7 +31,8 @@ def picosvg(filename):
     return SVG.parse(locate_test_file(filename)).topicosvg()
 
 
-def color_font_config(color_format, svg_in, output_format):
+def color_font_config(color_format, svgs, output_format):
+    print(svgs)
     return (
         nanoemoji.ColorFontConfig(
             upem=100,
@@ -37,11 +40,14 @@ def color_font_config(color_format, svg_in, output_format):
             color_format=color_format,
             output_format=output_format,
         ),
-        [(svg_in, (0xE000,), picosvg(svg_in))],
+        [
+            nanoemoji.InputGlyph(svg, (0xE000 + idx,), picosvg(svg))
+            for idx, svg in enumerate(svgs)
+        ],
     )
 
 
-def assert_expected_ttx(svg_in, ttfont, expected_ttx):
+def assert_expected_ttx(svgs, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
     # Use os-native line separators so we can run difflib.
@@ -65,10 +71,10 @@ def assert_expected_ttx(svg_in, ttfont, expected_ttx):
             tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        tmp_file = f"/tmp/{svg_in}.ttx"
+        tmp_file = f"/tmp/{svgs[0]}.ttx"
         with open(tmp_file, "w") as f:
             f.write(actual)
-        pytest.fail(f"{tmp_file} (from {svg_in}) != {expected_ttx}")
+        pytest.fail(f"{tmp_file} (from {svgs}) != {expected_ttx}")
 
 
 # Copied from picosvg

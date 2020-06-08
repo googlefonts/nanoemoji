@@ -48,24 +48,27 @@ def test_codepoints_from_filename(filename, codepoints):
 # TODO test that id=glyph# is added to svg
 # TODO test svg compressed false, svgz true
 
-# TODO test round-trip svg => colrv1 => svg
-
 
 @pytest.mark.parametrize(
-    "svg_in, expected_ttx, color_format, output_format",
+    "svgs, expected_ttx, color_format, output_format",
     [
         # simple fill on rect
-        ("rect.svg", "rect_colr_0.ttx", "colr_0", ".ttf"),
-        ("rect.svg", "rect_colr_1.ttx", "colr_1", ".ttf"),
+        (("rect.svg",), "rect_colr_0.ttx", "colr_0", ".ttf"),
+        (("rect.svg",), "rect_colr_1.ttx", "colr_1", ".ttf"),
         # linear gradient on rect
-        ("linear_gradient_rect.svg", "linear_gradient_rect.ttx", "colr_1", ".ttf"),
+        (("linear_gradient_rect.svg",), "linear_gradient_rect.ttx", "colr_1", ".ttf"),
         # radial gradient on rect
-        ("radial_gradient_rect.svg", "radial_gradient_rect.ttx", "colr_1", ".ttf"),
+        (("radial_gradient_rect.svg",), "radial_gradient_rect.ttx", "colr_1", ".ttf"),
+        # reuse shape in different color
+        (("rect.svg", "rect2.svg"), "rects.ttx", "colr_1", ".ttf"),
+        # clocks have composites, reuse of composite, and reuse of shape w/diff color
+        (("one-o-clock.svg", "two-o-clock.svg"), "clocks.ttx", "colr_1", ".ttf"),
+        # TODO reusable clock parts for glyf, svg, svgz
     ],
 )
-def test_make_emoji_font(svg_in, expected_ttx, color_format, output_format):
+def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
     config, glyph_inputs = test_helper.color_font_config(
-        color_format, svg_in, output_format
+        color_format, svgs, output_format
     )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
-    test_helper.assert_expected_ttx(svg_in, ttfont, expected_ttx)
+    test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)

@@ -14,22 +14,28 @@
 
 from absl import logging
 import collections
-from itertools import chain
+from itertools import chain, groupby
 from lxml import etree  # type: ignore
-from picosvg.geometric_types import Point, Rect
-from picosvg.svg_transform import Affine2D
 from nanoemoji.colors import Color
 from nanoemoji import glyph
 from nanoemoji.paint import (
     Extend,
     ColorStop,
+    Paint,
     PaintLinearGradient,
     PaintRadialGradient,
     PaintSolid,
 )
+from picosvg.geometric_types import Point, Rect
+from picosvg.svg_reuse import normalize, affine_between
+from picosvg.svg_transform import Affine2D
+from picosvg.svg import SVG
+from picosvg.svg_types import SVGPath
+from typing import Generator, NamedTuple, Tuple
+import ufoLib2
 
 
-def map_viewbox_to_emsquare(view_box, upem):
+def map_viewbox_to_emsquare(view_box: Rect, upem) -> Affine2D:
     # scale to font upem
     x_scale = upem / view_box.w
     y_scale = upem / view_box.h
@@ -59,7 +65,7 @@ def _get_gradient_units_relative_scale(grad_el, view_box):
         )
 
 
-def _get_gradient_transform(grad_el, shape_bbox, view_box, upem):
+def _get_gradient_transform(grad_el, shape_bbox, view_box, upem) -> Affine2D:
     transform = map_viewbox_to_emsquare(view_box, upem)
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
@@ -170,7 +176,7 @@ _GRADIENT_INFO = {
 }
 
 
-def _color_stop(stop_el):
+def _color_stop(stop_el) -> ColorStop:
     offset = _number_or_percentage(stop_el.attrib.get("offset", "0"))
     color = stop_el.attrib.get("stop-color", "black")
     if "stop-opacity" in stop_el.attrib:
@@ -189,28 +195,42 @@ def _common_gradient_parts(el):
     }
 
 
-def _paint(nsvg, shape, upem):
+def _paint(picosvg, shape, upem):
     if shape.fill.startswith("url("):
-        el = nsvg.resolve_url(shape.fill, "*")
+        el = picosvg.resolve_url(shape.fill, "*")
 
         grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
         grad_args = _common_gradient_parts(el)
         grad_args.update(
-            grad_type_parser(el, shape.bounding_box(), nsvg.view_box(), upem)
+            grad_type_parser(el, shape.bounding_box(), picosvg.view_box(), upem)
         )
         return grad_type(**grad_args)
 
     return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
 
 
-class ColorGlyph(
-    collections.namedtuple(
-        "ColorGlyph",
-        ["ufo", "filename", "glyph_name", "glyph_id", "codepoints", "nsvg"],
-    )
-):
+class PaintedLayer(NamedTuple):
+    paint: Paint
+    path: SVGPath
+    reuses: Tuple[Affine2D]
+
+
+class ColorGlyph(NamedTuple):
+    ufo: ufoLib2.Font
+    filename: str
+    glyph_name: str
+    glyph_id: str
+    codepoints: Tuple[int, ...]
+    picosvg: SVG
+
+    def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
+        """Within a glyph reuse shapes only when painted consistently.
+
+        paint+normalized shape ensures this."""
+        return (_paint(self.picosvg, shape, self.ufo.info.unitsPerEm), normalize(shape))
+
     @staticmethod
-    def create(ufo, filename, glyph_id, codepoints, nsvg):
+    def create(ufo, filename, glyph_id, codepoints, picosvg):
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
         glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
@@ -221,11 +241,11 @@ class ColorGlyph(
             base_glyph.unicode = next(iter(codepoints))
 
         # Grab the transform + (color, glyph) layers for COLR
-        return ColorGlyph(ufo, filename, glyph_name, glyph_id, codepoints, nsvg)
+        return ColorGlyph(ufo, filename, glyph_name, glyph_id, codepoints, picosvg)
 
     def transform_for_font_space(self):
         """Creates a Transform to map SVG coords to font coords"""
-        view_box = self.nsvg.view_box()
+        view_box = self.picosvg.view_box()
         if view_box is None:
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
@@ -233,14 +253,21 @@ class ColorGlyph(
             return Affine2D.identity()
         return map_viewbox_to_emsquare(view_box, self.ufo.info.unitsPerEm)
 
-    def as_painted_layers(self):
-        """Yields (Paint, SVGPath) tuples to draw nsvg."""
-        for shape in self.nsvg.shapes():
-            yield (_paint(self.nsvg, shape, self.ufo.info.unitsPerEm), shape)
+    def as_painted_layers(self) -> Generator[PaintedLayer, None, None]:
+        # Don't sort; we only want to find groups that are consecutive in the picosvg
+        # to ensure we don't mess up layer order
+        for (paint, normalized), paths in groupby(
+            self.picosvg.shapes(), key=self._in_glyph_reuse_key
+        ):
+            paths = list(paths)
+            transforms = ()
+            if len(paths) > 1:
+                transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
+            yield PaintedLayer(paint, paths[0], transforms)
 
     def paints(self):
         """Set of Paint used by this glyph."""
-        return {paint for paint, _ in self.as_painted_layers()}
+        return {l.paint for l in self.as_painted_layers()}
 
     def colors(self):
         """Set of Color used by this glyph."""
