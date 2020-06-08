@@ -223,7 +223,10 @@ class ColorGlyph(NamedTuple):
     codepoints: Tuple[int, ...]
     picosvg: SVG
 
-    def _path_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
+    def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
+        """Within a glyph reuse shapes only when painted consistently.
+
+        paint+normalized shape ensures this."""
         return (_paint(self.picosvg, shape, self.ufo.info.unitsPerEm), normalize(shape))
 
     @staticmethod
@@ -254,7 +257,7 @@ class ColorGlyph(NamedTuple):
         # Don't sort; we only want to find groups that are consecutive in the picosvg
         # to ensure we don't mess up layer order
         for (paint, normalized), paths in groupby(
-            self.picosvg.shapes(), key=self._path_key
+            self.picosvg.shapes(), key=self._in_glyph_reuse_key
         ):
             paths = list(paths)
             transforms = ()

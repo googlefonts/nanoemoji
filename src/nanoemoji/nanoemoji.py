@@ -134,7 +134,6 @@ def _inputs(filenames: Iterable[str]) -> Generator[InputGlyph, None, None]:
         codepoints = _codepoints_from_filename(os.path.basename(filename))
         picosvg = _picosvg(filename)
         if codepoints and picosvg:
-            print("InputGlyph", InputGlyph(filename, codepoints, picosvg))  # TEMPORARY
             yield InputGlyph(filename, codepoints, picosvg)
 
 
@@ -207,7 +206,7 @@ def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
     return name_fn(i)
 
 
-def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
+def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
     ufo = color_glyph.ufo
 
     glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{color_glyph.glyph_name}.{i}"))
@@ -217,14 +216,14 @@ def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
 
     if painted_layer.reuses:
         # Shape repeats, form a composite
-        composite_base = ufo.newGlyph(
+        base_glyph = ufo.newGlyph(
             _next_name(ufo, lambda i: f"{glyph.name}.component.{i}")
         )
 
-        _draw(painted_layer.path, composite_base, svg_units_to_font_units)
+        _draw(painted_layer.path, base_glyph, svg_units_to_font_units)
 
         glyph.components.append(
-            Component(baseGlyph=composite_base.name, transformation=Affine2D.identity())
+            Component(baseGlyph=base_glyph.name, transformation=Affine2D.identity())
         )
 
         for transform in painted_layer.reuses:
@@ -232,13 +231,10 @@ def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
             # scale x/y translation and flip y movement to match font space
             transform = transform._replace(
                 e=transform.e * svg_units_to_font_units.a,
-                f=transform.f * svg_units_to_font_units.d
+                f=transform.f * svg_units_to_font_units.d,
             )
             glyph.components.append(
-                Component(
-                    baseGlyph=composite_base.name,
-                    transformation=transform,
-                )
+                Component(baseGlyph=base_glyph.name, transformation=transform,)
             )
     else:
         # Not a composite, just draw directly on the glyph
@@ -247,11 +243,7 @@ def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
     return glyph
 
 
-def _colr_glyph(color_glyph: ColorGlyph) -> Glyph:
-    ufo = color_glyph.ufo
-
-    glyph = ufo.get(color_glyph.glyph_name)
-
+def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
     # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
     # extents of the base layer to determine where the glyph might paint. If you
     # leave the base blank the COLR glyph never renders.
@@ -276,7 +268,7 @@ def _glyf_ufo(ufo, color_glyphs):
             svg_units_to_font_units,
         )
         for painted_layer in color_glyph.as_painted_layers():
-            _glyph(color_glyph, painted_layer)
+            _create_glyph(color_glyph, painted_layer)
 
 
 def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
@@ -296,7 +288,10 @@ def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
         raise ValueError(f"Unsupported COLR version: {colr_version}")
 
 
-def _reuse_key(painted_layer: PaintedLayer):
+def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
+    """Individual glyf entries, including composites, can be reused.
+
+    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
     return (painted_layer.path.d, painted_layer.reuses)
 
 
@@ -335,9 +330,9 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         # accumulate layers in z-order
         for painted_layer in color_glyph.as_painted_layers():
             # if we've seen this shape before reuse it
-            reuse_key = _reuse_key(painted_layer)
+            reuse_key = _inter_glyph_reuse_key(painted_layer)
             if reuse_key not in glyphs:
-                glyph = _glyph(color_glyph, painted_layer)
+                glyph = _create_glyph(color_glyph, painted_layer)
                 glyphs[reuse_key] = glyph
             else:
                 glyph = glyphs[reuse_key]
@@ -345,7 +340,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             paint = _colr_paint(colr_version, painted_layer.paint, colors)
             glyph_colr_layers.append((glyph.name, paint))
 
-        colr_glyph = _colr_glyph(color_glyph)
+        colr_glyph = ufo.get(color_glyph.glyph_name)
+        _draw_glyph_extents(ufo, colr_glyph)
         color_layers[colr_glyph.name] = glyph_colr_layers
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
