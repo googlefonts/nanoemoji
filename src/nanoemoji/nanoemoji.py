@@ -226,11 +226,18 @@ def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
         glyph.components.append(
             Component(baseGlyph=composite_base.name, transformation=Affine2D.identity())
         )
+
         for transform in painted_layer.reuses:
+            # We already redrew the component into font space, don't redo it
+            # scale x/y translation and flip y movement to match font space
+            transform = transform._replace(
+                e=transform.e * svg_units_to_font_units.a,
+                f=transform.f * svg_units_to_font_units.d
+            )
             glyph.components.append(
                 Component(
                     baseGlyph=composite_base.name,
-                    transformation=Affine2D.product(transform, svg_units_to_font_units),
+                    transformation=transform,
                 )
             )
     else:

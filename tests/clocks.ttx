@@ -27,7 +27,7 @@
     <mtx name="e000.2" width="100" lsb="48"/>
     <mtx name="e000.3" width="100" lsb="45"/>
     <mtx name="e000.4" width="100" lsb="48"/>
-    <mtx name="e000.5" width="100" lsb="-68"/>
+    <mtx name="e000.5" width="100" lsb="9"/>
     <mtx name="e000.5.component.0" width="0" lsb="9"/>
     <mtx name="e000.6" width="100" lsb="3"/>
     <mtx name="e001" width="100" lsb="0"/>
@@ -175,11 +175,11 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.5" xMin="-68" yMin="22" xMax="16" yMax="101">
+    <TTGlyph name="e000.5" xMin="9" yMin="10" xMax="91" yMax="91">
       <component glyphName="e000.5.component.0" x="0" y="0" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-37" y="63" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-37" y="138" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="-75" y="100" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="38" y="38" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="38" y="-37" flags="0x4"/>
+      <component glyphName="e000.5.component.0" x="75" y="0" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="e000.5.component.0" xMin="9" yMin="47" xMax="16" yMax="53">
