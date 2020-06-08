@@ -253,7 +253,9 @@ class ColorGlyph(NamedTuple):
     def as_painted_layers(self) -> Generator[PaintedLayer, None, None]:
         # Don't sort; we only want to find groups that are consecutive in the picosvg
         # to ensure we don't mess up layer order
-        for (paint, normalized), paths in groupby(self.picosvg.shapes(), key=self._path_key):
+        for (paint, normalized), paths in groupby(
+            self.picosvg.shapes(), key=self._path_key
+        ):
             paths = list(paths)
             transforms = ()
             if len(paths) > 1:

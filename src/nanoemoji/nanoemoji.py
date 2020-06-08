@@ -210,21 +210,29 @@ def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
 def _glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
     ufo = color_glyph.ufo
 
-    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f'{color_glyph.glyph_name}.{i}'))
+    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{color_glyph.glyph_name}.{i}"))
     glyph.width = ufo.info.unitsPerEm
 
     svg_units_to_font_units = color_glyph.transform_for_font_space()
 
     if painted_layer.reuses:
         # Shape repeats, form a composite
-        composite_base = ufo.newGlyph(_next_name(ufo, lambda i: f'{glyph.name}.component.{i}'))
+        composite_base = ufo.newGlyph(
+            _next_name(ufo, lambda i: f"{glyph.name}.component.{i}")
+        )
 
         _draw(painted_layer.path, composite_base, svg_units_to_font_units)
 
-        glyph.components.append(Component(baseGlyph=composite_base.name, transformation=Affine2D.identity()))
+        glyph.components.append(
+            Component(baseGlyph=composite_base.name, transformation=Affine2D.identity())
+        )
         for transform in painted_layer.reuses:
-            glyph.components.append(Component(baseGlyph=composite_base.name,
-                transformation=Affine2D.product(transform, svg_units_to_font_units)))
+            glyph.components.append(
+                Component(
+                    baseGlyph=composite_base.name,
+                    transformation=Affine2D.product(transform, svg_units_to_font_units),
+                )
+            )
     else:
         # Not a composite, just draw directly on the glyph
         _draw(painted_layer.path, glyph, svg_units_to_font_units)
