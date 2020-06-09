@@ -32,7 +32,6 @@ def picosvg(filename):
 
 
 def color_font_config(color_format, svgs, output_format):
-    print(svgs)
     return (
         nanoemoji.ColorFontConfig(
             upem=100,
@@ -45,6 +44,13 @@ def color_font_config(color_format, svgs, output_format):
             for idx, svg in enumerate(svgs)
         ],
     )
+
+
+def _save_actual_ttx(expected_ttx, ttx_content):
+    tmp_file = f"/tmp/{expected_ttx}"
+    with open(tmp_file, "w") as f:
+        f.write(ttx_content)
+    return tmp_file
 
 
 def assert_expected_ttx(svgs, ttfont, expected_ttx):
@@ -60,8 +66,13 @@ def assert_expected_ttx(svgs, ttfont, expected_ttx):
     # Elide ttFont attributes because ttLibVersion may change
     actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
 
-    with open(locate_test_file(expected_ttx)) as f:
-        expected = f.read()
+    expected_location = locate_test_file(expected_ttx)
+    if os.path.isfile(expected_location):
+        with open(expected_location) as f:
+            expected = f.read()
+    else:
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
+        raise FileNotFoundError(f'Missing expected in {expected_location}. Actual in {tmp_file}')
 
     if actual != expected:
         for line in difflib.unified_diff(
@@ -71,10 +82,9 @@ def assert_expected_ttx(svgs, ttfont, expected_ttx):
             tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        tmp_file = f"/tmp/{svgs[0]}.ttx"
-        with open(tmp_file, "w") as f:
-            f.write(actual)
-        pytest.fail(f"{tmp_file} (from {svgs}) != {expected_ttx}")
+        print(f'SVGS: {svgs}')
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
+        pytest.fail(f"{tmp_file} != {expected_ttx}")
 
 
 # Copied from picosvg

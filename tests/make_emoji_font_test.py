@@ -64,7 +64,8 @@ def test_codepoints_from_filename(filename, codepoints):
         (("rect.svg", "rect2.svg"), "rects_colr_1.ttx", "colr_1", ".ttf"),
         # clocks have composites, reuse of composite, and reuse of shape w/diff color
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_colr_1.ttx", "colr_1", ".ttf"),
-        # TODO reusable clock parts for glyf, svg, svgz
+        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
+        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_svg.ttx", "svg", ".ttf"),
     ],
 )
 def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
@@ -72,4 +73,8 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
         color_format, svgs, output_format
     )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
+    # sanity check the font
+    # glyf should not have identical-except-name entries except .notdef and .space
+    # SVG should not have identical paths or gradients
+    # in both cases this should be true wehn normalized to start from 0,0
     test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)

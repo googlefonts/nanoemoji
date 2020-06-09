@@ -98,6 +98,7 @@ FLAGS = flags.FLAGS
 
 
 # TODO move to config file?
+# TODO flag on/off shape reuse
 flags.DEFINE_integer("upem", 1024, "Units per em.")
 flags.DEFINE_string("family", "An Emoji Family", "Family name.")
 flags.DEFINE_enum(
@@ -259,16 +260,30 @@ def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
 
 
 def _glyf_ufo(ufo, color_glyphs):
+    # glyphs by reuse_key
+    glyphs = {}
+    swaps = []
     for color_glyph in color_glyphs:
-        svg_units_to_font_units = color_glyph.transform_for_font_space()
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
             color_glyph.glyph_name,
-            svg_units_to_font_units,
+            color_glyph.transform_for_font_space(),
         )
+        parent_glyph = ufo.get(color_glyph.glyph_name)
         for painted_layer in color_glyph.as_painted_layers():
-            _create_glyph(color_glyph, painted_layer)
+            # if we've seen this shape before reuse it
+            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            if reuse_key not in glyphs:
+                glyph = _create_glyph(color_glyph, painted_layer)
+                glyphs[reuse_key] = glyph
+            else:
+                glyph = glyphs[reuse_key]
+            parent_glyph.components.append(Component(baseGlyph=glyph.name))
+
+        # No great reason to keep single-component glyphs around
+        if len(parent_glyph.components) == 1:
+            ufo[color_glyph.glyph_name] = ufo[parent_glyph.components[0].baseGlyph]
 
 
 def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
