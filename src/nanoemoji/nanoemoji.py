@@ -59,6 +59,7 @@ class ColorFontConfig(NamedTuple):
     family: str
     color_format: str
     output_format: str
+    keep_glyph_names: bool = False
 
 
 class InputGlyph(NamedTuple):
@@ -111,6 +112,9 @@ flags.DEFINE_string(
     "/tmp/AnEmojiFamily-Regular.ttf",
     "Dest file, can be .ttf, .otf, or .ufo",
 )
+flags.DEFINE_bool(
+    "keep_glyph_names", False, "Whether or not to store glyph names in the font."
+)
 
 
 def _codepoints_from_filename(filename):
@@ -137,7 +141,7 @@ def _inputs(filenames: Iterable[str]) -> Generator[InputGlyph, None, None]:
             yield InputGlyph(filename, codepoints, picosvg)
 
 
-def _ufo(family: str, upem: int) -> ufoLib2.Font:
+def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
     ufo = ufoLib2.Font()
     ufo.info.familyName = family
     # set various font metadata; see the full list of fontinfo attributes at
@@ -150,6 +154,9 @@ def _ufo(family: str, upem: int) -> ufoLib2.Font:
     space.unicodes = [0x0020]
     space.width = upem
     ufo.glyphOrder = [".notdef", ".space"]
+
+    # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
+    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep_glyph_names
 
     return ufo
 
@@ -210,6 +217,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
     ufo = color_glyph.ufo
 
     glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{color_glyph.glyph_name}.{i}"))
+    glyph_names = [glyph.name]
     glyph.width = ufo.info.unitsPerEm
 
     svg_units_to_font_units = color_glyph.transform_for_font_space()
@@ -219,6 +227,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         base_glyph = ufo.newGlyph(
             _next_name(ufo, lambda i: f"{glyph.name}.component.{i}")
         )
+        glyph_names.append(base_glyph.name)
 
         _draw(painted_layer.path, base_glyph, svg_units_to_font_units)
 
@@ -234,11 +243,13 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
                 f=transform.f * svg_units_to_font_units.d,
             )
             glyph.components.append(
-                Component(baseGlyph=base_glyph.name, transformation=transform,)
+                Component(baseGlyph=base_glyph.name, transformation=transform)
             )
     else:
         # Not a composite, just draw directly on the glyph
         _draw(painted_layer.path, glyph, svg_units_to_font_units)
+
+    ufo.glyphOrder += glyph_names
 
     return glyph
 
@@ -360,8 +371,8 @@ def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
             .remove_attributes(("enable-background",))
             # Required to match gid
             .set_attributes((("id", f"glyph{c.glyph_id}"),)).tostring(),
-            ttfont.getGlyphID(c.glyph_name),
-            ttfont.getGlyphID(c.glyph_name),
+            c.glyph_id,
+            c.glyph_id,
         )
         for c in color_glyphs
     ]
@@ -413,7 +424,7 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
 
 def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
-    ufo = _ufo(config.family, config.upem)
+    ufo = _ufo(config.family, config.upem, config.keep_glyph_names)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
 
     base_gid = len(ufo.glyphOrder)
@@ -445,6 +456,7 @@ def _run(argv):
         family=FLAGS.family,
         color_format=FLAGS.color_format,
         output_format=os.path.splitext(FLAGS.output_file)[1],
+        keep_glyph_names=FLAGS.keep_glyph_names,
     )
 
     inputs = list(_inputs(argv[1:]))
