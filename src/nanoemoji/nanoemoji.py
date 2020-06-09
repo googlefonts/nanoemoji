@@ -59,7 +59,7 @@ class ColorFontConfig(NamedTuple):
     family: str
     color_format: str
     output_format: str
-    keep_glyph_names: bool = True
+    keep_glyph_names: bool = False
 
 
 class InputGlyph(NamedTuple):
@@ -113,7 +113,7 @@ flags.DEFINE_string(
     "Dest file, can be .ttf, .otf, or .ufo",
 )
 flags.DEFINE_bool(
-    "keep_glyph_names", True, "Whether or not to store glyph names in the font."
+    "keep_glyph_names", False, "Whether or not to store glyph names in the font."
 )
 
 
@@ -141,7 +141,7 @@ def _inputs(filenames: Iterable[str]) -> Generator[InputGlyph, None, None]:
             yield InputGlyph(filename, codepoints, picosvg)
 
 
-def _ufo(family: str, upem: int, keep_glyph_names: bool = True) -> ufoLib2.Font:
+def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
     ufo = ufoLib2.Font()
     ufo.info.familyName = family
     # set various font metadata; see the full list of fontinfo attributes at
@@ -155,9 +155,8 @@ def _ufo(family: str, upem: int, keep_glyph_names: bool = True) -> ufoLib2.Font:
     space.width = upem
     ufo.glyphOrder = [".notdef", ".space"]
 
-    if not keep_glyph_names:
-        # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
-        ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep_glyph_names
+    # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
+    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep_glyph_names
 
     return ufo
 
