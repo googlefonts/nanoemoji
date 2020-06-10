@@ -57,15 +57,33 @@ def test_codepoints_from_filename(filename, codepoints):
         (("rect.svg",), "rect_colr_1.ttx", "colr_1", ".ttf"),
         (("rect.svg",), "rect_svg.ttx", "svg", ".ttf"),
         # linear gradient on rect
-        (("linear_gradient_rect.svg",), "linear_gradient_rect_colr_1.ttx", "colr_1", ".ttf"),
+        (
+            ("linear_gradient_rect.svg",),
+            "linear_gradient_rect_colr_1.ttx",
+            "colr_1",
+            ".ttf",
+        ),
         # radial gradient on rect
-        (("radial_gradient_rect.svg",), "radial_gradient_rect_colr_1.ttx", "colr_1", ".ttf"),
+        (
+            ("radial_gradient_rect.svg",),
+            "radial_gradient_rect_colr_1.ttx",
+            "colr_1",
+            ".ttf",
+        ),
         # reuse shape in different color
         (("rect.svg", "rect2.svg"), "rects_colr_1.ttx", "colr_1", ".ttf"),
         # clocks have composites, reuse of composite, and reuse of shape w/diff color
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_colr_1.ttx", "colr_1", ".ttf"),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_svg.ttx", "svg", ".ttf"),
+        # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
+        # glyph order must reshuffle to group correctly
+        (
+            ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
+            "clocks_rects_svg.ttx",
+            "svg",
+            ".ttf",
+        ),
     ],
 )
 def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
