@@ -72,7 +72,9 @@ def assert_expected_ttx(svgs, ttfont, expected_ttx):
             expected = f.read()
     else:
         tmp_file = _save_actual_ttx(expected_ttx, actual)
-        raise FileNotFoundError(f'Missing expected in {expected_location}. Actual in {tmp_file}')
+        raise FileNotFoundError(
+            f"Missing expected in {expected_location}. Actual in {tmp_file}"
+        )
 
     if actual != expected:
         for line in difflib.unified_diff(
@@ -82,7 +84,7 @@ def assert_expected_ttx(svgs, ttfont, expected_ttx):
             tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        print(f'SVGS: {svgs}')
+        print(f"SVGS: {svgs}")
         tmp_file = _save_actual_ttx(expected_ttx, actual)
         pytest.fail(f"{tmp_file} != {expected_ttx}")
 
