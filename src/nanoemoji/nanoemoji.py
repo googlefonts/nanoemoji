@@ -60,6 +60,7 @@ class ColorFontConfig(NamedTuple):
     color_format: str
     output_format: str
     keep_glyph_names: bool = False
+    cff_version: int = 1
 
 
 class InputGlyph(NamedTuple):
@@ -114,6 +115,13 @@ flags.DEFINE_string(
 )
 flags.DEFINE_bool(
     "keep_glyph_names", False, "Whether or not to store glyph names in the font."
+)
+flags.DEFINE_integer(
+    "cff_version",
+    1,
+    "The CFF table format version. Choose 1 or 2 (default: 1)",
+    lower_bound=1,
+    upper_bound=2,
 )
 
 
@@ -173,7 +181,9 @@ def _make_ttfont(config, ufo, color_glyphs):
     if config.output_format == ".ttf":
         ttfont = ufo2ft.compileTTF(ufo, overlapsBackend="pathops")
     if config.output_format == ".otf":
-        ttfont = ufo2ft.compileOTF(ufo, overlapsBackend="pathops")
+        ttfont = ufo2ft.compileOTF(
+            ufo, cffVersion=config.cff_version, overlapsBackend="pathops"
+        )
 
     if not ttfont:
         raise ValueError(
@@ -457,6 +467,7 @@ def _run(argv):
         color_format=FLAGS.color_format,
         output_format=os.path.splitext(FLAGS.output_file)[1],
         keep_glyph_names=FLAGS.keep_glyph_names,
+        cff_version=FLAGS.cff_version,
     )
 
     inputs = list(_inputs(argv[1:]))

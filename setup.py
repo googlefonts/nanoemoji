@@ -27,7 +27,7 @@ setup(
         "lxml>=4.0",
         "picosvg>=0.3.8",
         "regex>=2020.4.4",
-        "ufo2ft>=2.15.0",
+        "ufo2ft[cffsubr]>=2.15.0",
         "ufoLib2>=0.6.2",
         "dataclasses>=0.7; python_version < '3.7'",
     ],
