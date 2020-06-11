@@ -96,3 +96,23 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
     # SVG should not have identical paths or gradients
     # in both cases this should be true wehn normalized to start from 0,0
     test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)
+
+
+@pytest.mark.parametrize(
+    "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
+)
+@pytest.mark.parametrize("color_format", ["colr_0", "colr_1", "svg", "svgz"])
+@pytest.mark.parametrize("keep_glyph_names", [True, False])
+def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
+    config, glyph_inputs = test_helper.color_font_config(
+        color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
+    )
+    ufo, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
+
+    assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
+    if keep_glyph_names:
+        assert ttfont["post"].formatType == 2.0
+        assert ufo.glyphOrder == ttfont.getGlyphOrder()
+    else:
+        assert ttfont["post"].formatType == 3.0
+        assert ufo.glyphOrder != ttfont.getGlyphOrder()
