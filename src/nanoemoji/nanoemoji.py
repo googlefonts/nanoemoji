@@ -31,18 +31,16 @@ from absl import app
 from absl import flags
 from absl import logging
 import collections
-import copy
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
 import io
 from itertools import chain, groupby
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
-from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import Paint
-from picosvg.svg import to_element, SVG
-from picosvg import svg_meta
+from nanoemoji.svg import make_svg_table
+from picosvg.svg import SVG
 from picosvg.svg_pathops import skia_path
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_types import SVGPath
@@ -55,8 +53,6 @@ import ufoLib2
 from ufoLib2.objects import Component, Glyph, Layer
 
 import ufo2ft
-
-from lxml import etree  # pytype: disable=import-error
 
 
 class ColorFontConfig(NamedTuple):
@@ -378,147 +374,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
 
 
-def _create_svg_doclist(svg: SVG) -> str:
-    return (
-        svg
-        # dumb sizing isn't useful
-        .remove_attributes(("width", "height"))
-        # Firefox likes to render blank if present
-        .remove_attributes(("enable-background",))
-    )
-
-
-def _ensure_has_id(el):
-    if "id" in el.attrib:
-        return
-    nth_child = 0
-    prev = el.getprevious()
-    while prev is not None:
-        nth_child += 1
-        prev = prev.getprevious()
-    el.attrib["id"] = f'{el.getparent().attrib["id"]}::{nth_child}'
-
-
-def _svg_glyph_groups(color_glyphs):
-    """Find glyphs that need to be kept together by union find."""
-    # glyphs by reuse_key
-    glyphs = {}
-    reuse_groups = DisjointSet()
-    for color_glyph in color_glyphs:
-        reuse_groups.make_set(color_glyph.glyph_name)
-        for painted_layer in color_glyph.as_painted_layers():
-            # TODO what attributes should go into this key for SVG
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
-            if reuse_key not in glyphs:
-                glyphs[reuse_key] = color_glyph.glyph_name
-            else:
-                reuse_groups.union(color_glyph.glyph_name, glyphs[reuse_key])
-
-    return reuse_groups.sorted()
-
-
-def _add_unique_gradients(id_updates, svg_defs, color_glyph):
-    for gradient in color_glyph.picosvg.xpath("//svg:defs/*"):
-        gradient = copy.deepcopy(gradient)
-        curr_id = gradient.attrib["id"]
-        new_id = f"{color_glyph.glyph_name}::{curr_id}"
-        del gradient.attrib["id"]
-        gradient_xml = etree.tostring(gradient)
-        if gradient_xml in id_updates:
-            id_updates[curr_id] = id_updates[gradient_xml]
-        else:
-            gradient.attrib["id"] = new_id
-            id_updates[curr_id] = new_id
-            id_updates[gradient_xml] = new_id
-            svg_defs.append(gradient)
-
-
-def _add_glyph_to_svg(svg, color_glyph, id_updates):
-    # each glyph gets a group of its very own
-    svg_g = svg.append_to("/svg:svg", etree.Element("g"))
-    svg_g.attrib["id"] = color_glyph.glyph_name
-
-    # copy the shapes into our svg
-    glyphs = {}
-    for painted_layer in color_glyph.as_painted_layers():
-        reuse_key = _inter_glyph_reuse_key(painted_layer)
-        if reuse_key not in glyphs:
-            el = to_element(painted_layer.path)
-            match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
-            if match:
-                el.attrib[
-                    "fill"
-                ] = f"url(#{id_updates.get(match.group(1), match.group(1))})"
-            svg_g.append(el)
-            glyphs[reuse_key] = el
-            for reuse in painted_layer.reuses:
-                _ensure_has_id(el)
-                svg_use = etree.SubElement(svg_g, "use")
-                svg_use.attrib["href"] = f'#{el.attrib["id"]}'
-                tx, ty = reuse.gettranslate()
-                if tx:
-                    svg_use.attrib["x"] = svg_meta.ntos(tx)
-                if ty:
-                    svg_use.attrib["y"] = svg_meta.ntos(ty)
-                transform = reuse.translate(-tx, -ty)
-                if transform != Affine2D.identity():
-                    # TODO apply scale and rotation. Just slap a transform on the <use>?
-                    raise NotImplementedError("TODO apply scale & rotation to use")
-
-        else:
-            el = glyphs[reuse_key]
-            _ensure_has_id(el)
-            svg_use = etree.SubElement(svg_g, "use")
-            svg_use.attrib["href"] = f'#{el.attrib["id"]}'
-
-
-def _svg_update_glyph_order(color_glyphs, ttfont, reuse_groups):
-    # svg requires glyphs in same doc have sequential gids; reshuffle to make this true
-    glyph_order = ttfont.getGlyphOrder()[: -len(color_glyphs)]
-    gid = len(glyph_order)
-    for group in reuse_groups:
-        for glyph_name in group:
-            color_glyphs[glyph_name] = color_glyphs[glyph_name]._replace(glyph_id=gid)
-            gid += 1
-        glyph_order.extend(group)
-    ttfont.setGlyphOrder(glyph_order)
-
-
 def _svg_ttfont(_, color_glyphs, ttfont, zip=False):
-    """Build an SVG table optimizing for reuse of shapes.
-
-    Reuse here requires putting shapes into a single svg doc. Use of large svg docs
-    will come at runtime cost. A better implementation would also consider usage frequency
-    and avoid taking reuse opportunities in some cases. For example, even the most
-    and least popular glyphs share shapes we might choose to not take advantage of it.
-    """
-
-    reuse_groups = _svg_glyph_groups(color_glyphs)
-
-    color_glyphs = {c.glyph_name: c for c in color_glyphs}
-
-    _svg_update_glyph_order(color_glyphs, ttfont, reuse_groups)
-
-    doc_list = []
-    id_updates = {}
-    for group in reuse_groups:
-        # establish base svg, defs
-        svg = SVG.fromstring(
-            r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
-        )
-        svg_defs = svg.xpath_one("//svg:defs")
-        for color_glyph in (color_glyphs[g] for g in group):
-            _add_unique_gradients(id_updates, svg_defs, color_glyph)
-            _add_glyph_to_svg(svg, color_glyph, id_updates)
-
-        # print(etree.tostring(svg.svg_root, pretty_print=True).decode("utf-8"))
-        gids = tuple(color_glyphs[g].glyph_id for g in group)
-        doc_list.append((svg.tostring(), min(gids), max(gids)))
-
-    svg_table = ttLib.newTable("SVG ")
-    svg_table.compressed = zip
-    svg_table.docList = doc_list
-    ttfont[svg_table.tableTag] = svg_table
+    make_svg_table(ttfont, color_glyphs, zip)
 
 
 def _generate_fea(rgi_sequences):
