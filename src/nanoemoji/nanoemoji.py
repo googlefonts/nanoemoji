@@ -42,6 +42,7 @@ from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import Paint
 from picosvg.svg import to_element, SVG
+from picosvg import svg_meta
 from picosvg.svg_pathops import skia_path
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_types import SVGPath
@@ -440,10 +441,19 @@ def _add_glyph_to_svg(svg, color_glyph, id_updates):
             svg_g.append(el)
             glyphs[reuse_key] = el
             for reuse in painted_layer.reuses:
-                # TODO process reuse more completely: apply the transform
                 _ensure_has_id(el)
                 svg_use = etree.SubElement(svg_g, "use")
                 svg_use.attrib["href"] = f'#{el.attrib["id"]}'
+                tx, ty = reuse.gettranslate()
+                if tx:
+                    svg_use.attrib["x"] = svg_meta.ntos(tx)
+                if ty:
+                    svg_use.attrib["y"] = svg_meta.ntos(ty)
+                transform = reuse.translate(-tx, -ty)
+                if transform != Affine2D.identity():
+                    # TODO apply scale and rotation. Just slap a transform on the <use>?
+                    raise NotImplementedError("TODO apply scale & rotation to use")
+
         else:
             el = glyphs[reuse_key]
             _ensure_has_id(el)
@@ -490,7 +500,7 @@ def _svg_ttfont(_, color_glyphs, ttfont, zip=False):
             _add_unique_gradients(id_updates, svg_defs, color_glyph)
             _add_glyph_to_svg(svg, color_glyph, id_updates)
 
-        print(etree.tostring(svg.svg_root, pretty_print=True).decode("utf-8"))
+        # print(etree.tostring(svg.svg_root, pretty_print=True).decode("utf-8"))
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append((svg.tostring(), min(gids), max(gids)))
 
