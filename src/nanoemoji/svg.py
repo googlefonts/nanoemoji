@@ -169,7 +169,6 @@ def make_svg_table(
             _add_unique_gradients(id_updates, svg_defs, color_glyph)
             _add_glyph(svg, color_glyph, id_updates, layers)
 
-        # print(etree.tostring(svg.svg_root, pretty_print=True).decode("utf-8"))
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append((svg.tostring(), min(gids), max(gids)))
 
