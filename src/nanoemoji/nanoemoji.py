@@ -295,7 +295,10 @@ def _glyf_ufo(ufo, color_glyphs):
 
         # No great reason to keep single-component glyphs around
         if len(parent_glyph.components) == 1:
-            ufo[color_glyph.glyph_name] = ufo[parent_glyph.components[0].baseGlyph]
+            component = ufo[parent_glyph.components[0].baseGlyph]
+            del ufo[component.name]
+            ufo[color_glyph.glyph_name] = component
+            assert component.name == color_glyph.glyph_name
 
 
 def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):

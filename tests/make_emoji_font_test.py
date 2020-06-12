@@ -52,6 +52,8 @@ def test_codepoints_from_filename(filename, codepoints):
 @pytest.mark.parametrize(
     "svgs, expected_ttx, color_format, output_format",
     [
+        # verify glyf removes component if there is only one shape
+        (("one_rect.svg",), "one_rect_glyf.ttx", "glyf", ".ttf"),
         # simple fill on rect
         (("rect.svg",), "rect_colr_0.ttx", "colr_0", ".ttf"),
         (("rect.svg",), "rect_colr_1.ttx", "colr_1", ".ttf"),
