@@ -80,19 +80,38 @@ class InputGlyph(NamedTuple):
 class ColorGenerator(NamedTuple):
     apply_ufo: Callable[[ufoLib2.Font, Sequence[ColorGlyph]], None]
     apply_ttfont: Callable[[ufoLib2.Font, Sequence[ColorGlyph], ttLib.TTFont], None]
+    font_ext: str  # extension for font binary, .ttf or .otf
 
 
 _COLOR_FORMAT_GENERATORS = {
-    "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None),
-    "colr_0": ColorGenerator(lambda *args: _colr_ufo(0, *args), lambda *_: None),
-    "colr_1": ColorGenerator(lambda *args: _colr_ufo(1, *args), lambda *_: None),
-    "svg": ColorGenerator(lambda *_: None, lambda *args: _svg_ttfont(*args, zip=False)),
-    "svgz": ColorGenerator(lambda *_: None, lambda *args: _svg_ttfont(*args, zip=True)),
+    "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None, ".ttf"),
+    "glyf_colr_0": ColorGenerator(
+        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".ttf"
+    ),
+    "glyf_colr_1": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".ttf"
+    ),
+    "cff_colr_0": ColorGenerator(
+        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".otf"
+    ),
+    "cff_colr_1": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
+    ),
+    "svg": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, zip=False), ".ttf"
+    ),
+    "svgz": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, zip=True), ".ttf"
+    ),
     "cbdt": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args), lambda *args: _not_impl("TTFont", *args)
+        lambda *args: _not_impl("ufo", *args),
+        lambda *args: _not_impl("TTFont", *args),
+        ".ttf",
     ),
     "sbix": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args), lambda *args: _not_impl("TTFont", *args)
+        lambda *args: _not_impl("ufo", *args),
+        lambda *args: _not_impl("TTFont", *args),
+        ".ttf",
     ),
 }
 
@@ -104,16 +123,20 @@ FLAGS = flags.FLAGS
 # TODO flag on/off shape reuse
 flags.DEFINE_integer("upem", 1024, "Units per em.")
 flags.DEFINE_string("family", "An Emoji Family", "Family name.")
-flags.DEFINE_enum(
-    "color_format",
-    "colr_0",
-    sorted(_COLOR_FORMAT_GENERATORS.keys()),
-    "Type of color font to generate.",
-)
+flags.DEFINE_string("output_dir", "/tmp", "Where to put the output.")
 flags.DEFINE_string(
     "output_file",
-    "/tmp/AnEmojiFamily-Regular.ttf",
-    "Dest file, can be .ttf, .otf, or .ufo",
+    None,
+    "Output filename. By default derived from --output_dir and --family",
+)
+flags.DEFINE_enum(
+    "color_format",
+    "glyf_colr_0",
+    sorted(_COLOR_FORMAT_GENERATORS.keys()),
+    "Type of font to generate.",
+)
+flags.DEFINE_enum(
+    "output", "font", ["ufo", "font"], "Whether to output a font binary or a UFO"
 )
 flags.DEFINE_bool(
     "keep_glyph_names", False, "Whether or not to store glyph names in the font."
@@ -462,11 +485,15 @@ def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
 
 
 def _run(argv):
+    if FLAGS.output == "ufo":
+        output_format = "ufo"
+    else:
+        output_format = _COLOR_FORMAT_GENERATORS[FLAGS.color_format].font_ext
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
         color_format=FLAGS.color_format,
-        output_format=os.path.splitext(FLAGS.output_file)[1],
+        output_format=output_format,
         keep_glyph_names=FLAGS.keep_glyph_names,
         cff_version=FLAGS.cff_version,
     )
@@ -478,8 +505,12 @@ def _run(argv):
 
     ufo, ttfont = _generate_color_font(config, inputs)
 
-    _write(ufo, ttfont, FLAGS.output_file)
-    logging.info("Wrote %s" % FLAGS.output_file)
+    output_file = FLAGS.output_file
+    if output_file is None:
+        output_file = f"{FLAGS.family.replace(' ', '')}{output_format}"
+    output_file = os.path.join(FLAGS.output_dir, output_file)
+    _write(ufo, ttfont, output_file)
+    logging.info("Wrote %s" % output_file)
 
 
 def main():
