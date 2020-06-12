@@ -85,16 +85,15 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
     return (painted_layer.paint, painted_layer.path.d, painted_layer.reuses)
 
 
-def _add_glyph(svg, color_glyph, id_updates):
+def _add_glyph(svg, color_glyph, id_updates, layers):
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
 
     # copy the shapes into our svg
-    glyphs = {}
     for painted_layer in color_glyph.as_painted_layers():
         reuse_key = _inter_glyph_reuse_key(painted_layer)
-        if reuse_key not in glyphs:
+        if reuse_key not in layers:
             el = to_element(painted_layer.path)
             match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
             if match:
@@ -102,7 +101,7 @@ def _add_glyph(svg, color_glyph, id_updates):
                     "fill"
                 ] = f"url(#{id_updates.get(match.group(1), match.group(1))})"
             svg_g.append(el)
-            glyphs[reuse_key] = el
+            layers[reuse_key] = el
             for reuse in painted_layer.reuses:
                 _ensure_has_id(el)
                 svg_use = etree.SubElement(svg_g, "use")
@@ -118,7 +117,7 @@ def _add_glyph(svg, color_glyph, id_updates):
                     raise NotImplementedError("TODO apply scale & rotation to use")
 
         else:
-            el = glyphs[reuse_key]
+            el = layers[reuse_key]
             _ensure_has_id(el)
             svg_use = etree.SubElement(svg_g, "use")
             svg_use.attrib["href"] = f'#{el.attrib["id"]}'
@@ -159,6 +158,7 @@ def make_svg_table(
 
     doc_list = []
     id_updates = {}
+    layers = {}  # reusable layers
     for group in reuse_groups:
         # establish base svg, defs
         svg = SVG.fromstring(
@@ -167,7 +167,7 @@ def make_svg_table(
         svg_defs = svg.xpath_one("//svg:defs")
         for color_glyph in (color_glyphs[g] for g in group):
             _add_unique_gradients(id_updates, svg_defs, color_glyph)
-            _add_glyph(svg, color_glyph, id_updates)
+            _add_glyph(svg, color_glyph, id_updates, layers)
 
         # print(etree.tostring(svg.svg_root, pretty_print=True).decode("utf-8"))
         gids = tuple(color_glyphs[g].glyph_id for g in group)
