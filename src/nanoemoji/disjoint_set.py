@@ -34,9 +34,7 @@ class DisjointSet(Generic[T]):
         if x_root == y_root:
             return  # already in the same set
         if self.rank[x] < self.rank[y]:
-            tmp = x_root
-            x_root = y_root
-            y_root = tmp
+            x_root, y_root = y_root, x_root
 
         self.parent[y_root] = x_root
         if self.rank[x_root] == self.rank[y_root]:

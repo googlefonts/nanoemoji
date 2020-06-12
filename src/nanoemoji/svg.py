@@ -26,16 +26,6 @@ import regex
 from typing import MutableMapping, Sequence, Tuple
 
 
-def _create_doclist(svg: SVG) -> str:
-    return (
-        svg
-        # dumb sizing isn't useful
-        .remove_attributes(("width", "height"))
-        # Firefox likes to render blank if present
-        .remove_attributes(("enable-background",))
-    )
-
-
 def _ensure_has_id(el: etree.Element):
     if "id" in el.attrib:
         return
