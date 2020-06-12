@@ -15,6 +15,7 @@
 """Helps nanoemoji build svg fonts."""
 
 import copy
+import dataclasses
 from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
@@ -23,17 +24,14 @@ from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
 import regex
-from typing import MutableMapping, NamedTuple, Sequence, Tuple
+from typing import MutableMapping, Sequence, Tuple
 
 
-class ReuseCache(NamedTuple):
-    old_to_new_id: MutableMapping[str, str]
-    gradient_to_id: MutableMapping[str, str]
-    shapes: MutableMapping[str, etree.Element]
-
-    @classmethod
-    def create(cls):
-        return cls({}, {}, {})
+@dataclasses.dataclass
+class ReuseCache:
+    old_to_new_id: MutableMapping[str, str] = dataclasses.field(default_factory=dict)
+    gradient_to_id: MutableMapping[str, str] = dataclasses.field(default_factory=dict)
+    shapes: MutableMapping[str, etree.Element] = dataclasses.field(default_factory=dict)
 
 
 def _ensure_has_id(el: etree.Element):
@@ -167,7 +165,7 @@ def make_svg_table(
     _update_glyph_order(color_glyphs, ttfont, reuse_groups)
 
     doc_list = []
-    reuse_cache = ReuseCache.create()
+    reuse_cache = ReuseCache()
     layers = {}  # reusable layers
     for group in reuse_groups:
         # establish base svg, defs

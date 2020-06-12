@@ -274,7 +274,6 @@ def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
 def _glyf_ufo(ufo, color_glyphs):
     # glyphs by reuse_key
     glyphs = {}
-    swaps = []
     for color_glyph in color_glyphs:
         logging.debug(
             "%s %s %s",
