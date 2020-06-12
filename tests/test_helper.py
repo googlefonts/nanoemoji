@@ -31,9 +31,7 @@ def picosvg(filename):
     return SVG.parse(locate_test_file(filename)).topicosvg()
 
 
-def color_font_config(
-    color_format, svgs, output_format, keep_glyph_names=True, cff_version=1
-):
+def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
     print(svgs)
     return (
         nanoemoji.ColorFontConfig(
@@ -42,7 +40,6 @@ def color_font_config(
             color_format=color_format,
             output_format=output_format,
             keep_glyph_names=keep_glyph_names,
-            cff_version=cff_version,
         ),
         [
             nanoemoji.InputGlyph(svg, (0xE000 + idx,), picosvg(svg))

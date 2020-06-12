@@ -60,7 +60,7 @@ class ColorFontConfig(NamedTuple):
     color_format: str
     output_format: str
     keep_glyph_names: bool = False
-    cff_version: int = 1
+    cff_version: int = 2
 
 
 class InputGlyph(NamedTuple):
@@ -118,8 +118,8 @@ flags.DEFINE_bool(
 )
 flags.DEFINE_integer(
     "cff_version",
-    1,
-    "The CFF table format version. Choose 1 or 2 (default: 1)",
+    2,
+    "The CFF table format version. Choose 1 or 2 (default: 2)",
     lower_bound=1,
     upper_bound=2,
 )
