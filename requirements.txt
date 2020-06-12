@@ -17,7 +17,7 @@ picosvg==0.3.10            # via nanoemoji (setup.py)
 pyclipper==1.1.0.post3    # via booleanoperations
 pytz==2020.1              # via fs
 regex==2020.5.14           # via nanoemoji (setup.py)
-six==1.14.0               # via absl-py, fs
+six==1.15.0               # via absl-py, fs
 skia-pathops==0.4.1       # via picosvg
 ufo2ft==2.15.0            # via nanoemoji (setup.py)
 ufolib2==0.6.2            # via nanoemoji (setup.py)
