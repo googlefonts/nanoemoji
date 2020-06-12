@@ -94,7 +94,7 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
     # sanity check the font
     # glyf should not have identical-except-name entries except .notdef and .space
     # SVG should not have identical paths or gradients
-    # in both cases this should be true wehn normalized to start from 0,0
+    # in both cases this should be true when normalized to start from 0,0
     test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)
 
 

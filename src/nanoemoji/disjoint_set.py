@@ -38,7 +38,7 @@ class DisjointSet(Generic[T]):
 
         self.parent[y_root] = x_root
         if self.rank[x_root] == self.rank[y_root]:
-            self.rank[x_root] = self.rank[x_root] + 1
+            self.rank[x_root] += 1
 
     def sets(self) -> FrozenSet[FrozenSet[T]]:
         sets = collections.defaultdict(set)
