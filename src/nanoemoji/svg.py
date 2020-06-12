@@ -23,7 +23,17 @@ from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
 import regex
-from typing import MutableMapping, Sequence, Tuple
+from typing import MutableMapping, NamedTuple, Sequence, Tuple
+
+
+class ReuseCache(NamedTuple):
+    old_to_new_id: MutableMapping[str, str]
+    gradient_to_id: MutableMapping[str, str]
+    shapes: MutableMapping[str, etree.Element]
+
+    @classmethod
+    def create(cls):
+        return cls({}, {}, {})
 
 
 def _ensure_has_id(el: etree.Element):
@@ -56,9 +66,7 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
 
 
 def _add_unique_gradients(
-    id_updates: MutableMapping[str, str],
-    svg_defs: etree.Element,
-    color_glyph: ColorGlyph,
+    svg_defs: etree.Element, color_glyph: ColorGlyph, reuse_cache: ReuseCache,
 ):
     for gradient in color_glyph.picosvg.xpath("//svg:defs/*"):
         gradient = copy.deepcopy(gradient)
@@ -66,12 +74,14 @@ def _add_unique_gradients(
         new_id = f"{color_glyph.glyph_name}::{curr_id}"
         del gradient.attrib["id"]
         gradient_xml: str = etree.tostring(gradient)
-        if gradient_xml in id_updates:
-            id_updates[curr_id] = id_updates[gradient_xml]
+        if gradient_xml in reuse_cache.gradient_to_id:
+            reuse_cache.old_to_new_id[curr_id] = reuse_cache.gradient_to_id[
+                gradient_xml
+            ]
         else:
             gradient.attrib["id"] = new_id
-            id_updates[curr_id] = new_id
-            id_updates[gradient_xml] = new_id
+            reuse_cache.old_to_new_id[curr_id] = new_id
+            reuse_cache.gradient_to_id[gradient_xml] = new_id
             svg_defs.append(gradient)
 
 
@@ -85,7 +95,7 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
     return (painted_layer.paint, painted_layer.path.d, painted_layer.reuses)
 
 
-def _add_glyph(svg, color_glyph, id_updates, layers):
+def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
@@ -93,15 +103,15 @@ def _add_glyph(svg, color_glyph, id_updates, layers):
     # copy the shapes into our svg
     for painted_layer in color_glyph.as_painted_layers():
         reuse_key = _inter_glyph_reuse_key(painted_layer)
-        if reuse_key not in layers:
+        if reuse_key not in reuse_cache.shapes:
             el = to_element(painted_layer.path)
             match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
             if match:
                 el.attrib[
                     "fill"
-                ] = f"url(#{id_updates.get(match.group(1), match.group(1))})"
+                ] = f"url(#{reuse_cache.old_to_new_id.get(match.group(1), match.group(1))})"
             svg_g.append(el)
-            layers[reuse_key] = el
+            reuse_cache.shapes[reuse_key] = el
             for reuse in painted_layer.reuses:
                 _ensure_has_id(el)
                 svg_use = etree.SubElement(svg_g, "use")
@@ -117,7 +127,7 @@ def _add_glyph(svg, color_glyph, id_updates, layers):
                     raise NotImplementedError("TODO apply scale & rotation to use")
 
         else:
-            el = layers[reuse_key]
+            el = reuse_cache.shapes[reuse_key]
             _ensure_has_id(el)
             svg_use = etree.SubElement(svg_g, "use")
             svg_use.attrib["href"] = f'#{el.attrib["id"]}'
@@ -157,7 +167,7 @@ def make_svg_table(
     _update_glyph_order(color_glyphs, ttfont, reuse_groups)
 
     doc_list = []
-    id_updates = {}
+    reuse_cache = ReuseCache.create()
     layers = {}  # reusable layers
     for group in reuse_groups:
         # establish base svg, defs
@@ -166,8 +176,8 @@ def make_svg_table(
         )
         svg_defs = svg.xpath_one("//svg:defs")
         for color_glyph in (color_glyphs[g] for g in group):
-            _add_unique_gradients(id_updates, svg_defs, color_glyph)
-            _add_glyph(svg, color_glyph, id_updates, layers)
+            _add_unique_gradients(svg_defs, color_glyph, reuse_cache)
+            _add_glyph(svg, color_glyph, reuse_cache)
 
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append((svg.tostring(), min(gids), max(gids)))
