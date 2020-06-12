@@ -39,6 +39,7 @@ from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import Paint
+from nanoemoji.svg import make_svg_table
 from picosvg.svg import SVG
 from picosvg.svg_pathops import skia_path
 from picosvg.svg_reuse import normalize, affine_between
@@ -100,6 +101,7 @@ FLAGS = flags.FLAGS
 
 
 # TODO move to config file?
+# TODO flag on/off shape reuse
 flags.DEFINE_integer("upem", 1024, "Units per em.")
 flags.DEFINE_string("family", "An Emoji Family", "Family name.")
 flags.DEFINE_enum(
@@ -280,16 +282,32 @@ def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
 
 
 def _glyf_ufo(ufo, color_glyphs):
+    # glyphs by reuse_key
+    glyphs = {}
     for color_glyph in color_glyphs:
-        svg_units_to_font_units = color_glyph.transform_for_font_space()
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
             color_glyph.glyph_name,
-            svg_units_to_font_units,
+            color_glyph.transform_for_font_space(),
         )
+        parent_glyph = ufo.get(color_glyph.glyph_name)
         for painted_layer in color_glyph.as_painted_layers():
-            _create_glyph(color_glyph, painted_layer)
+            # if we've seen this shape before reuse it
+            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            if reuse_key not in glyphs:
+                glyph = _create_glyph(color_glyph, painted_layer)
+                glyphs[reuse_key] = glyph
+            else:
+                glyph = glyphs[reuse_key]
+            parent_glyph.components.append(Component(baseGlyph=glyph.name))
+
+        # No great reason to keep single-component glyphs around
+        if len(parent_glyph.components) == 1:
+            component = ufo[parent_glyph.components[0].baseGlyph]
+            del ufo[component.name]
+            ufo[color_glyph.glyph_name] = component
+            assert component.name == color_glyph.glyph_name
 
 
 def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
@@ -368,25 +386,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
 
 
-def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
-    # TODO shape reuse for SVG
-    svg_table = ttLib.newTable("SVG ")
-    svg_table.compressed = zip
-    svg_table.docList = [
-        (
-            c.picosvg
-            # dumb sizing isn't useful
-            .remove_attributes(("width", "height"))
-            # Firefox likes to render blank if present
-            .remove_attributes(("enable-background",))
-            # Required to match gid
-            .set_attributes((("id", f"glyph{c.glyph_id}"),)).tostring(),
-            c.glyph_id,
-            c.glyph_id,
-        )
-        for c in color_glyphs
-    ]
-    ttfont[svg_table.tableTag] = svg_table
+def _svg_ttfont(_, color_glyphs, ttfont, zip=False):
+    make_svg_table(ttfont, color_glyphs, zip)
 
 
 def _generate_fea(rgi_sequences):
