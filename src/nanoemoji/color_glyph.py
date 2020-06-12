@@ -219,7 +219,7 @@ class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
     filename: str
     glyph_name: str
-    glyph_id: str
+    glyph_id: int
     codepoints: Tuple[int, ...]
     picosvg: SVG
 
