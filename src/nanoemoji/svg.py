@@ -98,7 +98,7 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
 def _add_glyph(svg, color_glyph, id_updates):
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
-    svg_g.attrib["id"] = color_glyph.glyph_name
+    svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
 
     # copy the shapes into our svg
     glyphs = {}
