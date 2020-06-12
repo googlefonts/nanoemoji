@@ -14,13 +14,13 @@
 
 """Create an emoji font from a set of SVGs.
 
-UFO handling informed by Cosimo's
-https://gist.github.com/anthrotype/2acbc67c75d6fa5833789ec01366a517
+UFO handling informed by:
+Cosimo's https://gist.github.com/anthrotype/2acbc67c75d6fa5833789ec01366a517
+Notes for https://github.com/googlefonts/ufo2ft/pull/359
 
 For COLR:
     Each SVG file represent one base glyph in the COLR font.
-    For each glyph, we get the list of layers associated with it.
-    For each layer we have a tuple (Paint, SVGPath).
+    For each glyph, we get a sequence of PaintedLayer.
     To convert to font format we  use the UFO Glyph pen.
 
 Sample usage:
@@ -34,21 +34,40 @@ import collections
 from fontTools import ttLib
 from fontTools.pens.transformPen import TransformPen
 import io
-from itertools import chain
-from nanoemoji.color_glyph import ColorGlyph
+from itertools import chain, groupby
+from nanoemoji.colors import Color
+from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
+from nanoemoji.paint import Paint
+from nanoemoji.svg import make_svg_table
 from picosvg.svg import SVG
 from picosvg.svg_pathops import skia_path
+from picosvg.svg_reuse import normalize, affine_between
+from picosvg.svg_types import SVGPath
+from picosvg.svg_transform import Affine2D
 import os
 import regex
 import sys
+from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
 import ufoLib2
+from ufoLib2.objects import Component, Glyph, Layer
+
 import ufo2ft
 
 
-ColorFontConfig = collections.namedtuple(
-    "ColorFontConfig", ["upem", "family", "color_format", "output_format"]
-)
+class ColorFontConfig(NamedTuple):
+    upem: int
+    family: str
+    color_format: str
+    output_format: str
+    keep_glyph_names: bool = False
+
+
+class InputGlyph(NamedTuple):
+    filename: str
+    codepoints: Tuple[int, ...]
+    picosvg: SVG
+
 
 # A color font generator.
 #   apply_ufo(ufo, color_glyphs) is called first, to update a generated UFO
@@ -57,7 +76,9 @@ ColorFontConfig = collections.namedtuple(
 #   https://github.com/unified-font-object/ufo-spec/issues/104
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
-ColorGenerator = collections.namedtuple("ColorGenerator", ["apply_ufo", "apply_ttfont"])
+class ColorGenerator(NamedTuple):
+    apply_ufo: Callable[[ufoLib2.Font, Sequence[ColorGlyph]], None]
+    apply_ttfont: Callable[[ufoLib2.Font, Sequence[ColorGlyph], ttLib.TTFont], None]
 
 
 _COLOR_FORMAT_GENERATORS = {
@@ -79,6 +100,7 @@ FLAGS = flags.FLAGS
 
 
 # TODO move to config file?
+# TODO flag on/off shape reuse
 flags.DEFINE_integer("upem", 1024, "Units per em.")
 flags.DEFINE_string("family", "An Emoji Family", "Family name.")
 flags.DEFINE_enum(
@@ -91,6 +113,9 @@ flags.DEFINE_string(
     "output_file",
     "/tmp/AnEmojiFamily-Regular.ttf",
     "Dest file, can be .ttf, .otf, or .ufo",
+)
+flags.DEFINE_bool(
+    "keep_glyph_names", False, "Whether or not to store glyph names in the font."
 )
 
 
@@ -110,15 +135,15 @@ def _picosvg(filename):
     return None
 
 
-def _inputs(filenames):
+def _inputs(filenames: Iterable[str]) -> Generator[InputGlyph, None, None]:
     for filename in filenames:
         codepoints = _codepoints_from_filename(os.path.basename(filename))
         picosvg = _picosvg(filename)
         if codepoints and picosvg:
-            yield (filename, codepoints, picosvg)
+            yield InputGlyph(filename, codepoints, picosvg)
 
 
-def _ufo(family, upem):
+def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
     ufo = ufoLib2.Font()
     ufo.info.familyName = family
     # set various font metadata; see the full list of fontinfo attributes at
@@ -132,22 +157,10 @@ def _ufo(family, upem):
     space.width = upem
     ufo.glyphOrder = [".notdef", ".space"]
 
+    # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
+    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep_glyph_names
+
     return ufo
-
-
-def _layer(ufo, idx):
-    """UFO has a global set of layers.
-
-    Each layer then has glyphs. For an N-layer COLR glyph we
-    write the glyph into global layers 0..N-1. The UFO will end up with
-    as many global layers as the "deepest" glyph.
-
-    The only real significance is z-order so name on that basis.
-    """
-    name = f"z_{idx}"
-    if name not in ufo.layers:
-        ufo.newLayer(name)
-    return ufo.layers[name]
 
 
 def _make_ttfont(config, ufo, color_glyphs):
@@ -190,23 +203,125 @@ def _not_impl(*_):
     raise NotImplementedError("%s not implemented" % FLAGS.color_format)
 
 
+def _draw(source: SVGPath, dest: Glyph, svg_units_to_font_units: Affine2D):
+    pen = TransformPen(dest.getPen(), svg_units_to_font_units)
+    skia_path(source.as_cmd_seq()).draw(pen)
+
+
+def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
+    i = 0
+    while name_fn(i) in ufo:
+        i += 1
+    return name_fn(i)
+
+
+def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph:
+    ufo = color_glyph.ufo
+
+    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{color_glyph.glyph_name}.{i}"))
+    glyph_names = [glyph.name]
+    glyph.width = ufo.info.unitsPerEm
+
+    svg_units_to_font_units = color_glyph.transform_for_font_space()
+
+    if painted_layer.reuses:
+        # Shape repeats, form a composite
+        base_glyph = ufo.newGlyph(
+            _next_name(ufo, lambda i: f"{glyph.name}.component.{i}")
+        )
+        glyph_names.append(base_glyph.name)
+
+        _draw(painted_layer.path, base_glyph, svg_units_to_font_units)
+
+        glyph.components.append(
+            Component(baseGlyph=base_glyph.name, transformation=Affine2D.identity())
+        )
+
+        for transform in painted_layer.reuses:
+            # We already redrew the component into font space, don't redo it
+            # scale x/y translation and flip y movement to match font space
+            transform = transform._replace(
+                e=transform.e * svg_units_to_font_units.a,
+                f=transform.f * svg_units_to_font_units.d,
+            )
+            glyph.components.append(
+                Component(baseGlyph=base_glyph.name, transformation=transform)
+            )
+    else:
+        # Not a composite, just draw directly on the glyph
+        _draw(painted_layer.path, glyph, svg_units_to_font_units)
+
+    ufo.glyphOrder += glyph_names
+
+    return glyph
+
+
+def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
+    # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
+    # extents of the base layer to determine where the glyph might paint. If you
+    # leave the base blank the COLR glyph never renders.
+
+    # TODO we could narrow this to bbox to cover all layers
+
+    pen = glyph.getPen()
+    pen.moveTo((0, 0))
+    pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
+    pen.endPath()
+
+    return glyph
+
+
 def _glyf_ufo(ufo, color_glyphs):
+    # glyphs by reuse_key
+    glyphs = {}
     for color_glyph in color_glyphs:
-        svg_units_to_font_units = color_glyph.transform_for_font_space()
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
             color_glyph.glyph_name,
-            svg_units_to_font_units,
+            color_glyph.transform_for_font_space(),
         )
-        for idx, (paint, path) in enumerate(color_glyph.as_painted_layers()):
-            glyph_layer = _layer(ufo, idx)
+        parent_glyph = ufo.get(color_glyph.glyph_name)
+        for painted_layer in color_glyph.as_painted_layers():
+            # if we've seen this shape before reuse it
+            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            if reuse_key not in glyphs:
+                glyph = _create_glyph(color_glyph, painted_layer)
+                glyphs[reuse_key] = glyph
+            else:
+                glyph = glyphs[reuse_key]
+            parent_glyph.components.append(Component(baseGlyph=glyph.name))
 
-            glyph = ufo.get(color_glyph.glyph_name)
-            glyph.width = ufo.info.unitsPerEm
+        # No great reason to keep single-component glyphs around
+        if len(parent_glyph.components) == 1:
+            component = ufo[parent_glyph.components[0].baseGlyph]
+            del ufo[component.name]
+            ufo[color_glyph.glyph_name] = component
+            assert component.name == color_glyph.glyph_name
 
-            pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
-            skia_path(path).draw(pen)
+
+def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
+    # For COLRv0, paint is just the palette index
+    # For COLRv1, it's a data structure describing paint
+    if colr_version == 0:
+        # COLRv0: draw using the first available color on the glyph_layer
+        # Results for gradients will be suboptimal :)
+        color = next(paint.colors())
+        return palette.index(color)
+
+    elif colr_version == 1:
+        # COLRv1: solid or gradient paint
+        return paint.to_ufo_paint(palette)
+
+    else:
+        raise ValueError(f"Unsupported COLR version: {colr_version}")
+
+
+def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
+    """Individual glyf entries, including composites, can be reused.
+
+    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
+    return (painted_layer.path.d, painted_layer.reuses)
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
@@ -224,73 +339,45 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
 
-    # We created glyph_name on the default layer for the base glyph
-    # Now create glyph_name on layers 0..N-1 for the colored layers
+    # each base glyph maps to a list of (glyph name, paint info) in z-order
+    color_layers = {}
+
+    # glyphs by reuse_key
+    glyphs = {}
     for color_glyph in color_glyphs:
-        # For COLRv0, paint is just the palette index
-        # For COLRv1, it's a data structure describing paint
-        layer_to_paint = []
-        svg_units_to_font_units = color_glyph.transform_for_font_space()
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
             color_glyph.glyph_name,
-            svg_units_to_font_units,
+            color_glyph.transform_for_font_space(),
         )
-        for idx, (paint, path) in enumerate(color_glyph.as_painted_layers()):
-            glyph_layer = _layer(ufo, idx)
 
-            if colr_version == 0:
-                # COLRv0: draw using the first available color on the glyph_layer
-                # Results for gradients will be suboptimal :)
-                color = next(paint.colors())
-                layer_to_paint.append((glyph_layer.name, colors.index(color)))
+        # The value for a COLOR_LAYERS_KEY entry per
+        # https://github.com/googlefonts/ufo2ft/pull/359
+        glyph_colr_layers = []
 
-            elif colr_version == 1:
-                # COLRv0: fill in gradient paint structures
-                layer_to_paint.append((glyph_layer.name, paint.to_ufo_paint(colors)))
-
+        # accumulate layers in z-order
+        for painted_layer in color_glyph.as_painted_layers():
+            # if we've seen this shape before reuse it
+            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            if reuse_key not in glyphs:
+                glyph = _create_glyph(color_glyph, painted_layer)
+                glyphs[reuse_key] = glyph
             else:
-                raise ValueError(f"Unsupported COLR version: {colr_version}")
+                glyph = glyphs[reuse_key]
 
-            # we've got a colored layer, put a glyph on it
-            glyph = glyph_layer.newGlyph(color_glyph.glyph_name)
-            glyph.width = ufo.info.unitsPerEm
+            paint = _colr_paint(colr_version, painted_layer.paint, colors)
+            glyph_colr_layers.append((glyph.name, paint))
 
-            pen = TransformPen(glyph.getPen(), svg_units_to_font_units)
-            skia_path(path).draw(pen)
+        colr_glyph = ufo.get(color_glyph.glyph_name)
+        _draw_glyph_extents(ufo, colr_glyph)
+        color_layers[colr_glyph.name] = glyph_colr_layers
 
-        # each base glyph contains a list of (layer.name, paint info) in z-order
-        base_glyph = ufo.get(color_glyph.glyph_name)
-        base_glyph.lib[ufo2ft.constants.COLOR_LAYER_MAPPING_KEY] = layer_to_paint
-
-        # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
-        # extents of the base layer to determine where the glyph might paint. If you
-        # leave the base blank the COLR glyph never renders.
-        pen = base_glyph.getPen()
-        pen.moveTo((0, 0))
-        pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
-        pen.endPath()
+    ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
 
 
-def _svg_ttfont(ufo, color_glyphs, ttfont, zip=False):
-    svg_table = ttLib.newTable("SVG ")
-    svg_table.compressed = zip
-    svg_table.docList = [
-        (
-            c.nsvg
-            # dumb sizing isn't useful
-            .remove_attributes(("width", "height"))
-            # Firefox likes to render blank if present
-            .remove_attributes(("enable-background",))
-            # Required to match gid
-            .set_attributes((("id", f"glyph{c.glyph_id}"),)).tostring(),
-            ttfont.getGlyphID(c.glyph_name),
-            ttfont.getGlyphID(c.glyph_name),
-        )
-        for c in color_glyphs
-    ]
-    ttfont[svg_table.tableTag] = svg_table
+def _svg_ttfont(_, color_glyphs, ttfont, zip=False):
+    make_svg_table(ttfont, color_glyphs, zip)
 
 
 def _generate_fea(rgi_sequences):
@@ -336,20 +423,15 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
 
 
-def _generate_color_font(config, glyph_inputs):
-    """Make a UFO and optionally a TTFont from svgs.
-
-    Args:
-        color_font_config: ColorFontConfig
-        glyph_inputs: sequence of (filename, codepoints, picosvg) tuples
-    """
-    ufo = _ufo(config.family, config.upem)
-    _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs)
+def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
+    """Make a UFO and optionally a TTFont from svgs."""
+    ufo = _ufo(config.family, config.upem, config.keep_glyph_names)
+    _ensure_codepoints_will_have_glyphs(ufo, inputs)
 
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
-        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, nsvg)
-        for idx, (filename, codepoints, nsvg) in enumerate(glyph_inputs)
+        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, psvg)
+        for idx, (filename, codepoints, psvg) in enumerate(inputs)
     ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
@@ -375,12 +457,12 @@ def _run(argv):
         family=FLAGS.family,
         color_format=FLAGS.color_format,
         output_format=os.path.splitext(FLAGS.output_file)[1],
+        keep_glyph_names=FLAGS.keep_glyph_names,
     )
 
     inputs = list(_inputs(argv[1:]))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
-
     logging.info(f"{len(inputs)}/{len(argv[1:])} inputs prepared successfully")
 
     ufo, ttfont = _generate_color_font(config, inputs)
