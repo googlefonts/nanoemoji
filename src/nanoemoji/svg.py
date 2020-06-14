@@ -20,6 +20,7 @@ from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.disjoint_set import DisjointSet
+from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
@@ -54,7 +55,9 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
         reuse_groups.make_set(color_glyph.glyph_name)
         for painted_layer in color_glyph.as_painted_layers():
             # TODO what attributes should go into this key for SVG
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            reuse_key = _inter_glyph_reuse_key(
+                color_glyph.picosvg.view_box(), painted_layer
+            )
             if reuse_key not in glyphs:
                 glyphs[reuse_key] = color_glyph.glyph_name
             else:
@@ -83,14 +86,14 @@ def _add_unique_gradients(
             svg_defs.append(gradient)
 
 
-def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
+def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
     """Individual glyf entries, including composites, can be reused.
 
     SVG reuses w/paint so paint is part of key."""
 
     # TODO we could recycle shapes that differ only in paint, would just need to
     # transfer the paint attributes onto the use element if they differ
-    return (painted_layer.paint, painted_layer.path.d, painted_layer.reuses)
+    return (view_box, painted_layer.paint, painted_layer.path.d, painted_layer.reuses)
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
@@ -100,7 +103,10 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
 
     # copy the shapes into our svg
     for painted_layer in color_glyph.as_painted_layers():
-        reuse_key = _inter_glyph_reuse_key(painted_layer)
+        view_box = svg.view_box()
+        if view_box is None:
+            raise ValueError("svgs must declare view box")
+        reuse_key = _inter_glyph_reuse_key(view_box, painted_layer)
         if reuse_key not in reuse_cache.shapes:
             el = to_element(painted_layer.path)
             match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
@@ -172,6 +178,11 @@ def make_svg_table(
         svg = SVG.fromstring(
             r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
         )
+
+        # groups must have same view box; safe to copy first
+        vb = color_glyphs[group[0]].picosvg.view_box()
+        svg.set_attributes((("viewBox", f"{vb.x} {vb.y} {vb.w} {vb.h}"),), inplace=True)
+
         svg_defs = svg.xpath_one("//svg:defs")
         for color_glyph in (color_glyphs[g] for g in group):
             _add_unique_gradients(svg_defs, color_glyph, reuse_cache)
