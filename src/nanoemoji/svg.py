@@ -86,6 +86,13 @@ def _add_unique_gradients(
             svg_defs.append(gradient)
 
 
+# https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
+def _svg_matrix(transform: Affine2D) -> str:
+    # TODO handle rotation: units of Affine2D and svg matrix don't match
+    transform = transform._replace(d=-transform.d, f=-transform.f)
+    return f'matrix({" ".join((svg_meta.ntos(v) for v in transform))})'
+
+
 def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
     """Individual glyf entries, including composites, can be reused.
 
@@ -100,12 +107,14 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
+    # https://github.com/googlefonts/nanoemoji/issues/58: group needs transform
+    svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_font_space())
 
     # copy the shapes into our svg
     for painted_layer in color_glyph.as_painted_layers():
-        view_box = svg.view_box()
+        view_box = color_glyph.picosvg.view_box()
         if view_box is None:
-            raise ValueError("svgs must declare view box")
+            raise ValueError(f"{color_glyph.filename} must declare view box")
         reuse_key = _inter_glyph_reuse_key(view_box, painted_layer)
         if reuse_key not in reuse_cache.shapes:
             el = to_element(painted_layer.path)
@@ -178,10 +187,6 @@ def make_svg_table(
         svg = SVG.fromstring(
             r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
         )
-
-        # groups must have same view box; safe to copy first
-        vb = color_glyphs[group[0]].picosvg.view_box()
-        svg.set_attributes((("viewBox", f"{vb.x} {vb.y} {vb.w} {vb.h}"),), inplace=True)
 
         svg_defs = svg.xpath_one("//svg:defs")
         for color_glyph in (color_glyphs[g] for g in group):
