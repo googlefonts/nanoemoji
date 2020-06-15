@@ -88,8 +88,7 @@ def _add_unique_gradients(
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
-    # TODO handle rotation: units of Affine2D and svg matrix don't match
-    transform = transform._replace(d=-transform.d, f=-transform.f)
+    # TODO handle rotation: Affine2D uses radiens, svg is in degrees
     return f'matrix({" ".join((svg_meta.ntos(v) for v in transform))})'
 
 
@@ -108,7 +107,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
     # https://github.com/googlefonts/nanoemoji/issues/58: group needs transform
-    svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_font_space())
+    svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_otsvg_space())
 
     # copy the shapes into our svg
     for painted_layer in color_glyph.as_painted_layers():

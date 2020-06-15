@@ -33,8 +33,8 @@ _PAINT_RADIAL_GRADIENT = 3
 
 def _emsquare_to_viewbox(upem: int, view_box: Rect):
     if view_box != Rect(0, 0, view_box.w, view_box.w):
-        raise ValueError("We simply must have a BOX from 0,0")
-    return color_glyph.map_viewbox_to_emsquare(Rect(0, 0, upem, upem), view_box.w)
+        raise ValueError("We simply must have a SQUARE from 0,0")
+    return color_glyph.map_viewbox_to_font_emsquare(Rect(0, 0, upem, upem), view_box.w)
 
 
 def _svg_root(view_box: Rect) -> etree.Element:

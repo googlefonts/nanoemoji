@@ -35,16 +35,34 @@ from typing import Generator, NamedTuple, Tuple
 import ufoLib2
 
 
-def map_viewbox_to_emsquare(view_box: Rect, upem) -> Affine2D:
+def _viewbox_to_emsquare_scale(view_box: Rect, upem: int) -> Tuple[float, float]:
     # scale to font upem
-    x_scale = upem / view_box.w
-    y_scale = upem / view_box.h
+    return (upem / view_box.w, upem / view_box.h)
+
+
+def map_viewbox_to_font_emsquare(view_box: Rect, upem: int) -> Affine2D:
+    x_scale, y_scale = _viewbox_to_emsquare_scale(view_box, upem)
+
     # shift so origin is 0,0
     dx = -view_box.x * x_scale
     dy = -view_box.y * y_scale
+
     # flip y axis and shift so things are in the right place
     y_scale = -y_scale
     dy = dy + upem
+    return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
+
+
+# https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
+def map_viewbox_to_otsvg_emsquare(view_box: Rect, upem: int) -> Affine2D:
+    x_scale, y_scale = _viewbox_to_emsquare_scale(view_box, upem)
+
+    # shift so origin is 0,0
+    dx = -view_box.x * x_scale
+    dy = -view_box.y * y_scale
+
+    # shift so things are in the right place
+    dy = dy - upem
     return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
 
 
@@ -66,7 +84,7 @@ def _get_gradient_units_relative_scale(grad_el, view_box):
 
 
 def _get_gradient_transform(grad_el, shape_bbox, view_box, upem) -> Affine2D:
-    transform = map_viewbox_to_emsquare(view_box, upem)
+    transform = map_viewbox_to_font_emsquare(view_box, upem)
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
     if gradient_units == "objectBoundingBox":
@@ -243,15 +261,29 @@ class ColorGlyph(NamedTuple):
         # Grab the transform + (color, glyph) layers for COLR
         return ColorGlyph(ufo, filename, glyph_name, glyph_id, codepoints, picosvg)
 
-    def transform_for_font_space(self):
-        """Creates a Transform to map SVG coords to font coords"""
+    def _has_viewbox_for_transform(self) -> bool:
         view_box = self.picosvg.view_box()
         if view_box is None:
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
+        return view_box is not None
+
+    def transform_for_font_space(self):
+        """Creates a Transform to map SVG coords to font coords"""
+        if not self._has_viewbox_for_transform():
             return Affine2D.identity()
-        return map_viewbox_to_emsquare(view_box, self.ufo.info.unitsPerEm)
+        return map_viewbox_to_font_emsquare(
+            self.picosvg.view_box(), self.ufo.info.unitsPerEm
+        )
+
+    def transform_for_otsvg_space(self):
+        """Creates a Transform to map SVG coords OT-SVG coords"""
+        if not self._has_viewbox_for_transform():
+            return Affine2D.identity()
+        return map_viewbox_to_otsvg_emsquare(
+            self.picosvg.view_box(), self.ufo.info.unitsPerEm
+        )
 
     def as_painted_layers(self) -> Generator[PaintedLayer, None, None]:
         # Don't sort; we only want to find groups that are consecutive in the picosvg
