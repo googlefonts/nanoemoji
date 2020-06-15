@@ -61,7 +61,6 @@ class ColorFontConfig(NamedTuple):
     color_format: str
     output_format: str
     keep_glyph_names: bool = False
-    cff_version: int = 2
 
 
 class InputGlyph(NamedTuple):
@@ -95,6 +94,12 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _colr_ufo(0, *args), lambda *_: None, ".otf"
     ),
     "cff_colr_1": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
+    ),
+    "cff2_colr_0": ColorGenerator(
+        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".otf"
+    ),
+    "cff2_colr_1": ColorGenerator(
         lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
     ),
     "svg": ColorGenerator(
@@ -140,13 +145,6 @@ flags.DEFINE_enum(
 )
 flags.DEFINE_bool(
     "keep_glyph_names", False, "Whether or not to store glyph names in the font."
-)
-flags.DEFINE_integer(
-    "cff_version",
-    2,
-    "The CFF table format version. Choose 1 or 2 (default: 2)",
-    lower_bound=1,
-    upper_bound=2,
 )
 
 
@@ -206,8 +204,11 @@ def _make_ttfont(config, ufo, color_glyphs):
     if config.output_format == ".ttf":
         ttfont = ufo2ft.compileTTF(ufo, overlapsBackend="pathops")
     if config.output_format == ".otf":
+        cff_version = 1
+        if config.color_format.startswith("cff2_"):
+            cff_version = 2
         ttfont = ufo2ft.compileOTF(
-            ufo, cffVersion=config.cff_version, overlapsBackend="pathops"
+            ufo, cffVersion=cff_version, overlapsBackend="pathops"
         )
 
     if not ttfont:
@@ -495,7 +496,6 @@ def _run(argv):
         color_format=FLAGS.color_format,
         output_format=output_format,
         keep_glyph_names=FLAGS.keep_glyph_names,
-        cff_version=FLAGS.cff_version,
     )
 
     inputs = list(_inputs(argv[1:]))
