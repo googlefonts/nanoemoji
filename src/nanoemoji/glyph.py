@@ -19,6 +19,7 @@ _MAX_NAME_LEN = 63  # fea for some reason insists on this
 try:
     _isascii = str.isascii  # type: ignore
 except AttributeError:
+
     def _isascii(s: str) -> bool:
         try:
             s.encode("ascii")

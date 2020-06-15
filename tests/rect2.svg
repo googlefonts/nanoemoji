@@ -1,0 +1,5 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <rect x="2" y="2" width="6" height="2" fill="purple" />
+  <rect x="4" y="4" width="6" height="2" fill="darkgreen" opacity="0.8" />
+</svg>
