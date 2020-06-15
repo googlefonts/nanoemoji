@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e001"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e001" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e001"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+
+    <svgDoc endGlyphID="3" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs><linearGradient x1="64" x2="64" y1="19.751" y2="111.99" gradientUnits="userSpaceOnUse" id="e000::a"><stop stop-color="#ECEFF1" offset=".3212"/><stop stop-color="#B0BEC5" offset="1"/></linearGradient></defs><g id="glyph2"><path fill="url(#e000::a)" d="M4,64 A60 60 0 1 1 124,64 A60 60 0 1 1 4,64 z" id="glyph2::0"/><path fill="blue" d="m63.8 63.98h0.4c2.1 0 3.8-1.7 3.8-3.8v-32.4c0-2.1-1.7-3.8-3.8-3.8h-0.4c-2.1 0-3.8 1.7-3.8 3.8v32.4c0 2.1 1.7 3.8 3.8 3.8z"/><path fill="green" d="m63.7 63.88 0.34 0.21c1.79 1.1 4.13 0.55 5.23-1.24l11.34-18.37c1.1-1.79 0.55-4.13-1.24-5.23l-0.34-0.21c-1.79-1.1-4.13-0.55-5.23 1.24l-11.33 18.37c-1.1 1.79-0.55 4.13 1.23 5.23z"/><path fill="#424242" d="M57,64 A7 7 0 1 1 71,64 A7 7 0 1 1 57,64 z" id="glyph2::3"/><path fill="#fff" d="M61,64 A3 3 0 1 1 67,64 A3 3 0 1 1 61,64 z" id="glyph2::4"/><path fill="#757575" d="M11.89,64.13 A4 4 0 1 1 19.89,64.13 A4 4 0 1 1 11.89,64.13 z" id="glyph2::5"/><use href="#glyph2::5" x="48" y="-48"/><use href="#glyph2::5" x="48" y="48"/><use href="#glyph2::5" x="96"/><path fill="#424242" opacity="0.2" d="M64,8c30.88,0,56,25.12,56,56s-25.12,56-56,56S8,94.88,8,64S33.12,8,64,8 M64,4 C30.86,4,4,30.86,4,64s26.86,60,60,60s60-26.86,60-60S97.14,4,64,4L64,4z" id="glyph2::9"/></g><g id="glyph3"><use href="#glyph2::0"/><path fill="purple" d="m63.8 63.98h0.4c2.1 0 3.8-1.7 3.8-3.8v-32.4c0-2.1-1.7-3.8-3.8-3.8h-0.4c-2.1 0-3.8 1.7-3.8 3.8v32.4c0 2.1 1.7 3.8 3.8 3.8z"/><path fill="red" d="m63.78 63.81 0.19 0.35c1.01 1.84 3.32 2.52 5.16 1.51l18.94-10.36c1.84-1.01 2.52-3.32 1.51-5.16l-0.19-0.35c-1.01-1.84-3.32-2.52-5.16-1.51l-18.94 10.36c-1.84 1.01-2.52 3.32-1.51 5.16z"/><use href="#glyph2::3"/><use href="#glyph2::4"/><use href="#glyph2::5"/><use href="#glyph2::9"/></g></svg>]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>

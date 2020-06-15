@@ -6,3 +6,4 @@ build/
 dist/
 .eggs/
 src/nanoemoji/_version.py
+.logpile/

@@ -16,9 +16,11 @@ import io
 import difflib
 import os
 import re
+import sys
 from lxml import etree
 from nanoemoji import nanoemoji
 from picosvg.svg import SVG
+import pytest
 
 
 def locate_test_file(filename):
@@ -29,19 +31,30 @@ def picosvg(filename):
     return SVG.parse(locate_test_file(filename)).topicosvg()
 
 
-def color_font_config(color_format, svg_in, output_format):
+def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
     return (
         nanoemoji.ColorFontConfig(
             upem=100,
             family="UnitTest",
             color_format=color_format,
             output_format=output_format,
+            keep_glyph_names=keep_glyph_names,
         ),
-        [(svg_in, (0xE000,), picosvg(svg_in))],
+        [
+            nanoemoji.InputGlyph(svg, (0xE000 + idx,), picosvg(svg))
+            for idx, svg in enumerate(svgs)
+        ],
     )
 
 
-def assert_expected_ttx(svg_in, ttfont, expected_ttx):
+def _save_actual_ttx(expected_ttx, ttx_content):
+    tmp_file = f"/tmp/{expected_ttx}"
+    with open(tmp_file, "w") as f:
+        f.write(ttx_content)
+    return tmp_file
+
+
+def assert_expected_ttx(svgs, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
     # Use os-native line separators so we can run difflib.
@@ -54,8 +67,15 @@ def assert_expected_ttx(svg_in, ttfont, expected_ttx):
     # Elide ttFont attributes because ttLibVersion may change
     actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
 
-    with open(locate_test_file(expected_ttx)) as f:
-        expected = f.read()
+    expected_location = locate_test_file(expected_ttx)
+    if os.path.isfile(expected_location):
+        with open(expected_location) as f:
+            expected = f.read()
+    else:
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
+        raise FileNotFoundError(
+            f"Missing expected in {expected_location}. Actual in {tmp_file}"
+        )
 
     if actual != expected:
         for line in difflib.unified_diff(
@@ -65,10 +85,9 @@ def assert_expected_ttx(svg_in, ttfont, expected_ttx):
             tofile=f"{expected_ttx} (actual)",
         ):
             sys.stderr.write(line)
-        tmp_file = f"/tmp/{svg_in}.ttx"
-        with open(tmp_file, "w") as f:
-            f.write(actual)
-        pytest.fail(f"{tmp_file} (from {svg_in}) != {expected_ttx}")
+        print(f"SVGS: {svgs}")
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
+        pytest.fail(f"{tmp_file} != {expected_ttx}")
 
 
 # Copied from picosvg
