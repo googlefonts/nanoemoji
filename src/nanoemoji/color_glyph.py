@@ -35,17 +35,21 @@ from typing import Generator, NamedTuple, Tuple
 import ufoLib2
 
 
-def _viewbox_to_emsquare_scale(view_box: Rect, upem: int) -> Tuple[float, float]:
+def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
     # scale to font upem
     return (upem / view_box.w, upem / view_box.h)
 
 
-def map_viewbox_to_font_emsquare(view_box: Rect, upem: int) -> Affine2D:
-    x_scale, y_scale = _viewbox_to_emsquare_scale(view_box, upem)
-
+def _shift_origin_0_0(
+    view_box: Rect, x_scale: float, y_scale: float
+) -> Tuple[float, float]:
     # shift so origin is 0,0
-    dx = -view_box.x * x_scale
-    dy = -view_box.y * y_scale
+    return (-view_box.x * x_scale, -view_box.y * y_scale)
+
+
+def map_viewbox_to_font_emsquare(view_box: Rect, upem: int) -> Affine2D:
+    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
+    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
 
     # flip y axis and shift so things are in the right place
     y_scale = -y_scale
@@ -55,11 +59,8 @@ def map_viewbox_to_font_emsquare(view_box: Rect, upem: int) -> Affine2D:
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def map_viewbox_to_otsvg_emsquare(view_box: Rect, upem: int) -> Affine2D:
-    x_scale, y_scale = _viewbox_to_emsquare_scale(view_box, upem)
-
-    # shift so origin is 0,0
-    dx = -view_box.x * x_scale
-    dy = -view_box.y * y_scale
+    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
+    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
 
     # shift so things are in the right place
     dy = dy - upem
