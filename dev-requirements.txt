@@ -19,7 +19,7 @@ pathspec==0.8.0           # via black
 pluggy==0.13.1            # via pytest
 py==1.8.1                 # via pytest
 pyparsing==2.4.7          # via packaging
-pytest==5.4.2             # via -r dev-requirements.in
+pytest==5.4.3             # via -r dev-requirements.in
 pytype==2020.6.1; python_version < "3.8"  # via -r dev-requirements.in
 pyyaml==5.3.1             # via pytype
 regex==2020.6.8           # via black
