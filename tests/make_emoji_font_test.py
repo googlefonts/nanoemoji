@@ -55,27 +55,32 @@ def test_codepoints_from_filename(filename, codepoints):
         # verify glyf removes component if there is only one shape
         (("one_rect.svg",), "one_rect_glyf.ttx", "glyf", ".ttf"),
         # simple fill on rect
-        (("rect.svg",), "rect_colr_0.ttx", "colr_0", ".ttf"),
-        (("rect.svg",), "rect_colr_1.ttx", "colr_1", ".ttf"),
+        (("rect.svg",), "rect_colr_0.ttx", "glyf_colr_0", ".ttf"),
+        (("rect.svg",), "rect_colr_1.ttx", "glyf_colr_1", ".ttf"),
         (("rect.svg",), "rect_svg.ttx", "svg", ".ttf"),
         # linear gradient on rect
         (
             ("linear_gradient_rect.svg",),
             "linear_gradient_rect_colr_1.ttx",
-            "colr_1",
+            "glyf_colr_1",
             ".ttf",
         ),
         # radial gradient on rect
         (
             ("radial_gradient_rect.svg",),
             "radial_gradient_rect_colr_1.ttx",
-            "colr_1",
+            "glyf_colr_1",
             ".ttf",
         ),
         # reuse shape in different color
-        (("rect.svg", "rect2.svg"), "rects_colr_1.ttx", "colr_1", ".ttf"),
+        (("rect.svg", "rect2.svg"), "rects_colr_1.ttx", "glyf_colr_1", ".ttf"),
         # clocks have composites, reuse of composite, and reuse of shape w/diff color
-        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_colr_1.ttx", "colr_1", ".ttf"),
+        (
+            ("one-o-clock.svg", "two-o-clock.svg"),
+            "clocks_colr_1.ttx",
+            "glyf_colr_1",
+            ".ttf",
+        ),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_svg.ttx", "svg", ".ttf"),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
@@ -103,7 +108,7 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
 @pytest.mark.parametrize(
     "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
 )
-@pytest.mark.parametrize("color_format", ["colr_0", "colr_1", "svg", "svgz"])
+@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "svg", "svgz"])
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(
