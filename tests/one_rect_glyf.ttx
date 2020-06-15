@@ -6,27 +6,21 @@
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
     <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
-    <GlyphID id="4" name="e000.1"/>
   </GlyphOrder>
 
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="0"/>
-    <mtx name="e000.0" width="100" lsb="20"/>
-    <mtx name="e000.1" width="100" lsb="40"/>
+    <mtx name="e000" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
     <tableVersion version="0"/>
     <cmap_format_4 platformID="0" platEncID="3" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="e000"/><!-- ???? -->
     </cmap_format_4>
     <cmap_format_4 platformID="3" platEncID="1" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="e000"/><!-- ???? -->
     </cmap_format_4>
   </cmap>
 
@@ -43,15 +37,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="0" yMin="0" xMax="100" yMax="100">
-      <contour>
-        <pt x="100" y="100" on="1"/>
-        <pt x="0" y="0" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="e000" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
         <pt x="20" y="80" on="1"/>
         <pt x="20" y="60" on="1"/>
@@ -61,33 +47,6 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.1" xMin="40" yMin="40" xMax="100" yMax="60">
-      <contour>
-        <pt x="40" y="60" on="1"/>
-        <pt x="40" y="40" on="1"/>
-        <pt x="100" y="40" on="1"/>
-        <pt x="100" y="60" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
   </glyf>
-
-  <COLR>
-    <version value="0"/>
-    <ColorGlyph name="e000">
-      <layer colorID="1" name="e000.0"/>
-      <layer colorID="0" name="e000.1"/>
-    </ColorGlyph>
-  </COLR>
-
-  <CPAL>
-    <version value="0"/>
-    <numPaletteEntries value="2"/>
-    <palette index="0">
-      <color index="0" value="#0000FFCC"/>
-      <color index="1" value="#0000FFFF"/>
-    </palette>
-  </CPAL>
 
 </ttFont>
