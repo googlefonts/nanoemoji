@@ -11,7 +11,7 @@ click==7.1.2              # via black
 decorator==4.4.2          # via networkx
 importlab==0.5.1          # via pytype
 importlib-metadata==1.6.1  # via pluggy, pytest
-more-itertools==8.3.0     # via pytest
+more-itertools==8.4.0     # via pytest
 networkx==2.4             # via importlab
 ninja==1.10.0        # via pytype
 packaging==20.4           # via pytest
