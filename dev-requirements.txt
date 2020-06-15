@@ -22,7 +22,7 @@ pyparsing==2.4.7          # via packaging
 pytest==5.4.2             # via -r dev-requirements.in
 pytype==2020.6.1; python_version < "3.8"  # via -r dev-requirements.in
 pyyaml==5.3.1             # via pytype
-regex==2020.5.14           # via black
+regex==2020.6.8           # via black
 six==1.15.0               # via importlab, packaging, pytype
 toml==0.10.1              # via black
 typed-ast==1.4.1          # via black, pytype
