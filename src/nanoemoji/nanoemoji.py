@@ -103,10 +103,10 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
     ),
     "svg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, zip=False), ".ttf"
+        lambda *_: None, lambda *args: _svg_ttfont(*args, compressed=False), ".ttf"
     ),
     "svgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, zip=True), ".ttf"
+        lambda *_: None, lambda *args: _svg_ttfont(*args, compressed=True), ".ttf"
     ),
     "cbdt": ColorGenerator(
         lambda *args: _not_impl("ufo", *args),
@@ -410,8 +410,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
 
 
-def _svg_ttfont(_, color_glyphs, ttfont, zip=False):
-    make_svg_table(ttfont, color_glyphs, zip)
+def _svg_ttfont(_, color_glyphs, ttfont, compressed=False):
+    make_svg_table(ttfont, color_glyphs, compressed)
 
 
 def _generate_fea(rgi_sequences):
