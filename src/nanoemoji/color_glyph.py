@@ -197,10 +197,10 @@ _GRADIENT_INFO = {
 
 def _color_stop(stop_el) -> ColorStop:
     offset = _number_or_percentage(stop_el.attrib.get("offset", "0"))
-    color = stop_el.attrib.get("stop-color", "black")
-    if "stop-opacity" in stop_el.attrib:
-        raise ValueError("<stop stop-opacity/> not supported")
-    return ColorStop(stopOffset=offset, color=Color.fromstring(color))
+    color = Color.fromstring(stop_el.attrib.get("stop-color", "black"))
+    opacity = _number_or_percentage(stop_el.attrib.get("stop-opacity", "1"))
+    color = color._replace(alpha=color.alpha * opacity)
+    return ColorStop(stopOffset=offset, color=color)
 
 
 def _common_gradient_parts(el):
