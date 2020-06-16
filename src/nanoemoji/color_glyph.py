@@ -296,6 +296,9 @@ class ColorGlyph(NamedTuple):
             transforms = ()
             if len(paths) > 1:
                 transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
+            for path, transform in zip(paths[1:], transforms):
+                if transform is None:
+                    raise ValueError(f'{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed')
             yield PaintedLayer(paint, paths[0], transforms)
 
     def paints(self):
