@@ -88,7 +88,7 @@
                   <StopOffset value="0.9"/>
                   <Color>
                     <PaletteIndex value="1"/>
-                    <Transparency value="0.0"/>
+                    <Transparency value="0.2"/>
                   </Color>
                 </ColorStop>
               </ColorLine>

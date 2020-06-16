@@ -118,7 +118,7 @@ def _round_gradient_coordinates(paint, prec=6):
                 PaintLinearGradient(
                     stops=(
                         ColorStop(stopOffset=0.1, color=Color.fromstring("blue")),
-                        ColorStop(stopOffset=0.9, color=Color.fromstring("cyan")),
+                        ColorStop(stopOffset=0.9, color=Color.fromstring("cyan", 0.8)),
                     ),
                     p0=Point(200, 800),
                     p1=Point(800, 800),
