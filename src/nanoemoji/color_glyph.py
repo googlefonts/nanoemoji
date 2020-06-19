@@ -31,7 +31,7 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath
-from typing import Generator, NamedTuple, Tuple
+from typing import Generator, Mapping, NamedTuple, Tuple
 import ufoLib2
 
 
@@ -172,7 +172,8 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     # helps reducing the inevitable rounding errors that arise from storing these
     # values as integers in COLRv1 tables.
     s = max(abs(transform.a), abs(transform.d))
-    assert s != 0
+    if s == 0:
+        raise ValueError('s is 0')
 
     rscale = Affine2D(s, 0, 0, s, 0, 0)
     r0 = rscale.map_vector((r0, 0)).x
@@ -214,20 +215,6 @@ def _common_gradient_parts(el):
     }
 
 
-def _paint(picosvg, shape, upem):
-    if shape.fill.startswith("url("):
-        el = picosvg.resolve_url(shape.fill, "*")
-
-        grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
-        grad_args = _common_gradient_parts(el)
-        grad_args.update(
-            grad_type_parser(el, shape.bounding_box(), picosvg.view_box(), upem)
-        )
-        return grad_type(**grad_args)
-
-    return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
-
-
 class PaintedLayer(NamedTuple):
     paint: Paint
     path: SVGPath
@@ -242,11 +229,29 @@ class ColorGlyph(NamedTuple):
     codepoints: Tuple[int, ...]
     picosvg: SVG
 
+    def _paint(self, shape):
+        upem = self.ufo.info.unitsPerEm
+        if shape.fill.startswith("url("):
+            el = self.picosvg.resolve_url(shape.fill, "*")
+
+            grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
+            grad_args = _common_gradient_parts(el)
+            try:
+                grad_args.update(
+                    grad_type_parser(el, shape.bounding_box(), self.picosvg.view_box(), upem)
+                )
+            except ValueError as e:
+                raise ValueError(f"parse failed for {self.filename}, {etree.tostring(el)[:128]}") from e
+            return grad_type(**grad_args)
+
+        return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
+
+
     def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
         """Within a glyph reuse shapes only when painted consistently.
 
         paint+normalized shape ensures this."""
-        return (_paint(self.picosvg, shape, self.ufo.info.unitsPerEm), normalize(shape))
+        return (self._paint(shape), normalize(shape))
 
     @staticmethod
     def create(ufo, filename, glyph_id, codepoints, picosvg):
