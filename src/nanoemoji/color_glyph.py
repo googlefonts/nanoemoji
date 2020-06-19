@@ -156,6 +156,8 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     r1 = r
 
     transform = _get_gradient_transform(grad_el, shape_bbox, view_box, upem)
+    #if transform.is_degenerate():
+    #    raise ValueError(f"degenerate gradient transform {transform}")
 
     # The optional Affine2x2 matrix of COLRv1.RadialGradient is used to transform
     # the circles into ellipses "around their centres": i.e. centres coordinates
@@ -172,8 +174,6 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     # helps reducing the inevitable rounding errors that arise from storing these
     # values as integers in COLRv1 tables.
     s = max(abs(transform.a), abs(transform.d))
-    if s == 0:
-        raise ValueError('s is 0')
 
     rscale = Affine2D(s, 0, 0, s, 0, 0)
     r0 = rscale.map_vector((r0, 0)).x
@@ -181,13 +181,18 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
 
     affine2x2 = Affine2D.product(rscale.inverse(), transform)
 
-    return {
+    gradient = {
         "c0": c0,
         "c1": c1,
         "r0": r0,
         "r1": r1,
         "affine2x2": (affine2x2[:4] if affine2x2 != Affine2D.identity() else None),
     }
+
+    #if rscale.is_degenerate():
+    #    raise ValueError(f"rscale degenerate: {rscale}; gradient {gradient}")
+
+    return gradient
 
 
 _GRADIENT_INFO = {
