@@ -26,5 +26,5 @@ regex==2020.6.8           # via black
 six==1.15.0               # via importlab, packaging, pytype
 toml==0.10.1              # via black
 typed-ast==1.4.1          # via black, pytype
-wcwidth==0.2.4            # via pytest
+wcwidth==0.2.5            # via pytest
 zipp==3.1.0               # via importlib-metadata
