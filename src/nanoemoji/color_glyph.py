@@ -156,8 +156,6 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     r1 = r
 
     transform = _get_gradient_transform(grad_el, shape_bbox, view_box, upem)
-    #if transform.is_degenerate():
-    #    raise ValueError(f"degenerate gradient transform {transform}")
 
     # The optional Affine2x2 matrix of COLRv1.RadialGradient is used to transform
     # the circles into ellipses "around their centres": i.e. centres coordinates
@@ -189,8 +187,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
         "affine2x2": (affine2x2[:4] if affine2x2 != Affine2D.identity() else None),
     }
 
-    #if rscale.is_degenerate():
-    #    raise ValueError(f"rscale degenerate: {rscale}; gradient {gradient}")
+    # TODO handle degenerate cases, fallback to solid, w/e
 
     return gradient
 
@@ -243,14 +240,17 @@ class ColorGlyph(NamedTuple):
             grad_args = _common_gradient_parts(el)
             try:
                 grad_args.update(
-                    grad_type_parser(el, shape.bounding_box(), self.picosvg.view_box(), upem)
+                    grad_type_parser(
+                        el, shape.bounding_box(), self.picosvg.view_box(), upem
+                    )
                 )
             except ValueError as e:
-                raise ValueError(f"parse failed for {self.filename}, {etree.tostring(el)[:128]}") from e
+                raise ValueError(
+                    f"parse failed for {self.filename}, {etree.tostring(el)[:128]}"
+                ) from e
             return grad_type(**grad_args)
 
         return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
-
 
     def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
         """Within a glyph reuse shapes only when painted consistently.
@@ -308,7 +308,9 @@ class ColorGlyph(NamedTuple):
                 transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
             for path, transform in zip(paths[1:], transforms):
                 if transform is None:
-                    raise ValueError(f'{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed')
+                    raise ValueError(
+                        f"{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed"
+                    )
             yield PaintedLayer(paint, paths[0], transforms)
 
     def paints(self):
