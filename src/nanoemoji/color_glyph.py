@@ -31,7 +31,7 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath
-from typing import Generator, NamedTuple, Tuple
+from typing import Generator, Mapping, NamedTuple, Tuple
 import ufoLib2
 
 
@@ -172,7 +172,6 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     # helps reducing the inevitable rounding errors that arise from storing these
     # values as integers in COLRv1 tables.
     s = max(abs(transform.a), abs(transform.d))
-    assert s != 0
 
     rscale = Affine2D(s, 0, 0, s, 0, 0)
     r0 = rscale.map_vector((r0, 0)).x
@@ -180,13 +179,17 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
 
     affine2x2 = Affine2D.product(rscale.inverse(), transform)
 
-    return {
+    gradient = {
         "c0": c0,
         "c1": c1,
         "r0": r0,
         "r1": r1,
         "affine2x2": (affine2x2[:4] if affine2x2 != Affine2D.identity() else None),
     }
+
+    # TODO handle degenerate cases, fallback to solid, w/e
+
+    return gradient
 
 
 _GRADIENT_INFO = {
@@ -214,20 +217,6 @@ def _common_gradient_parts(el):
     }
 
 
-def _paint(picosvg, shape, upem):
-    if shape.fill.startswith("url("):
-        el = picosvg.resolve_url(shape.fill, "*")
-
-        grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
-        grad_args = _common_gradient_parts(el)
-        grad_args.update(
-            grad_type_parser(el, shape.bounding_box(), picosvg.view_box(), upem)
-        )
-        return grad_type(**grad_args)
-
-    return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
-
-
 class PaintedLayer(NamedTuple):
     paint: Paint
     path: SVGPath
@@ -242,11 +231,32 @@ class ColorGlyph(NamedTuple):
     codepoints: Tuple[int, ...]
     picosvg: SVG
 
+    def _paint(self, shape):
+        upem = self.ufo.info.unitsPerEm
+        if shape.fill.startswith("url("):
+            el = self.picosvg.resolve_url(shape.fill, "*")
+
+            grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
+            grad_args = _common_gradient_parts(el)
+            try:
+                grad_args.update(
+                    grad_type_parser(
+                        el, shape.bounding_box(), self.picosvg.view_box(), upem
+                    )
+                )
+            except ValueError as e:
+                raise ValueError(
+                    f"parse failed for {self.filename}, {etree.tostring(el)[:128]}"
+                ) from e
+            return grad_type(**grad_args)
+
+        return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
+
     def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
         """Within a glyph reuse shapes only when painted consistently.
 
         paint+normalized shape ensures this."""
-        return (_paint(self.picosvg, shape, self.ufo.info.unitsPerEm), normalize(shape))
+        return (self._paint(shape), normalize(shape))
 
     @staticmethod
     def create(ufo, filename, glyph_id, codepoints, picosvg):
@@ -298,7 +308,9 @@ class ColorGlyph(NamedTuple):
                 transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
             for path, transform in zip(paths[1:], transforms):
                 if transform is None:
-                    raise ValueError(f'{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed')
+                    raise ValueError(
+                        f"{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed"
+                    )
             yield PaintedLayer(paint, paths[0], transforms)
 
     def paints(self):

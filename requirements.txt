@@ -14,7 +14,7 @@ cu2qu==1.6.7              # via ufo2ft
 fonttools[ufo]==4.12.1    # via booleanoperations, cffsubr, compreffor, cu2qu, nanoemoji (setup.py), ufo2ft, ufolib2
 fs==2.4.11                # via fonttools
 lxml==4.5.1               # via nanoemoji (setup.py), picosvg
-picosvg==0.3.12            # via nanoemoji (setup.py)
+picosvg==0.3.13            # via nanoemoji (setup.py)
 pyclipper==1.1.0.post3    # via booleanoperations
 pytz==2020.1              # via fs
 regex==2020.6.8           # via nanoemoji (setup.py)
