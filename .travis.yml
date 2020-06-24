@@ -24,6 +24,8 @@ install:
   - pip install -e .
 script:
   - pytest -vv
+
+# Push to PyPi
 deploy:
   provider: pypi
   user: "__token__"
@@ -34,3 +36,14 @@ deploy:
     condition: "$TRAVIS_PYTHON_VERSION = 3.8"
   distributions: "sdist bdist_wheel"
   skip_existing: true
+
+# Make a note in GH release
+deploy:
+  provider: releases
+  api_key:
+    secure: Kjoj1RYXdDWRCgd/ugBbcZqI8Sbhlx/RkISREJg2BOIQhuHkdXKDB/tuR4jZmeM0u40LSGEGYvGkQB60Gny1KuqwaqzUquvk8Fw/ll0f0rwj5q0ZGL3TpeLpgxxDOpgnGQ25i+rvzSELAQbcTHD9mChkQ0eLlab68cHtph5LOI+NGSrSrU608lT6y8BP1+8QbcFQf/Xogm8Z9/KYPmE7yo8ms/qT6VGeX95VrumPlrknrG+TQo3sHp4sVsJyQ2qGANCvpVrzRMpBWvW9ZVr0fFI3vwRDZdc4LeYoKSnISwa7yZBEbOMapSGDY+KKZFj5jKgdO9Qs5SrY+u2wdZqdh6XBXYgo0vWCbeWeangsTG/40sJkdTnajuJ/2PCZ/86/faFgip1qr3v0EuDlKPlFLNm8WoFzH55gu7VgSLTKFWihKRXNKMcOalBrJr1kUoyS1XeYW7Fq4Om1GitdoLxbjL2vnBMfoWbXZkq1sYb8QBFdlnydDkmdF49BItfy0ghmx/OZjz5sns7g73C1pM5VSCYNTOKLu45yF7ArETZ69e9OF4ciYiHSscMVzZZTQSzCGPblRfi8zGMMBnfdlrZLgSTl9BFVK6Ao5vn4QLEziSerw+BVsPGJfttiosl2gBqYxficiYSl4tF5B6ZkFSBxBF2aPbcEAjXWqHt/ih9/WUg=
+  on:
+    tags: true
+    repo: googlefonts/nanoemoji
+    condition: "$TRAVIS_PYTHON_VERSION = 3.8"
+  skip_cleanup: 'true'
