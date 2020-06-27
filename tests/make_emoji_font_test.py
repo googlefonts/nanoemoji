@@ -57,7 +57,7 @@ def test_codepoints_from_filename(filename, codepoints):
         # simple fill on rect
         (("rect.svg",), "rect_colr_0.ttx", "glyf_colr_0", ".ttf"),
         (("rect.svg",), "rect_colr_1.ttx", "glyf_colr_1", ".ttf"),
-        (("rect.svg",), "rect_svg.ttx", "svg", ".ttf"),
+        (("rect.svg",), "rect_picosvg.ttx", "picosvg", ".ttf"),
         # linear gradient on rect
         (
             ("linear_gradient_rect.svg",),
@@ -82,13 +82,13 @@ def test_codepoints_from_filename(filename, codepoints):
             ".ttf",
         ),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
-        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_svg.ttx", "svg", ".ttf"),
+        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_picosvg.ttx", "picosvg", ".ttf"),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
         # glyph order must reshuffle to group correctly
         (
             ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
-            "clocks_rects_svg.ttx",
-            "svg",
+            "clocks_rects_picosvg.ttx",
+            "picosvg",
             ".ttf",
         ),
     ],
@@ -108,7 +108,7 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
 @pytest.mark.parametrize(
     "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
 )
-@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "svg", "svgz"])
+@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "rawsvg"])
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(

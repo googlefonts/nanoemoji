@@ -162,7 +162,7 @@ def _update_glyph_order(
 
 
 def make_svg_table(
-    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph], compressed: bool = False
+    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph], picosvg, compressed: bool = False
 ):
     """Build an SVG table optimizing for reuse of shapes.
 

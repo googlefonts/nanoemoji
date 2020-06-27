@@ -102,11 +102,17 @@ _COLOR_FORMAT_GENERATORS = {
     "cff2_colr_1": ColorGenerator(
         lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
     ),
-    "svg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, compressed=False), ".ttf"
+    "picosvg": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False), ".ttf"
     ),
-    "svgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, compressed=True), ".ttf"
+    "picosvgz": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True), ".ttf"
+    ),
+    "rawsvg": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False), ".ttf"
+    ),
+    "rawsvgz": ColorGenerator(
+        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True), ".ttf"
     ),
     "cbdt": ColorGenerator(
         lambda *args: _not_impl("ufo", *args),
@@ -410,8 +416,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
 
 
-def _svg_ttfont(_, color_glyphs, ttfont, compressed=False):
-    make_svg_table(ttfont, color_glyphs, compressed)
+def _svg_ttfont(_, color_glyphs, ttfont, picosvg=True, compressed=False):
+    make_svg_table(ttfont, color_glyphs, picosvg, compressed)
 
 
 def _generate_fea(rgi_sequences):
