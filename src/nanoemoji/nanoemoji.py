@@ -108,10 +108,10 @@ _COLOR_FORMAT_GENERATORS = {
     "picosvgz": ColorGenerator(
         lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True), ".ttf"
     ),
-    "rawsvg": ColorGenerator(
+    "untouchedsvg": ColorGenerator(
         lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False), ".ttf"
     ),
-    "rawsvgz": ColorGenerator(
+    "untouchedsvgz": ColorGenerator(
         lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True), ".ttf"
     ),
     "cbdt": ColorGenerator(

@@ -58,6 +58,7 @@ def test_codepoints_from_filename(filename, codepoints):
         (("rect.svg",), "rect_colr_0.ttx", "glyf_colr_0", ".ttf"),
         (("rect.svg",), "rect_colr_1.ttx", "glyf_colr_1", ".ttf"),
         (("rect.svg",), "rect_picosvg.ttx", "picosvg", ".ttf"),
+        (("rect.svg",), "rect_untouchedsvg.ttx", "untouchedsvg", ".ttf"),
         # linear gradient on rect
         (
             ("linear_gradient_rect.svg",),
@@ -91,6 +92,12 @@ def test_codepoints_from_filename(filename, codepoints):
             "picosvg",
             ".ttf",
         ),
+        (
+            ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
+            "clocks_rects_untouchedsvg.ttx",
+            "untouchedsvg",
+            ".ttf",
+        ),
     ],
 )
 def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
@@ -108,7 +115,7 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
 @pytest.mark.parametrize(
     "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
 )
-@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "rawsvg"])
+@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"])
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(

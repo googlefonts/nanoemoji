@@ -27,11 +27,14 @@ def locate_test_file(filename):
     return os.path.join(os.path.dirname(__file__), filename)
 
 
-def picosvg(filename):
-    return SVG.parse(locate_test_file(filename)).topicosvg()
+def picosvg(filename, locate=False):
+    if locate:
+        filename = locate_test_file(filename)
+    return SVG.parse(filename).topicosvg()
 
 
 def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
+    svgs = [locate_test_file(s) for s in svgs]
     return (
         nanoemoji.ColorFontConfig(
             upem=100,
@@ -41,7 +44,7 @@ def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
             keep_glyph_names=keep_glyph_names,
         ),
         [
-            nanoemoji.InputGlyph(svg, (0xE000 + idx,), picosvg(svg))
+            nanoemoji.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
             for idx, svg in enumerate(svgs)
         ],
     )
