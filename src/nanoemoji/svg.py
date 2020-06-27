@@ -188,9 +188,16 @@ def _picosvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> S
 def _rawsvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> Sequence[Tuple[str, int, int]]:
     doc_list = []
     for color_glyph in color_glyphs:
-        # this will at least remove some whitespace
-        svg_content = SVG.parse(color_glyph.filename).tostring()
-        doc_list.append((svg_content, color_glyph.glyph_id, color_glyph.glyph_id))
+        svg = (SVG.parse(color_glyph.filename)
+            # dumb sizing isn't useful
+            .remove_attributes(("width", "height"), inplace=True)
+            # Firefox likes to render blank if present
+            .remove_attributes(("enable-background",), inplace=True)
+            # Map gid => svg doc
+            .set_attributes((("id", f"glyph{color_glyph.glyph_id}"),))
+            )
+        svg.svg_root.attrib['transform'] = f"translate(0, {-color_glyph.ufo.info.unitsPerEm})"
+        doc_list.append((svg.tostring(), color_glyph.glyph_id, color_glyph.glyph_id))
     return doc_list
 
 
@@ -209,6 +216,7 @@ def make_svg_table(
         doc_list = _picosvg_docs(ttfont, color_glyphs)
     else:
         doc_list = _rawsvg_docs(ttfont, color_glyphs)
+
 
     svg_table = ttLib.newTable("SVG ")
     svg_table.compressed = compressed
