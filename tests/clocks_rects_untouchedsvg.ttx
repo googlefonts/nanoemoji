@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e001"/>
+    <GlyphID id="4" name="e002"/>
+    <GlyphID id="5" name="e003"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e001" width="100" lsb="0"/>
+    <mtx name="e002" width="100" lsb="0"/>
+    <mtx name="e003" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+      <map code="0xe002" name="e002"/><!-- ???? -->
+      <map code="0xe003" name="e003"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+      <map code="0xe002" name="e002"/><!-- ???? -->
+      <map code="0xe003" name="e003"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e001"/><!-- contains no outline data -->
+
+    <TTGlyph name="e002"/><!-- contains no outline data -->
+
+    <TTGlyph name="e003"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" id="glyph2" transform="translate(0, -100)"><linearGradient id="a" x1="64" x2="64" y1="19.751" y2="111.99" gradientUnits="userSpaceOnUse"><stop stop-color="#ECEFF1" offset=".3212"/><stop stop-color="#B0BEC5" offset="1"/></linearGradient><circle cx="64" cy="64" r="60" fill="url(#a)"/><path d="m63.8 63.98h0.4c2.1 0 3.8-1.7 3.8-3.8v-32.4c0-2.1-1.7-3.8-3.8-3.8h-0.4c-2.1 0-3.8 1.7-3.8 3.8v32.4c0 2.1 1.7 3.8 3.8 3.8z" fill="blue"/><path d="m63.7 63.88 0.34 0.21c1.79 1.1 4.13 0.55 5.23-1.24l11.34-18.37c1.1-1.79 0.55-4.13-1.24-5.23l-0.34-0.21c-1.79-1.1-4.13-0.55-5.23 1.24l-11.33 18.37c-1.1 1.79-0.55 4.13 1.23 5.23z" fill="green"/><circle cx="64" cy="64" r="7" fill="#424242"/><circle cx="64" cy="64" r="3" fill="#fff"/><g fill="#757575"><circle cx="15.89" cy="64.13" r="4"/><circle cx="63.89" cy="16.13" r="4"/><circle cx="63.89" cy="112.13" r="4"/><circle cx="111.89" cy="64.13" r="4"/></g><g opacity=".2"><path d="M64,8c30.88,0,56,25.12,56,56s-25.12,56-56,56S8,94.88,8,64S33.12,8,64,8 M64,4 C30.86,4,4,30.86,4,64s26.86,60,60,60s60-26.86,60-60S97.14,4,64,4L64,4z" fill="#424242"/></g></svg>]]>
+    </svgDoc>
+    <svgDoc endGlyphID="3" startGlyphID="3">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" id="glyph3" transform="translate(0, -100)"><rect x="2" y="2" width="6" height="2" fill="blue"/><rect x="4" y="4" width="6" height="2" fill="blue" opacity="0.8"/></svg>]]>
+    </svgDoc>
+    <svgDoc endGlyphID="4" startGlyphID="4">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" id="glyph4" transform="translate(0, -100)"><linearGradient id="a" x1="64" x2="64" y1="19.751" y2="111.99" gradientUnits="userSpaceOnUse"><stop stop-color="#ECEFF1" offset=".3212"/><stop stop-color="#B0BEC5" offset="1"/></linearGradient><circle cx="64" cy="64" r="60" fill="url(#a)"/><path d="m63.8 63.98h0.4c2.1 0 3.8-1.7 3.8-3.8v-32.4c0-2.1-1.7-3.8-3.8-3.8h-0.4c-2.1 0-3.8 1.7-3.8 3.8v32.4c0 2.1 1.7 3.8 3.8 3.8z" fill="purple"/><path d="m63.78 63.81 0.19 0.35c1.01 1.84 3.32 2.52 5.16 1.51l18.94-10.36c1.84-1.01 2.52-3.32 1.51-5.16l-0.19-0.35c-1.01-1.84-3.32-2.52-5.16-1.51l-18.94 10.36c-1.84 1.01-2.52 3.32-1.51 5.16z" fill="red"/><circle cx="64" cy="64" r="7" fill="#424242"/><circle cx="64" cy="64" r="3" fill="#fff"/><g fill="#757575"><circle cx="15.89" cy="64.13" r="4"/><circle cx="63.89" cy="16.13" r="4"/><circle cx="63.89" cy="112.13" r="4"/><circle cx="111.89" cy="64.13" r="4"/></g><g opacity=".2"><path d="M64,8c30.88,0,56,25.12,56,56s-25.12,56-56,56S8,94.88,8,64S33.12,8,64,8 M64,4 C30.86,4,4,30.86,4,64s26.86,60,60,60s60-26.86,60-60S97.14,4,64,4L64,4z" fill="#424242"/></g></svg>]]>
+    </svgDoc>
+    <svgDoc endGlyphID="5" startGlyphID="5">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" id="glyph5" transform="translate(0, -100)"><rect x="2" y="2" width="6" height="2" fill="purple"/><rect x="4" y="4" width="6" height="2" fill="darkgreen" opacity="0.8"/></svg>]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>

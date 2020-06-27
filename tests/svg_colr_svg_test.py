@@ -37,7 +37,7 @@ def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_forma
         color_format, (svg_in,), output_format
     )
     _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
-    svg_before = test_helper.picosvg(svg_in)
+    svg_before = test_helper.picosvg(svg_in, locate=True)
     svgs_from_font = colr_to_svg(svg_before.view_box(), ttfont)
     assert len(svgs_from_font) == 1
-    test_helper.svg_diff(svgs_from_font[0], test_helper.picosvg(expected_svg_out))
+    test_helper.svg_diff(svgs_from_font[0], test_helper.picosvg(expected_svg_out, locate=True))

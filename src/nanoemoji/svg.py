@@ -145,7 +145,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
             svg_use.attrib["href"] = f'#{el.attrib["id"]}'
 
 
-def _update_glyph_order(
+def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
     ttfont: ttLib.TTFont,
     reuse_groups: Tuple[Tuple[str, ...]],
@@ -161,22 +161,10 @@ def _update_glyph_order(
     ttfont.setGlyphOrder(glyph_order)
 
 
-def make_svg_table(
-    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph], compressed: bool = False
-):
-    """Build an SVG table optimizing for reuse of shapes.
-
-    Reuse here requires putting shapes into a single svg doc. Use of large svg docs
-    will come at runtime cost. A better implementation would also consider usage frequency
-    and avoid taking reuse opportunities in some cases. For example, even the most
-    and least popular glyphs share shapes we might choose to not take advantage of it.
-    """
-
+def _picosvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> Sequence[Tuple[str, int, int]]:
     reuse_groups = _glyph_groups(color_glyphs)
-
     color_glyphs = {c.glyph_name: c for c in color_glyphs}
-
-    _update_glyph_order(color_glyphs, ttfont, reuse_groups)
+    _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
 
     doc_list = []
     reuse_cache = ReuseCache()
@@ -194,6 +182,41 @@ def make_svg_table(
 
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append((svg.tostring(), min(gids), max(gids)))
+    return doc_list
+
+
+def _rawsvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> Sequence[Tuple[str, int, int]]:
+    doc_list = []
+    for color_glyph in color_glyphs:
+        svg = (SVG.parse(color_glyph.filename)
+            # dumb sizing isn't useful
+            .remove_attributes(("width", "height"), inplace=True)
+            # Firefox likes to render blank if present
+            .remove_attributes(("enable-background",), inplace=True)
+            # Map gid => svg doc
+            .set_attributes((("id", f"glyph{color_glyph.glyph_id}"),))
+            )
+        svg.svg_root.attrib['transform'] = f"translate(0, {-color_glyph.ufo.info.unitsPerEm})"
+        doc_list.append((svg.tostring(), color_glyph.glyph_id, color_glyph.glyph_id))
+    return doc_list
+
+
+def make_svg_table(
+    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph], picosvg: bool, compressed: bool = False
+):
+    """Build an SVG table optimizing for reuse of shapes.
+
+    Reuse here requires putting shapes into a single svg doc. Use of large svg docs
+    will come at runtime cost. A better implementation would also consider usage frequency
+    and avoid taking reuse opportunities in some cases. For example, even the most
+    and least popular glyphs share shapes we might choose to not take advantage of it.
+    """
+
+    if picosvg:
+        doc_list = _picosvg_docs(ttfont, color_glyphs)
+    else:
+        doc_list = _rawsvg_docs(ttfont, color_glyphs)
+
 
     svg_table = ttLib.newTable("SVG ")
     svg_table.compressed = compressed
