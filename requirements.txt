@@ -15,7 +15,7 @@ fonttools[ufo]==4.12.1    # via booleanoperations, cffsubr, compreffor, cu2qu, n
 fs==2.4.11                # via fonttools
 lxml==4.5.1               # via nanoemoji (setup.py), picosvg
 picosvg==0.3.13            # via nanoemoji (setup.py)
-pyclipper==1.1.0.post3    # via booleanoperations
+pyclipper==1.2.0    # via booleanoperations
 pytz==2020.1              # via fs
 regex==2020.6.8           # via nanoemoji (setup.py)
 six==1.15.0               # via absl-py, fs
