@@ -56,7 +56,7 @@ class PaintSolid(Paint):
         return {
             "format": self.format,
             "paletteIndex": colors.index(self.color.opaque()),
-            "transparency": 1.0 - self.color.alpha,
+            "alpha": self.color.alpha,
         }
 
 
@@ -66,7 +66,7 @@ def _ufoColorLine(gradient, colors):
             {
                 "offset": stop.stopOffset,
                 "paletteIndex": colors.index(stop.color.opaque()),
-                "transparency": 1.0 - stop.color.alpha,
+                "alpha": stop.color.alpha,
             }
             for stop in gradient.stops
         ],
@@ -127,5 +127,5 @@ class PaintRadialGradient(Paint):
             "r1": self.r1,
         }
         if self.affine2x2:
-            result["affine"] = self.affine2x2
+            result["transform"] = self.affine2x2
         return result
