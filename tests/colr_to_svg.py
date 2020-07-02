@@ -108,17 +108,17 @@ def _colr_v1_glyph_to_svg(
 
     svg_root = _svg_root(view_box)
     cpal_colors = ttfont["CPAL"].palettes[0]
-    for glyph_layer in glyph.LayerV1Array.LayerV1Record:
+    for glyph_layer in glyph.LayerV1List.LayerV1Record:
         svg_path = etree.SubElement(svg_root, "path")
 
-        # TODO care about variations, such as for transparency
+        # TODO care about variations, such as for alpha
         paint = glyph_layer.Paint
         if paint.Format == _PAINT_SOLID:
             _solid_paint(
                 svg_path,
                 ttfont,
                 paint.Color.PaletteIndex,
-                1 - paint.Color.Transparency.value,
+                paint.Color.Alpha.value,
             )
         elif paint.Format == _PAINT_LINEAR_GRADIENT:
             raise ValueError("linear gradient paint not supported")
@@ -141,7 +141,7 @@ def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Tuple[SVG]:
     # TODO: COLRv1: Gradient definitions
     return tuple(
         SVG.fromstring(etree.tostring(_colr_v1_glyph_to_svg(ttfont, view_box, g)))
-        for g in ttfont["COLR"].table.BaseGlyphV1Array.BaseGlyphV1Record
+        for g in ttfont["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record
     )
 
 
