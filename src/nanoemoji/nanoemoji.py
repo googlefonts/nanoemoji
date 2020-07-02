@@ -245,7 +245,7 @@ def _not_impl(*_):
 
 def _draw(source: SVGPath, dest: Glyph, svg_units_to_font_units: Affine2D):
     pen = TransformPen(dest.getPen(), svg_units_to_font_units)
-    skia_path(source.as_cmd_seq()).draw(pen)
+    skia_path(source.as_cmd_seq(), source.fill_rule).draw(pen)
 
 
 def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
