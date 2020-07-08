@@ -164,14 +164,14 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     c1 = transform.map_point(c1)
 
     # As for the circle radii (which are affected by Affine2x2), we only scale them
-    # by the largest between the horizontal and vertical (absolute) scale.
+    # by the maximum of the (absolute) scale or skew.
     # Then in Affine2x2 we only store a "fraction" of the original transform, i.e.
     # multiplied by the inverse of the scale that we've already applied to the radii.
     # Especially when gradientUnits="objectBoundingBox", where circle positions and
     # radii are expressed using small floats in the range [0..1], this pre-scaling
     # helps reducing the inevitable rounding errors that arise from storing these
     # values as integers in COLRv1 tables.
-    s = max(abs(transform.a), abs(transform.d))
+    s = max(abs(v) for v in transform[:4])
 
     rscale = Affine2D(s, 0, 0, s, 0, 0)
     r0 = rscale.map_vector((r0, 0)).x
