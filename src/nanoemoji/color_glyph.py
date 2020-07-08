@@ -49,10 +49,10 @@ def _shift_origin_0_0(
 
 def map_viewbox_to_font_emsquare(view_box: Rect, upem: int) -> Affine2D:
     x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
-    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
-
-    # flip y axis and shift so things are in the right place
+    # flip y axis
     y_scale = -y_scale
+    # shift so things are in the right place
+    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
     dy = dy + upem
     return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
 
