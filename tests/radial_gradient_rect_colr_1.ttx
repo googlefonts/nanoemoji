@@ -65,11 +65,11 @@
     <Version value="1"/>
     <!-- BaseGlyphRecordCount=0 -->
     <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1Array>
+    <BaseGlyphV1List>
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1Array>
+        <LayerV1List>
           <!-- LayerCount=1 -->
           <LayerV1Record index="0">
             <LayerGlyph value="e000.0"/>
@@ -81,38 +81,34 @@
                   <StopOffset value="0.05"/>
                   <Color>
                     <PaletteIndex value="0"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
                 <ColorStop index="1">
                   <StopOffset value="0.75"/>
                   <Color>
                     <PaletteIndex value="1"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
               </ColorLine>
-              <c0>
-                <x value="50"/>
-                <y value="70"/>
-              </c0>
-              <c1>
-                <x value="50"/>
-                <y value="70"/>
-              </c1>
+              <x0 value="50"/>
+              <y0 value="70"/>
               <r0 value="0"/>
+              <x1 value="50"/>
+              <y1 value="70"/>
               <r1 value="30"/>
-              <Affine>
+              <Transform>
                 <xx value="1.0"/>
                 <xy value="0.0"/>
                 <yx value="0.0"/>
                 <yy value="-0.33333"/>
-              </Affine>
+              </Transform>
             </Paint>
           </LayerV1Record>
-        </LayerV1Array>
+        </LayerV1List>
       </BaseGlyphV1Record>
-    </BaseGlyphV1Array>
+    </BaseGlyphV1List>
   </COLR>
 
   <CPAL>

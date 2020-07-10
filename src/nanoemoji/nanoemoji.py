@@ -366,7 +366,7 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette.
-    # We only store opaque colors in CPAL for CORLv1, as 'transparency' is
+    # We only store opaque colors in CPAL for CORLv1, as 'alpha' is
     # encoded separately.
     colors = sorted(
         set(

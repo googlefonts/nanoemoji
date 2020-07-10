@@ -285,11 +285,11 @@
     <Version value="1"/>
     <!-- BaseGlyphRecordCount=0 -->
     <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1Array>
+    <BaseGlyphV1List>
       <!-- BaseGlyphCount=2 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1Array>
+        <LayerV1List>
           <!-- LayerCount=7 -->
           <LayerV1Record index="0">
             <LayerGlyph value="e000.0"/>
@@ -301,29 +301,23 @@
                   <StopOffset value="0.3212"/>
                   <Color>
                     <PaletteIndex value="6"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
                 <ColorStop index="1">
                   <StopOffset value="1.0"/>
                   <Color>
                     <PaletteIndex value="5"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
               </ColorLine>
-              <p0>
-                <x value="50"/>
-                <y value="85"/>
-              </p0>
-              <p1>
-                <x value="50"/>
-                <y value="13"/>
-              </p1>
-              <p2>
-                <x value="50"/>
-                <y value="13"/>
-              </p2>
+              <x0 value="50"/>
+              <y0 value="85"/>
+              <x1 value="50"/>
+              <y1 value="13"/>
+              <x2 value="50"/>
+              <y2 value="13"/>
             </Paint>
           </LayerV1Record>
           <LayerV1Record index="1">
@@ -331,7 +325,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="0"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -340,7 +334,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="1"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -349,7 +343,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="2"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -358,7 +352,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="8"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -367,7 +361,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="3"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -376,15 +370,15 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="2"/>
-                <Transparency value="0.8"/>
+                <Alpha value="0.2"/>
               </Color>
             </Paint>
           </LayerV1Record>
-        </LayerV1Array>
+        </LayerV1List>
       </BaseGlyphV1Record>
       <BaseGlyphV1Record index="1">
         <BaseGlyph value="e001"/>
-        <LayerV1Array>
+        <LayerV1List>
           <!-- LayerCount=7 -->
           <LayerV1Record index="0">
             <LayerGlyph value="e000.0"/>
@@ -396,29 +390,23 @@
                   <StopOffset value="0.3212"/>
                   <Color>
                     <PaletteIndex value="6"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
                 <ColorStop index="1">
                   <StopOffset value="1.0"/>
                   <Color>
                     <PaletteIndex value="5"/>
-                    <Transparency value="0.0"/>
+                    <Alpha value="1.0"/>
                   </Color>
                 </ColorStop>
               </ColorLine>
-              <p0>
-                <x value="50"/>
-                <y value="85"/>
-              </p0>
-              <p1>
-                <x value="50"/>
-                <y value="13"/>
-              </p1>
-              <p2>
-                <x value="50"/>
-                <y value="13"/>
-              </p2>
+              <x0 value="50"/>
+              <y0 value="85"/>
+              <x1 value="50"/>
+              <y1 value="13"/>
+              <x2 value="50"/>
+              <y2 value="13"/>
             </Paint>
           </LayerV1Record>
           <LayerV1Record index="1">
@@ -426,7 +414,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="4"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -435,7 +423,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="7"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -444,7 +432,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="2"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -453,7 +441,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="8"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -462,7 +450,7 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="3"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -471,13 +459,13 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="2"/>
-                <Transparency value="0.8"/>
+                <Alpha value="0.2"/>
               </Color>
             </Paint>
           </LayerV1Record>
-        </LayerV1Array>
+        </LayerV1List>
       </BaseGlyphV1Record>
-    </BaseGlyphV1Array>
+    </BaseGlyphV1List>
   </COLR>
 
   <CPAL>
