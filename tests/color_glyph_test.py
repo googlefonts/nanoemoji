@@ -200,6 +200,29 @@ def _round_gradient_coordinates(paint, prec=6):
                 ),
             },
         ),
+        # radial with gradientTransform with almost zero scale, non-zero skew
+        (
+            "radial_gradient_transform_2.svg",
+            {
+                PaintRadialGradient(
+                    stops=(
+                        ColorStop(
+                            stopOffset=0.0,
+                            color=Color.fromstring("white"),
+                        ),
+                        ColorStop(
+                            stopOffset=1.0,
+                            color=Color.fromstring("black"),
+                        ),
+                    ),
+                    c0=Point(x=280.284146, y=973.125),
+                    c1=Point(x=280.284146, y=973.125),
+                    r0=0.0,
+                    r1=129.015625,
+                    affine2x2=(0.0, -1.0, -0.9288, 0.0),
+                )
+            },
+        ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
