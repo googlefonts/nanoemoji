@@ -30,27 +30,22 @@ make_emoji_font.py $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
-import collections
 from fontTools import ttLib
-from fontTools.pens.transformPen import TransformPen
-import io
-from itertools import chain, groupby
+from itertools import chain
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import Paint
 from nanoemoji.svg import make_svg_table
+from nanoemoji.svg_path import draw_svg_path
 from picosvg.svg import SVG
-from picosvg.svg_pathops import skia_path
-from picosvg.svg_reuse import normalize, affine_between
-from picosvg.svg_types import SVGPath
 from picosvg.svg_transform import Affine2D
 import os
 import regex
 import sys
-from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
+from typing import Callable, Generator, Iterable, NamedTuple, Sequence, Tuple
 import ufoLib2
-from ufoLib2.objects import Component, Glyph, Layer
+from ufoLib2.objects import Component, Glyph
 
 import ufo2ft
 
@@ -103,16 +98,24 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
     ),
     "picosvg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
+        ".ttf",
     ),
     "picosvgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
+        ".ttf",
     ),
     "untouchedsvg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False),
+        ".ttf",
     ),
     "untouchedsvgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True),
+        ".ttf",
     ),
     "cbdt": ColorGenerator(
         lambda *args: _not_impl("ufo", *args),
@@ -243,11 +246,6 @@ def _not_impl(*_):
     raise NotImplementedError("%s not implemented" % FLAGS.color_format)
 
 
-def _draw(source: SVGPath, dest: Glyph, svg_units_to_font_units: Affine2D):
-    pen = TransformPen(dest.getPen(), svg_units_to_font_units)
-    skia_path(source.as_cmd_seq(), source.fill_rule).draw(pen)
-
-
 def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
     i = 0
     while name_fn(i) in ufo:
@@ -271,7 +269,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         )
         glyph_names.append(base_glyph.name)
 
-        _draw(painted_layer.path, base_glyph, svg_units_to_font_units)
+        draw_svg_path(painted_layer.path, base_glyph.getPen(), svg_units_to_font_units)
 
         glyph.components.append(
             Component(baseGlyph=base_glyph.name, transformation=Affine2D.identity())
@@ -289,7 +287,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
             )
     else:
         # Not a composite, just draw directly on the glyph
-        _draw(painted_layer.path, glyph, svg_units_to_font_units)
+        draw_svg_path(painted_layer.path, glyph.getPen(), svg_units_to_font_units)
 
     ufo.glyphOrder += glyph_names
 

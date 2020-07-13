@@ -206,14 +206,8 @@ def _round_gradient_coordinates(paint, prec=6):
             {
                 PaintRadialGradient(
                     stops=(
-                        ColorStop(
-                            stopOffset=0.0,
-                            color=Color.fromstring("white"),
-                        ),
-                        ColorStop(
-                            stopOffset=1.0,
-                            color=Color.fromstring("black"),
-                        ),
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("white"),),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("black"),),
                     ),
                     c0=Point(x=280.284146, y=973.125),
                     c1=Point(x=280.284146, y=973.125),

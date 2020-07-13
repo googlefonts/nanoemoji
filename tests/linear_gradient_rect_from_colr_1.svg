@@ -5,5 +5,5 @@
       <stop offset="0.9" stop-color="aqua" stop-opacity="0.8"/>
     </linearGradient>
   </defs>
-  <path fill="url(#g1)" d="M2,2 L2,4 L8,4 L8,2 Z"/>
+  <path fill="url(#g1)" d="M2,2 L2,4 L8,4 L8,2 z"/>
 </svg>
