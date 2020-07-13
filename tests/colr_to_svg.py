@@ -16,57 +16,21 @@ from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.paint import Extend
 from nanoemoji.svg import _svg_matrix
+from nanoemoji.svg_path import SVGPathPen
 from picosvg import svg_meta
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
-from picosvg.svg_types import SVGPath
 from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
 import test_helper
 from lxml import etree
 from typing import Dict, NamedTuple, Sequence
 from fontTools.pens import transformPen
-from fontTools.pens.basePen import DecomposingPen
 from fontTools.ttLib.tables import otTables
-import pathops
-
 
 _PAINT_SOLID = 1
 _PAINT_LINEAR_GRADIENT = 2
 _PAINT_RADIAL_GRADIENT = 3
-
-
-# TODO: Move it to picosvg?
-class SVGPathPen(DecomposingPen):
-    """A FontTools Pen that draws onto an SVGPath while decomposing components."""
-
-    # addComponent will raise KeyError on missing reference, instead of just warning
-    skipMissingComponents = False
-
-    def __init__(self, glyphSet):
-        DecomposingPen.__init__(self, glyphSet)
-        self.path = SVGPath()
-
-    def moveTo(self, pt):
-        self.path.M(*pt)
-
-    def lineTo(self, pt):
-        self.path.L(*pt)
-
-    def curveTo(self, *points):
-        # flatten sequence of point tuples
-        self.path._add_cmd("C", *(v for pt in points for v in pt))
-
-    def qCurveTo(self, *points):
-        # handle TrueType quadratic splines with implicit on-curve mid-points
-        for (control_pt, end_pt) in pathops.decompose_quadratic_segment(points):
-            self.path._add_cmd("Q", *control_pt, *end_pt)
-
-    def closePath(self):
-        self.path._add("Z")
-
-    def endPath(self):
-        pass
 
 
 class _ColorStop(NamedTuple):
