@@ -83,7 +83,12 @@ def test_codepoints_from_filename(filename, codepoints):
             ".ttf",
         ),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
-        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_picosvg.ttx", "picosvg", ".ttf"),
+        (
+            ("one-o-clock.svg", "two-o-clock.svg"),
+            "clocks_picosvg.ttx",
+            "picosvg",
+            ".ttf",
+        ),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
         # glyph order must reshuffle to group correctly
         (
@@ -115,7 +120,9 @@ def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
 @pytest.mark.parametrize(
     "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
 )
-@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"])
+@pytest.mark.parametrize(
+    "color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"]
+)
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(

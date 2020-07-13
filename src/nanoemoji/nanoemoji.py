@@ -103,16 +103,24 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
     ),
     "picosvg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
+        ".ttf",
     ),
     "picosvgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
+        ".ttf",
     ),
     "untouchedsvg": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False),
+        ".ttf",
     ),
     "untouchedsvgz": ColorGenerator(
-        lambda *_: None, lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True), ".ttf"
+        lambda *_: None,
+        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True),
+        ".ttf",
     ),
     "cbdt": ColorGenerator(
         lambda *args: _not_impl("ufo", *args),
