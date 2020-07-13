@@ -30,10 +30,8 @@ make_emoji_font.py $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
-import collections
 from fontTools import ttLib
-import io
-from itertools import chain, groupby
+from itertools import chain
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
@@ -41,16 +39,13 @@ from nanoemoji.paint import Paint
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from picosvg.svg import SVG
-from picosvg.svg_pathops import skia_path
-from picosvg.svg_reuse import normalize, affine_between
-from picosvg.svg_types import SVGPath
 from picosvg.svg_transform import Affine2D
 import os
 import regex
 import sys
-from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
+from typing import Callable, Generator, Iterable, NamedTuple, Sequence, Tuple
 import ufoLib2
-from ufoLib2.objects import Component, Glyph, Layer
+from ufoLib2.objects import Component, Glyph
 
 import ufo2ft
 
