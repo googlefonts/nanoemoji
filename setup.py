@@ -19,7 +19,12 @@ setup(
     use_scm_version={"write_to": "src/nanoemoji/_version.py"},
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
+    entry_points={"console_scripts": [
+        "nanoemoji=nanoemoji.nanoemoji:main",
+        "nanoemoji_write_codepoints=nanoemoji.write_codepoints:main",
+        "nanoemoji_write_fea=nanoemoji.write_fea:main",
+        "nanoemoji_write_font=nanoemoji.write_font:main",
+    ]},
     setup_requires=["setuptools_scm"],
     install_requires=[
         "absl-py>=0.9.0",
