@@ -491,7 +491,7 @@ def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
 
 def _run(argv):
     if FLAGS.output == "ufo":
-        output_format = "ufo"
+        output_format = ".ufo"
     else:
         output_format = _COLOR_FORMAT_GENERATORS[FLAGS.color_format].font_ext
     config = ColorFontConfig(
