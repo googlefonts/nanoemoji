@@ -24,35 +24,27 @@ from nanoemoji.glyph import glyph_name
 
 def _generate_fea(rgi_sequences):
     rules = []
+    rules.append("languagesystem DFLT dflt;")
+    rules.append("languagesystem latn dflt;")
     rules.append("")
-    rules.append()
 
-    rules.append()
-    for rgi, target in sorted(rgi_sequences):
+    rules.append("feature rlig {")
+    for rgi in sorted(rgi_sequences):
         if len(rgi) == 1:
             continue
         glyphs = [glyph_name(cp) for cp in rgi]
+        target = glyph_name(rgi)
         rules.append("  sub %s by %s;" % (" ".join(glyphs), target))
 
     rules.append("} rlig;")
+    rules.append("")
     return "\n".join(rules)
 
 
 def _run(argv):
     with open(argv[1]) as f:
         rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
-    print("languagesystem DFLT dflt;")
-    print("languagesystem latn dflt;")
-    print()
-    print("feature rlig {")
-    for rgi in rgi_sequences:
-        if len(rgi) == 1:
-            continue
-        glyphs = [glyph_name(cp) for cp in rgi]
-        target = glyph_name(rgi)
-        print("  sub %s by %s;" % (" ".join(glyphs), target))
-    print("} rlig;")
-
+    print(_generate_fea(rgi_sequences))
 
 
 def main():

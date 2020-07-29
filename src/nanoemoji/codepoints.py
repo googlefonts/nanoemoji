@@ -30,9 +30,11 @@ def csv_line(filename):
     codepoints = ",".join("%04x" % c for c in from_filename(filename))
     return f"{filename},{codepoints}"
 
+
 def parse_csv_line(line):
     parts = line.split(",")
     return (parts[0], tuple(int(p, 16) for p in parts[1:]))
+
 
 def parse_csv(filename):
     with open(filename) as f:
