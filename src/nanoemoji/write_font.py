@@ -127,8 +127,6 @@ _COLOR_FORMAT_GENERATORS = {
 # TODO flag on/off shape reuse
 flags.DEFINE_integer("upem", 1024, "Units per em.")
 flags.DEFINE_string("family", "An Emoji Family", "Family name.")
-flags.DEFINE_string("fea_file", None, "Feature file.")
-flags.DEFINE_string("codepoint_csv", None, "File => codepoint metadata.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
     "color_format",
@@ -457,18 +455,26 @@ def output_file(family, output, color_format):
     return f"{family.replace(' ', '')}{output_format}"
 
 
+def only(filter_fn, iterable):
+    it = filter(filter_fn, iterable)
+    result = next(it)
+    assert next(it, None) is None
+    return result
+
+
 def main(argv):
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
         color_format=FLAGS.color_format,
-        fea_file=FLAGS.fea_file,
+        fea_file=only(lambda a: os.path.splitext(a)[1] == ".fea", argv),
         output_format=os.path.splitext(FLAGS.output_file)[1],
         keep_glyph_names=FLAGS.keep_glyph_names,
     )
 
-    codepoints = _codepoint_map(FLAGS.codepoint_csv)
-    inputs = list(_inputs(codepoints, argv[1:]))
+    codepoints = _codepoint_map(only(lambda a: os.path.splitext(a)[1] == ".csv", argv))
+    svg_files = filter(lambda a: os.path.splitext(a)[1] == ".svg", argv)
+    inputs = list(_inputs(codepoints, svg_files))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(config, inputs)
