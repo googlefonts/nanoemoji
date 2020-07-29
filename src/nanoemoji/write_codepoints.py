@@ -18,15 +18,10 @@ from absl import app
 from nanoemoji import codepoints
 
 
-def _run(argv):
+def main(argv):
     for svg_file in argv[1:]:
         print(codepoints.csv_line(svg_file))
 
 
-def main():
-    # We don't seem to be __main__ when run as cli tool installed by setuptools
-    app.run(_run)
-
-
 if __name__ == "__main__":
-    app.run(_run)
+    app.run(main)

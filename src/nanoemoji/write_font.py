@@ -457,7 +457,7 @@ def output_file(family, output, color_format):
     return f"{family.replace(' ', '')}{output_format}"
 
 
-def _run(argv):
+def main(argv):
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
@@ -476,10 +476,5 @@ def _run(argv):
     logging.info("Wrote %s" % FLAGS.output_file)
 
 
-def main():
-    # We don't seem to be __main__ when run as cli tool installed by setuptools
-    app.run(_run)
-
-
 if __name__ == "__main__":
-    app.run(_run)
+    app.run(main)

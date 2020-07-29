@@ -41,16 +41,11 @@ def _generate_fea(rgi_sequences):
     return "\n".join(rules)
 
 
-def _run(argv):
+def main(argv):
     with open(argv[1]) as f:
         rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
     print(_generate_fea(rgi_sequences))
 
 
-def main():
-    # We don't seem to be __main__ when run as cli tool installed by setuptools
-    app.run(_run)
-
-
 if __name__ == "__main__":
-    app.run(_run)
+    app.run(main)
