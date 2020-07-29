@@ -15,7 +15,7 @@
 from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.paint import Extend
-from nanoemoji.svg import _svg_matrix
+from nanoemoji.svg import _svg_matrix, _ntos
 from nanoemoji.svg_path import SVGPathPen
 from picosvg import svg_meta
 from picosvg.svg import SVG
@@ -81,7 +81,7 @@ def _svg_color_and_opacity(color, alpha=1.0):
     alpha *= color.alpha / 255
 
     if alpha != 1.0:
-        svg_opacity = svg_meta.ntos(alpha)
+        svg_opacity = _ntos(alpha)
     else:
         svg_opacity = None
 
@@ -132,17 +132,17 @@ def _linear_gradient_paint(
     gradient = etree.SubElement(svg_defs, "linearGradient")
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
     gradient.attrib["gradientUnits"] = "userSpaceOnUse"
-    gradient.attrib["x1"] = svg_meta.ntos(x1)
-    gradient.attrib["y1"] = svg_meta.ntos(y1)
-    gradient.attrib["x2"] = svg_meta.ntos(x2)
-    gradient.attrib["y2"] = svg_meta.ntos(y2)
+    gradient.attrib["x1"] = _ntos(x1)
+    gradient.attrib["y1"] = _ntos(y1)
+    gradient.attrib["x2"] = _ntos(x2)
+    gradient.attrib["y2"] = _ntos(y2)
     if extend != Extend.PAD:
         gradient.attrib["spreadMethod"] = extend.name.lower()
 
     palette = ttfont["CPAL"].palettes[0]
     for stop in stops:
         stop_el = etree.SubElement(gradient, "stop")
-        stop_el.attrib["offset"] = svg_meta.ntos(stop.offset)
+        stop_el.attrib["offset"] = _ntos(stop.offset)
         cpal_color = palette[stop.palette_index]
         svg_color, svg_opacity = _svg_color_and_opacity(cpal_color, stop.alpha)
         stop_el.attrib["stop-color"] = svg_color
@@ -183,12 +183,12 @@ def _radial_gradient_paint(
     gradient = etree.SubElement(svg_defs, "radialGradient")
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
     gradient.attrib["gradientUnits"] = "userSpaceOnUse"
-    gradient.attrib["fx"] = svg_meta.ntos(fx)
-    gradient.attrib["fy"] = svg_meta.ntos(fy)
-    gradient.attrib["fr"] = svg_meta.ntos(r0)
-    gradient.attrib["cx"] = svg_meta.ntos(cx)
-    gradient.attrib["cy"] = svg_meta.ntos(cy)
-    gradient.attrib["r"] = svg_meta.ntos(r1)
+    gradient.attrib["fx"] = _ntos(fx)
+    gradient.attrib["fy"] = _ntos(fy)
+    gradient.attrib["fr"] = _ntos(r0)
+    gradient.attrib["cx"] = _ntos(cx)
+    gradient.attrib["cy"] = _ntos(cy)
+    gradient.attrib["r"] = _ntos(r1)
     if transform != Affine2D.identity():
         gradient.attrib["gradientTransform"] = _svg_matrix(transform)
     if extend != Extend.PAD:
@@ -197,7 +197,7 @@ def _radial_gradient_paint(
     palette = ttfont["CPAL"].palettes[0]
     for stop in stops:
         stop_el = etree.SubElement(gradient, "stop")
-        stop_el.attrib["offset"] = svg_meta.ntos(stop.offset)
+        stop_el.attrib["offset"] = _ntos(stop.offset)
         cpal_color = palette[stop.palette_index]
         svg_color, svg_opacity = _svg_color_and_opacity(cpal_color, stop.alpha)
         stop_el.attrib["stop-color"] = svg_color
