@@ -44,6 +44,8 @@ FLAGS = flags.FLAGS
 # internal flags, typically client wouldn't change
 flags.DEFINE_string("build_dir", "build/", "Where build runs.")
 flags.DEFINE_bool("gen_ninja", True, "Whether to regenerate build.ninja")
+flags.DEFINE_bool("gen_svg_font_diffs", False, "Whether to generate svg vs font render diffs.")
+flags.DEFINE_integer("svg_font_diff_resolution", 256, "Render diffs resolution")
 flags.DEFINE_bool("exec_ninja", True, "Whether to run ninja.")
 
 
@@ -94,11 +96,17 @@ def write_preamble(nw):
         + keep_glyph_names
         + " --output_file $out $in",
     )
+    if FLAGS.gen_svg_font_diffs:
+        nw.rule("svg2png", f"cairosvg -H {FLAGS.svg_font_diff_resolution}  -W {FLAGS.svg_font_diff_resolution} -f png -o $out $in")
     nw.newline()
 
 
 def picosvg(input_svg: str) -> str:
     return os.path.join("picosvg", os.path.basename(input_svg))
+
+
+def svg_png(input_svg: str) -> str:
+    return os.path.join("svg_png", os.path.basename(input_svg))
 
 
 def write_picosvg_builds(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
@@ -127,6 +135,12 @@ def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
     )
 
 
+def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
+    picosvgs = [picosvg(f) for f in svg_files]
+    for svg_file in svg_files:
+        nw.build(svg_png(svg_file), "svg2png", rel_build(svg_file))
+
+
 def _run(argv):
     svg_files = [os.path.abspath(f) for f in argv[1:]]
     if len(set(os.path.basename(f) for f in svg_files)) != len(svg_files):
@@ -142,6 +156,8 @@ def _run(argv):
             write_codepointmap_build(nw, svg_files)
             write_fea_build(nw, svg_files)
             write_font_build(nw, svg_files)
+            if FLAGS.gen_svg_font_diffs:
+                write_svg_font_diff_build(nw, svg_files)
 
     # TODO: report on failed svgs
     # this is the delta between inputs and picos
