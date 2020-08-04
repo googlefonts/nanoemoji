@@ -9,3 +9,5 @@ dist/
 src/nanoemoji/_version.py
 .logpile/
 .vscode/
+ninja/.ninja_deps
+ninja/.ninja_log
