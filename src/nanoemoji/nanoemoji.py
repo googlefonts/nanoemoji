@@ -87,9 +87,7 @@ def write_preamble(nw):
     keep_glyph_names += "keep_glyph_names"
     module_rule(
         "write_font",
-        " --codepoint_csv codepointmap.csv"
-        + " --fea_file features.fea"
-        + f" --upem {FLAGS.upem}"
+        f" --upem {FLAGS.upem}"
         + f' --family "{FLAGS.family}"'
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
@@ -101,7 +99,7 @@ def write_preamble(nw):
     nw.newline()
 
 
-def picosvg(input_svg: str) -> str:
+def picosvg_dest(input_svg: str) -> str:
     return os.path.join("picosvg", os.path.basename(input_svg))
 
 
@@ -111,7 +109,7 @@ def svg_png(input_svg: str) -> str:
 
 def write_picosvg_builds(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
     for svg_file in svg_files:
-        nw.build(picosvg(svg_file), "picosvg", rel_build(svg_file))
+        nw.build(picosvg_dest(svg_file), "picosvg", rel_build(svg_file))
     nw.newline()
 
 
@@ -127,11 +125,11 @@ def write_fea_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
 
 
 def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
-    picosvgs = [picosvg(f) for f in svg_files]
+    inputs = ["codepointmap.csv", "features.fea"] + [picosvg_dest(f) for f in svg_files]
     nw.build(
         write_font.output_file(FLAGS.family, FLAGS.output, FLAGS.color_format),
         "write_font",
-        picosvgs,
+        inputs,
     )
 
 
@@ -146,6 +144,7 @@ def _run(argv):
     if len(set(os.path.basename(f) for f in svg_files)) != len(svg_files):
         sys.exit("Input svgs must have unique names")
 
+    os.makedirs(build_dir(), exist_ok=True)
     build_file = resolve_rel_build("build.ninja")
     if FLAGS.gen_ninja:
         print(f"Generating {os.path.relpath(build_file)}")
