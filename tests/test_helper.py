@@ -18,9 +18,12 @@ import os
 import re
 import sys
 from lxml import etree
-from nanoemoji import nanoemoji
+from nanoemoji import codepoints
+from nanoemoji import write_fea
+from nanoemoji import write_font
 from picosvg.svg import SVG
 import pytest
+import tempfile
 
 
 def locate_test_file(filename):
@@ -35,16 +38,22 @@ def picosvg(filename, locate=False):
 
 def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
     svgs = [locate_test_file(s) for s in svgs]
+    fea_file = os.path.join(tempfile.gettempdir(), "test.fea")
+    rgi_seqs = [codepoints.from_filename(f) for f in svgs]
+    with open(fea_file, "w") as f:
+        f.write(write_fea._generate_fea(rgi_seqs))
+
     return (
-        nanoemoji.ColorFontConfig(
+        write_font.ColorFontConfig(
             upem=100,
             family="UnitTest",
             color_format=color_format,
             output_format=output_format,
+            fea_file=fea_file,
             keep_glyph_names=keep_glyph_names,
         ),
         [
-            nanoemoji.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
+            write_font.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
             for idx, svg in enumerate(svgs)
         ],
     )
