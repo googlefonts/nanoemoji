@@ -30,6 +30,7 @@ nanoemoji $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
+from nanoemoji import codepoints
 from nanoemoji import write_font
 from ninja import ninja_syntax
 import os
@@ -44,7 +45,9 @@ FLAGS = flags.FLAGS
 # internal flags, typically client wouldn't change
 flags.DEFINE_string("build_dir", "build/", "Where build runs.")
 flags.DEFINE_bool("gen_ninja", True, "Whether to regenerate build.ninja")
-flags.DEFINE_bool("gen_svg_font_diffs", False, "Whether to generate svg vs font render diffs.")
+flags.DEFINE_bool(
+    "gen_svg_font_diffs", False, "Whether to generate svg vs font render diffs."
+)
 flags.DEFINE_integer("svg_font_diff_resolution", 256, "Render diffs resolution")
 flags.DEFINE_bool("exec_ninja", True, "Whether to run ninja.")
 
@@ -95,7 +98,14 @@ def write_preamble(nw):
         + " --output_file $out $in",
     )
     if FLAGS.gen_svg_font_diffs:
-        nw.rule("svg2png", f"cairosvg -H {FLAGS.svg_font_diff_resolution}  -W {FLAGS.svg_font_diff_resolution} -f png -o $out $in")
+        nw.rule(
+            "write_svg2png",
+            f"cairosvg -H {FLAGS.svg_font_diff_resolution}  -W {FLAGS.svg_font_diff_resolution} -f png -o $out $in",
+        )
+        module_rule(
+            "write_font2png",
+            f"--height {FLAGS.svg_font_diff_resolution}  --width {FLAGS.svg_font_diff_resolution} --output_file $out $in",
+        )
     nw.newline()
 
 
@@ -103,8 +113,18 @@ def picosvg_dest(input_svg: str) -> str:
     return os.path.join("picosvg", os.path.basename(input_svg))
 
 
-def svg_png(input_svg: str) -> str:
-    return os.path.join("svg_png", os.path.basename(input_svg))
+def cairo_png_dest(input_svg: str) -> str:
+    dest_file = os.path.splitext(os.path.basename(input_svg))[0] + ".png"
+    return os.path.join("cairo_png", dest_file)
+
+
+def font_dest() -> str:
+    return write_font.output_file(FLAGS.family, FLAGS.output, FLAGS.color_format)
+
+
+def skia_png_dest(input_svg: str) -> str:
+    dest_file = os.path.splitext(os.path.basename(input_svg))[0] + ".png"
+    return os.path.join("skia_png", dest_file)
 
 
 def write_picosvg_builds(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
@@ -127,16 +147,31 @@ def write_fea_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
 def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
     inputs = ["codepointmap.csv", "features.fea"] + [picosvg_dest(f) for f in svg_files]
     nw.build(
-        write_font.output_file(FLAGS.family, FLAGS.output, FLAGS.color_format),
-        "write_font",
-        inputs,
+        font_dest(), "write_font", inputs,
     )
+    nw.newline()
 
 
 def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
-    picosvgs = [picosvg(f) for f in svg_files]
+    picosvgs = [picosvg_dest(f) for f in svg_files]
+
     for svg_file in svg_files:
-        nw.build(svg_png(svg_file), "svg2png", rel_build(svg_file))
+        # render each svg => png
+        nw.build(cairo_png_dest(svg_file), "write_svg2png", rel_build(svg_file))
+    nw.newline()
+
+    for svg_file in svg_files:
+        # render each input from the font => png
+        inputs = [
+            font_dest(),
+            rel_build(svg_file),
+        ]
+        nw.build(skia_png_dest(svg_file), "write_font2png", inputs)
+    nw.newline()
+
+    # create comparison images
+
+    # kerplode if there are bad diffs
 
 
 def _run(argv):
@@ -145,6 +180,11 @@ def _run(argv):
         sys.exit("Input svgs must have unique names")
 
     os.makedirs(build_dir(), exist_ok=True)
+    if FLAGS.gen_svg_font_diffs:
+        os.makedirs(os.path.join(build_dir(), "cairo_png"), exist_ok=True)
+        os.makedirs(os.path.join(build_dir(), "skia_png"), exist_ok=True)
+        os.makedirs(os.path.join(build_dir(), "diff_png"), exist_ok=True)
+
     build_file = resolve_rel_build("build.ninja")
     if FLAGS.gen_ninja:
         print(f"Generating {os.path.relpath(build_file)}")
