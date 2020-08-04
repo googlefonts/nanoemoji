@@ -77,18 +77,18 @@
     <Version value="1"/>
     <!-- BaseGlyphRecordCount=0 -->
     <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1Array>
+    <BaseGlyphV1List>
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1Array>
+        <LayerV1List>
           <!-- LayerCount=2 -->
           <LayerV1Record index="0">
             <LayerGlyph value="e000.0"/>
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="0"/>
-                <Transparency value="0.0"/>
+                <Alpha value="1.0"/>
               </Color>
             </Paint>
           </LayerV1Record>
@@ -97,13 +97,13 @@
             <Paint Format="1">
               <Color>
                 <PaletteIndex value="0"/>
-                <Transparency value="0.2"/>
+                <Alpha value="0.8"/>
               </Color>
             </Paint>
           </LayerV1Record>
-        </LayerV1Array>
+        </LayerV1List>
       </BaseGlyphV1Record>
-    </BaseGlyphV1Array>
+    </BaseGlyphV1List>
   </COLR>
 
   <CPAL>

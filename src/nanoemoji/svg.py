@@ -161,7 +161,9 @@ def _ensure_groups_grouped_in_glyph_order(
     ttfont.setGlyphOrder(glyph_order)
 
 
-def _picosvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> Sequence[Tuple[str, int, int]]:
+def _picosvg_docs(
+    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]
+) -> Sequence[Tuple[str, int, int]]:
     reuse_groups = _glyph_groups(color_glyphs)
     color_glyphs = {c.glyph_name: c for c in color_glyphs}
     _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
@@ -185,24 +187,32 @@ def _picosvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> S
     return doc_list
 
 
-def _rawsvg_docs(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> Sequence[Tuple[str, int, int]]:
+def _rawsvg_docs(
+    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]
+) -> Sequence[Tuple[str, int, int]]:
     doc_list = []
     for color_glyph in color_glyphs:
-        svg = (SVG.parse(color_glyph.filename)
+        svg = (
+            SVG.parse(color_glyph.filename)
             # dumb sizing isn't useful
             .remove_attributes(("width", "height"), inplace=True)
             # Firefox likes to render blank if present
             .remove_attributes(("enable-background",), inplace=True)
             # Map gid => svg doc
             .set_attributes((("id", f"glyph{color_glyph.glyph_id}"),))
-            )
-        svg.svg_root.attrib['transform'] = f"translate(0, {-color_glyph.ufo.info.unitsPerEm})"
+        )
+        svg.svg_root.attrib[
+            "transform"
+        ] = f"translate(0, {-color_glyph.ufo.info.unitsPerEm})"
         doc_list.append((svg.tostring(), color_glyph.glyph_id, color_glyph.glyph_id))
     return doc_list
 
 
 def make_svg_table(
-    ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph], picosvg: bool, compressed: bool = False
+    ttfont: ttLib.TTFont,
+    color_glyphs: Sequence[ColorGlyph],
+    picosvg: bool,
+    compressed: bool = False,
 ):
     """Build an SVG table optimizing for reuse of shapes.
 
@@ -216,7 +226,6 @@ def make_svg_table(
         doc_list = _picosvg_docs(ttfont, color_glyphs)
     else:
         doc_list = _rawsvg_docs(ttfont, color_glyphs)
-
 
     svg_table = ttLib.newTable("SVG ")
     svg_table.compressed = compressed

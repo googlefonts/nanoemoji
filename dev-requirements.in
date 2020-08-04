@@ -5,6 +5,7 @@
 # https://github.com/jazzband/pip-tools
 
 black
+pip-tools
 pytest
 # https://github.com/google/pytype/issues/440
 pytype; python_version < '3.8'
