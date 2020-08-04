@@ -46,13 +46,13 @@ def _nsvg(filename):
         ("0 0 1024 1024", 1024, Affine2D(1, 0, 0, -1, 0, 1024)),
         # noto emoji norm. scale, flip y
         ("0 0 128 128", 1024, Affine2D(8, 0, 0, -8, 0, 1024)),
-        # noto emoji emoji_u26be.svg viewBox. Scale, translate, flip y
-        ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, -1352)),
+        # noto emoji emoji_u26be.svg viewBox. Scale, flip y and translate
+        ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, 3400)),
         # made up example. Scale, translate, flip y
         (
             "10 11 20 21",
             100,
-            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=47.619048),
+            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=152.380952),
         ),
     ],
 )
@@ -198,6 +198,23 @@ def _round_gradient_coordinates(paint, prec=6):
                     p0=Point(x=450, y=900),
                     p1=Point(x=450, y=100),
                 ),
+            },
+        ),
+        # radial with gradientTransform with almost zero scale, non-zero skew
+        (
+            "radial_gradient_transform_2.svg",
+            {
+                PaintRadialGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.0, color=Color.fromstring("white"),),
+                        ColorStop(stopOffset=1.0, color=Color.fromstring("black"),),
+                    ),
+                    c0=Point(x=280.284146, y=973.125),
+                    c1=Point(x=280.284146, y=973.125),
+                    r0=0.0,
+                    r1=129.015625,
+                    affine2x2=(0.0, -1.0, -0.9288, 0.0),
+                )
             },
         ),
     ],

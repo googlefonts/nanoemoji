@@ -1,0 +1,11 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- path extracted from emoji_u1f46b.svg, changed stop colors to make radial gradient more visible -->
+  <radialGradient id="i" cx="124.35" cy="3.4406" r="16.514"
+                  gradientTransform="matrix(9.9137e-14 1 -.9288 9.9137e-14 39.072 -120.91)"
+                  gradientUnits="userSpaceOnUse">
+    <stop stop-color="white" offset="0"/>
+    <stop stop-color="black" offset="1"/>
+  </radialGradient>
+  <path d="m51.56 22.14c0-5.82-3.82-15.59-15.54-15.59-12.12 0-15.84 11.34-15.84 15.59 0 12.82 1.15 19.17 2.42 21.79 0.24 0.5 0.96 0.73 1.19-0.47 0 0-0.9-7.77-1-13.31-0.02-1.29-0.42-6.09 2.29-6.69 9.92-2.23 15.53-7.49 15.53-7.49 1.46 3.19 6.02 6.29 7.66 7.48 1.35 0.97 1.16 4.97 1.13 6.67l-1.35 13.32s0.08 3.17 1.39 0.5c1.31-2.68 2.12-17.5 2.12-21.8z" fill="url(#i)"/>
+</svg>

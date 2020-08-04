@@ -12,35 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from nanoemoji import nanoemoji
+
+from nanoemoji import write_font
 import pytest
 import test_helper
 
 
 @pytest.mark.parametrize(
-    "filename, codepoints",
-    [
-        # Noto Emoji, single codepoint
-        ("emoji_u1f378.svg", (0x1F378,)),
-        # Noto Emoji, multiple codepoints
-        ("emoji_u1f385_1f3fb.svg", (0x1F385, 0x1F3FB)),
-        # Noto Emoji, lots of codepoints!
-        (
-            "emoji_u1f469_1f3fd_200d_1f91d_200d_1f468_1f3ff.svg",
-            (0x1F469, 0x1F3FD, 0x200D, 0x1F91D, 0x200D, 0x1F468, 0x1F3FF),
-        ),
-        # Twemoji, single codepoint
-        ("2198.svg", (0x2198,)),
-        # Twemoji, multiple codepoints
-        (
-            "1f9d1-200d-1f91d-200d-1f9d1.svg",
-            (0x1F9D1, 0x200D, 0x1F91D, 0x200D, 0x1F9D1),
-        ),
-    ],
+    "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
 )
-def test_codepoints_from_filename(filename, codepoints):
-    assert codepoints == nanoemoji._codepoints_from_filename(filename)
+@pytest.mark.parametrize(
+    "color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"]
+)
+@pytest.mark.parametrize("keep_glyph_names", [True, False])
+def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
+    config, glyph_inputs = test_helper.color_font_config(
+        color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
+    )
+    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+
+    assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
+    if keep_glyph_names:
+        assert ttfont["post"].formatType == 2.0
+        assert ufo.glyphOrder == ttfont.getGlyphOrder()
+    else:
+        assert ttfont["post"].formatType == 3.0
+        assert ufo.glyphOrder != ttfont.getGlyphOrder()
 
 
 # TODO test that width, height are removed from svg
@@ -83,7 +80,12 @@ def test_codepoints_from_filename(filename, codepoints):
             ".ttf",
         ),
         (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
-        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_picosvg.ttx", "picosvg", ".ttf"),
+        (
+            ("one-o-clock.svg", "two-o-clock.svg"),
+            "clocks_picosvg.ttx",
+            "picosvg",
+            ".ttf",
+        ),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
         # glyph order must reshuffle to group correctly
         (
@@ -100,33 +102,13 @@ def test_codepoints_from_filename(filename, codepoints):
         ),
     ],
 )
-def test_make_emoji_font(svgs, expected_ttx, color_format, output_format):
+def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
     config, glyph_inputs = test_helper.color_font_config(
         color_format, svgs, output_format
     )
-    _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
+    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     # sanity check the font
     # glyf should not have identical-except-name entries except .notdef and .space
     # SVG should not have identical paths or gradients
     # in both cases this should be true when normalized to start from 0,0
     test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)
-
-
-@pytest.mark.parametrize(
-    "svgs", [("rect.svg", "rect2.svg"), ("one-o-clock.svg", "two-o-clock.svg")]
-)
-@pytest.mark.parametrize("color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"])
-@pytest.mark.parametrize("keep_glyph_names", [True, False])
-def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
-    config, glyph_inputs = test_helper.color_font_config(
-        color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
-    )
-    ufo, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
-
-    assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
-    if keep_glyph_names:
-        assert ttfont["post"].formatType == 2.0
-        assert ufo.glyphOrder == ttfont.getGlyphOrder()
-    else:
-        assert ttfont["post"].formatType == 3.0
-        assert ufo.glyphOrder != ttfont.getGlyphOrder()

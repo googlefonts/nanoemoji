@@ -1,9 +1,13 @@
 *.egg-info/
 .pytype/
 __pycache__/
+.venv/
 venv/
 build/
 dist/
 .eggs/
 src/nanoemoji/_version.py
 .logpile/
+.vscode/
+ninja/.ninja_deps
+ninja/.ninja_log
