@@ -58,6 +58,7 @@ def main(argv):
         sys.exit(
             f"{colr_test_cmd[0]} binary (https://github.com/rsheeter/skia_colr/tree/colr_test) must be on PATH"
         )
+    print(" ".join(colr_test_cmd))
     subprocess.run(colr_test_cmd, check=True)
     logging.info("Wrote %s" % FLAGS.output_file)
 
