@@ -560,6 +560,7 @@ def main(argv):
         util.only(lambda a: os.path.splitext(a)[1] == ".csv", argv)
     )
     svg_files = filter(lambda a: os.path.splitext(a)[1] == ".svg", argv)
+
     inputs = list(_inputs(codepoints, svg_files))
     if not inputs:
         sys.exit("Please provide at least one svg filename")

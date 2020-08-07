@@ -30,13 +30,15 @@ nanoemoji $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
-from nanoemoji import codepoints
-from nanoemoji import write_font
+import glob
+from nanoemoji import codepoints, config, write_font
+from nanoemoji.config import AxisPosition, FontConfig, MasterConfig
 from ninja import ninja_syntax
 import os
+from pathlib import Path
 import subprocess
 import sys
-from typing import Sequence
+from typing import NamedTuple, Tuple, Sequence
 
 
 FLAGS = flags.FLAGS
@@ -52,33 +54,28 @@ flags.DEFINE_integer("svg_font_diff_resolution", 256, "Render diffs resolution")
 flags.DEFINE_bool("exec_ninja", True, "Whether to run ninja.")
 
 
-def self_dir() -> str:
-    return os.path.dirname(os.path.abspath(__file__))
+def self_dir() -> Path:
+    return Path(__file__).parent.resolve()
 
 
-def build_dir() -> str:
-    return os.path.abspath(FLAGS.build_dir)
-
+def build_dir() -> Path:
+    return Path(FLAGS.build_dir).resolve()
 
 # portable way to say '/'
 _FILESYSTEM_ROOT_PATH = os.path.abspath(os.sep)
 
 
-def rel_build(path: str) -> str:
-    path = os.path.abspath(path)
-    build_path = build_dir()
-    # if the build path is out-of-source and doesn't share any common prefix
-    # with source path, relative paths as created by os.path.relpath would reach
-    # beyond the filesystem root thus creating issues with ninja; plus, they aren't
-    # shorter than equivalent absolute paths, so we prefer the latter in this case.
-    prefix = os.path.commonpath([path, build_path])
-    if prefix == _FILESYSTEM_ROOT_PATH:
-        return path
-    return os.path.relpath(path, build_path)
+def rel(from_path: Path, to_path: Path) -> Path:
+    # relative_to(A,B) doesn't like it if B doesn't start with A
+    return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))
 
 
-def resolve_rel_build(path):
-    return os.path.abspath(os.path.join(build_dir(), path))
+def rel_self(path: Path) -> Path:
+    return rel(self_dir(), path)
+
+
+def rel_build(path: Path) -> Path:
+    return rel(build_dir(), path)
 
 
 def _bool_flag(name):
@@ -132,6 +129,7 @@ def write_preamble(nw):
     )
     nw.newline()
 
+
     if FLAGS.gen_svg_font_diffs:
         nw.rule(
             "write_svg2png",
@@ -148,6 +146,11 @@ def write_preamble(nw):
             rspfile="$out.rsp",
             rspfile_content="$in",
         )
+    nw.newline()
+
+    module_rule(
+        "write_variable_font", f"--config {rel_build(Path(FLAGS.config).resolve())} $in"
+    )
     nw.newline()
 
 
@@ -177,30 +180,29 @@ def diff_png_dest(input_svg: str) -> str:
     return os.path.join("diff_png", dest_file)
 
 
-def write_picosvg_builds(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
-    for svg_file in svg_files:
-        nw.build(picosvg_dest(svg_file), f"picosvg", rel_build(svg_file))
-    nw.newline()
+def write_picosvg_builds(nw: ninja_syntax.Writer, master: MasterConfig):
+    os.makedirs(str(build_dir() / "picosvg" / master.name), exist_ok=True)
+    for svg_file in master.sources:
+        nw.build(
+            picosvg_dest(master.name, svg_file), "picosvg", str(rel_build(svg_file))
+        )
 
 
-def write_codepointmap_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
+def write_source_names(source_names: Sequence[str]):
+    with open(os.path.join(build_dir(), "source_names.txt"), "w") as f:
+        for source_name in source_names:
+            f.write(source_name)
+            f.write("\n")
+
+
+def write_codepointmap_build(nw: ninja_syntax.Writer):
     dest_file = "codepointmap.csv"
-    nw.build(dest_file, "write_codepoints", [rel_build(f) for f in svg_files])
+    nw.build(dest_file, "write_codepoints", ["source_names.txt"])
     nw.newline()
 
 
-def write_fea_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
+def write_fea_build(nw: ninja_syntax.Writer):
     nw.build("features.fea", "write_fea", "codepointmap.csv")
-    nw.newline()
-
-
-def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
-    if FLAGS.color_format.startswith("untouchedsvg"):
-        svg_files = [rel_build(f) for f in svg_files]
-    else:
-        svg_files = [picosvg_dest(f) for f in svg_files]
-    inputs = ["codepointmap.csv", "features.fea"] + svg_files
-    nw.build(font_dest(), "write_font", inputs)
     nw.newline()
 
 
@@ -232,13 +234,47 @@ def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str])
 
     # write report and kerplode if there are bad diffs
     nw.build("diffs.html", "write_diffreport", [diff_png_dest(f) for f in svg_files])
+
+
+def write_ufo_build(nw: ninja_syntax.Writer, master: MasterConfig):
+    inputs = ["codepointmap.csv", "features.fea"] + [
+        picosvg_dest(master.name, s) for s in master.sources
+    ]
+    nw.build(
+        master.output_ufo, "write_font", inputs,
+    )
+    nw.newline()
+
+
+def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+    master = font_config.masters[0]
+    inputs = ["codepointmap.csv", "features.fea"] + [
+        picosvg_dest(master.name, s) for s in master.sources
+    ]
+    nw.build(
+        font_config.output_file, "write_font", inputs,
+    )
+    nw.newline()
+
+
+def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+    inputs = [m.output_ufo for m in font_config.masters]
+    nw.build(
+        font_config.output_file, "write_variable_font", inputs,
+    )
     nw.newline()
 
 
 def _run(argv):
-    svg_files = [os.path.abspath(f) for f in argv[1:]]
-    if len(set(os.path.basename(f) for f in svg_files)) != len(svg_files):
-        sys.exit("Input svgs must have unique names")
+
+    font_config = config.load()
+
+    is_vf = len(font_config.masters) > 1
+    is_svg = font_config.color_format.endswith(
+        "svg"
+    ) or font_config.color_format.endswith("svgz")
+    if is_vf and is_svg:
+        raise ValueError("svg formats cannot have multiple masters")
 
     os.makedirs(build_dir(), exist_ok=True)
     if FLAGS.gen_svg_font_diffs:
@@ -247,8 +283,10 @@ def _run(argv):
         os.makedirs(os.path.join(build_dir(), "diff_png"), exist_ok=True)
 
     build_file = resolve_rel_build("build.ninja")
+
     if FLAGS.gen_ninja:
-        print(f"Generating {os.path.relpath(build_file)}")
+        print(f"Generating {build_file.relative_to(build_dir())}")
+        write_source_names(font_config.source_names)
         with open(build_file, "w") as f:
             nw = ninja_syntax.Writer(f)
             write_preamble(nw)
@@ -260,8 +298,19 @@ def _run(argv):
             if FLAGS.gen_svg_font_diffs:
                 write_svg_font_diff_build(nw, svg_files)
 
-    # TODO: report on failed svgs
-    # this is the delta between inputs and picos
+            write_codepointmap_build(nw)
+            write_fea_build(nw)
+
+            for master in font_config.masters:
+                write_picosvg_builds(nw, master)
+                if is_vf:
+                    write_ufo_build(nw, master)
+
+            if is_vf:
+                write_variable_font_build(nw, font_config)
+            else:
+                write_static_font_build(nw, font_config)
+
     ninja_cmd = ["ninja", "-C", os.path.dirname(build_file)]
     if FLAGS.exec_ninja:
         print(" ".join(ninja_cmd))
