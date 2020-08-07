@@ -106,6 +106,9 @@ def write_preamble(nw):
             "write_font2png",
             f"--height {FLAGS.svg_font_diff_resolution}  --width {FLAGS.svg_font_diff_resolution} --output_file $out $in",
         )
+        module_rule(
+            "write_pngdiff", f"--output_file $out $in",
+        )
     nw.newline()
 
 
@@ -125,6 +128,11 @@ def font_dest() -> str:
 def skia_png_dest(input_svg: str) -> str:
     dest_file = os.path.splitext(os.path.basename(input_svg))[0] + ".png"
     return os.path.join("skia_png", dest_file)
+
+
+def diff_png_dest(input_svg: str) -> str:
+    dest_file = os.path.splitext(os.path.basename(input_svg))[0] + ".png"
+    return os.path.join("diff_png", dest_file)
 
 
 def write_picosvg_builds(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
@@ -155,13 +163,13 @@ def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
 def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
     picosvgs = [picosvg_dest(f) for f in svg_files]
 
+    # render each svg => png
     for svg_file in svg_files:
-        # render each svg => png
         nw.build(cairo_png_dest(svg_file), "write_svg2png", rel_build(svg_file))
     nw.newline()
 
+    # render each input from the font => png
     for svg_file in svg_files:
-        # render each input from the font => png
         inputs = [
             font_dest(),
             rel_build(svg_file),
@@ -170,8 +178,15 @@ def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str])
     nw.newline()
 
     # create comparison images
+    for svg_file in svg_files:
+        inputs = [
+            cairo_png_dest(svg_file),
+            skia_png_dest(svg_file),
+        ]
+        nw.build(diff_png_dest(svg_file), "write_pngdiff", inputs)
+    nw.newline()
 
-    # kerplode if there are bad diffs
+    # write report and kerplode if there are bad diffs
 
 
 def _run(argv):
