@@ -131,7 +131,7 @@ flags.DEFINE_string("family", "An Emoji Family", "Family name.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
     "color_format",
-    "glyf_colr_0",
+    "glyf_colr_1",
     sorted(_COLOR_FORMAT_GENERATORS.keys()),
     "Type of font to generate.",
 )
