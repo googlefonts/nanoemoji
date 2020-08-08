@@ -21,6 +21,7 @@ from absl import logging
 import csv
 from fontTools import ttLib
 from itertools import chain
+from lxml import etree  # pytype: disable=import-error
 from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
@@ -440,7 +441,10 @@ def _inputs(
         rgi = codepoints.get(os.path.basename(svg_file), None)
         if not rgi:
             raise ValueError(f"No codepoint sequence for {svg_file}")
-        picosvg = SVG.parse(svg_file)
+        try:
+            picosvg = SVG.parse(svg_file)
+        except etree.ParseError as e:
+            raise IOError(f"Unable to parse {svg_file}") from e
         yield InputGlyph(svg_file, rgi, picosvg)
 
 

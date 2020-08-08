@@ -30,11 +30,21 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", None, "Output filename.")
 
 
+def _diff_pixel(p):
+    if p != (0, 0, 0, 0):
+        return (255, 0, 233, 255)
+    return p
+
+
 def main(argv):
     lhs_file, rhs_file = argv[1:]
     lhs, rhs = Image.open(lhs_file), Image.open(rhs_file)
     diff = ImageChops.difference(lhs, rhs)
-    diff.save(FLAGS.output_file, **diff.info)
+
+    # The default diff is really hard; make it more obvoius
+    diff.putdata([_diff_pixel(p) for p in diff.getdata()])
+
+    diff.save(FLAGS.output_file)
 
 
 if __name__ == "__main__":
