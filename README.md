@@ -17,3 +17,25 @@ nanoemoji --color_format glyf_colr_1 $(find ../noto-emoji/svg -name 'emoji_u270d
 ## Releasing
 
 See https://googlefonts.github.io/python#make-a-release.
+
+## QA
+
+To help confirm valid output `nanoemoji` can optionally perform image diffs
+between cairosvg rendering and Skia rendering from the compiled font. Usage:
+
+```
+# Mac only for now, make sure colr_test is compiled and on PATH
+git clone git@github.com:rsheeter/skia_colr.git
+(cd colr_test && ./build_mac_colr.sh)
+export PATH="$PATH:$(cd skia_colr/out/Static/ && pwd)"
+which colr_test
+
+# Get some svgs to play with
+git clone --recursive git@github.com:googlefonts/color-fonts.git
+
+# Now run nanoemoji, render some hands, and see how we do!
+# https://rsheeter.github.io/android_fonts/emoji.html?q=u:270b
+nanoemoji --gen_svg_font_diffs \
+	$(find color-fonts/font-srcs/noto-emoji/svg -name 'emoji_u270b*.svg')
+
+```

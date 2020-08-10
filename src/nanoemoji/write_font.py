@@ -21,6 +21,7 @@ from absl import logging
 import csv
 from fontTools import ttLib
 from itertools import chain
+from lxml import etree  # pytype: disable=import-error
 from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
@@ -28,6 +29,7 @@ from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import Paint
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
+from nanoemoji import util
 import os
 import ufoLib2
 from picosvg.svg import SVG
@@ -130,7 +132,7 @@ flags.DEFINE_string("family", "An Emoji Family", "Family name.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
     "color_format",
-    "glyf_colr_0",
+    "glyf_colr_1",
     sorted(_COLOR_FORMAT_GENERATORS.keys()),
     "Type of font to generate.",
 )
@@ -439,7 +441,10 @@ def _inputs(
         rgi = codepoints.get(os.path.basename(svg_file), None)
         if not rgi:
             raise ValueError(f"No codepoint sequence for {svg_file}")
-        picosvg = SVG.parse(svg_file)
+        try:
+            picosvg = SVG.parse(svg_file)
+        except etree.ParseError as e:
+            raise IOError(f"Unable to parse {svg_file}") from e
         yield InputGlyph(svg_file, rgi, picosvg)
 
 
@@ -455,24 +460,19 @@ def output_file(family, output, color_format):
     return f"{family.replace(' ', '')}{output_format}"
 
 
-def only(filter_fn, iterable):
-    it = filter(filter_fn, iterable)
-    result = next(it)
-    assert next(it, None) is None
-    return result
-
-
 def main(argv):
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
         color_format=FLAGS.color_format,
-        fea_file=only(lambda a: os.path.splitext(a)[1] == ".fea", argv),
+        fea_file=util.only(lambda a: os.path.splitext(a)[1] == ".fea", argv),
         output_format=os.path.splitext(FLAGS.output_file)[1],
         keep_glyph_names=FLAGS.keep_glyph_names,
     )
 
-    codepoints = _codepoint_map(only(lambda a: os.path.splitext(a)[1] == ".csv", argv))
+    codepoints = _codepoint_map(
+        util.only(lambda a: os.path.splitext(a)[1] == ".csv", argv)
+    )
     svg_files = filter(lambda a: os.path.splitext(a)[1] == ".svg", argv)
     inputs = list(_inputs(codepoints, svg_files))
     if not inputs:
