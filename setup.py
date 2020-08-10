@@ -23,9 +23,12 @@ setup(
     setup_requires=["setuptools_scm"],
     install_requires=[
         "absl-py>=0.9.0",
+        "cairosvg>=2.4.2",
         "fonttools[ufo]>=4.13.0",
         "lxml>=4.0",
+        "ninja>=1.10.0.post1",
         "picosvg>=0.5.0",
+        "pillow>=7.2.0",
         "regex>=2020.4.4",
         "ufo2ft[cffsubr]>=2.15.0",
         "ufoLib2>=0.6.2",
@@ -35,5 +38,5 @@ setup(
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",
-    description=("Exploratory utility for color fonts"),
+    description=("Exploratory compiler for color fonts"),
 )

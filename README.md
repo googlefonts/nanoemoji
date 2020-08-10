@@ -14,23 +14,28 @@ nanoemoji --helpfull
 nanoemoji --color_format glyf_colr_1 $(find ../noto-emoji/svg -name 'emoji_u270d*.svg')
 ```
 
-## How to cut a new release
+## Releasing
 
-Use `git tag -a` to make a new annotated tag, or `git tag -s` for a GPG-signed annotated tag,
-if you prefer.
+See https://googlefonts.github.io/python#make-a-release.
 
-Name the new tag with with a leading 'v' followed by three MAJOR.MINOR.PATCH digits, like in
-[semantic versioning](https://semver.org/). Look at the existing tags for examples.
+## QA
 
-In the tag message write some short release notes describing the changes since the previous
-tag.
-
-Finally, push the tag to the remote repository (e.g. assuming upstream is called `origin`):
+To help confirm valid output `nanoemoji` can optionally perform image diffs
+between cairosvg rendering and Skia rendering from the compiled font. Usage:
 
 ```
-$ git push origin v0.4.3
-```
+# Mac only for now, make sure colr_test is compiled and on PATH
+git clone git@github.com:rsheeter/skia_colr.git
+(cd colr_test && ./build_mac_colr.sh)
+export PATH="$PATH:$(cd skia_colr/out/Static/ && pwd)"
+which colr_test
 
-This will trigger the CI to build the distribution packages and upload them to the
-[Python Package Index](https://pypi.org/project/nanoemoji/) automatically, if all the tests
-pass successfully.
+# Get some svgs to play with
+git clone --recursive git@github.com:googlefonts/color-fonts.git
+
+# Now run nanoemoji, render some hands, and see how we do!
+# https://rsheeter.github.io/android_fonts/emoji.html?q=u:270b
+nanoemoji --gen_svg_font_diffs \
+	$(find color-fonts/font-srcs/noto-emoji/svg -name 'emoji_u270b*.svg')
+
+```

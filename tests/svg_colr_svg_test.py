@@ -15,7 +15,7 @@
 import pytest
 import test_helper
 from picosvg.svg import SVG
-from nanoemoji import nanoemoji
+from nanoemoji import write_font
 from colr_to_svg import colr_to_svg
 
 
@@ -46,7 +46,7 @@ def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_forma
     config, glyph_inputs = test_helper.color_font_config(
         color_format, (svg_in,), output_format
     )
-    _, ttfont = nanoemoji._generate_color_font(config, glyph_inputs)
+    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = test_helper.picosvg(svg_in, locate=True)
     svgs_from_font = tuple(colr_to_svg(svg_before.view_box(), ttfont).values())
     assert len(svgs_from_font) == 1
