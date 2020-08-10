@@ -1,0 +1,17 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="grad1">
+      <!-- % and number -->
+      <stop offset="10%"  stop-color="blue" />
+      <stop offset="0.9" stop-color="cyan" stop-opacity="0.8" />
+    </linearGradient>
+    <radialGradient id="grad2">
+      <!-- % and number -->
+      <stop offset="10%"  stop-color="red" />
+      <stop offset="0.9" stop-color="yellow" stop-opacity="0.8" />
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="6" height="2" fill="url(#grad1)" opacity="0.4" />
+  <rect x="2" y="5" width="6" height="2" fill="url(#grad2)" opacity="0.5" />
+</svg>

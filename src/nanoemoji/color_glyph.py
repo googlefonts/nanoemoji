@@ -198,22 +198,22 @@ _GRADIENT_INFO = {
 }
 
 
-def _color_stop(stop_el) -> ColorStop:
+def _color_stop(stop_el, shape_opacity=1.0) -> ColorStop:
     offset = _number_or_percentage(stop_el.attrib.get("offset", "0"))
     color = Color.fromstring(stop_el.attrib.get("stop-color", "black"))
     opacity = _number_or_percentage(stop_el.attrib.get("stop-opacity", "1"))
-    color = color._replace(alpha=color.alpha * opacity)
+    color = color._replace(alpha=color.alpha * opacity * shape_opacity)
     return ColorStop(stopOffset=offset, color=color)
 
 
-def _common_gradient_parts(el):
+def _common_gradient_parts(el, shape_opacity=1.0):
     spread_method = el.attrib.get("spreadMethod", "pad").upper()
     if spread_method not in Extend.__members__:
         raise ValueError(f"Unknown spreadMethod {spread_method}")
 
     return {
         "extend": Extend.__members__[spread_method],
-        "stops": tuple(_color_stop(stop) for stop in el),
+        "stops": tuple(_color_stop(stop, shape_opacity) for stop in el),
     }
 
 
@@ -237,7 +237,7 @@ class ColorGlyph(NamedTuple):
             el = self.picosvg.resolve_url(shape.fill, "*")
 
             grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
-            grad_args = _common_gradient_parts(el)
+            grad_args = _common_gradient_parts(el, shape.opacity)
             try:
                 grad_args.update(
                     grad_type_parser(
