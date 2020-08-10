@@ -83,10 +83,11 @@ def main(argv):
         )
         for diff_file in diff_files[:32]:
             print(diff_file.name, _diff_value(diff_file))
+            pink_diff = diff_file.parent / (diff_file.stem + ".pink" + diff_file.suffix)
             vars = {
                 "lhs_file": str(_lhs(diff_file)),
                 "rhs_file": str(_rhs(diff_file)),
-                "diff_file": str(diff_file),
+                "diff_file": str(pink_diff),
                 "filename": diff_file.name,
             }
             f.write(
