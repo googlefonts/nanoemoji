@@ -74,7 +74,7 @@ def main(argv):
 
         <body>
             <div>
-                <span class="title">Cairo</span>
+                <span class="title">resvg</span>
                 <span class="title">Bad Pixels</span>
                 <span class="title">Skia</span>
             </div>
