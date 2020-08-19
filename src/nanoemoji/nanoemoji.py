@@ -126,7 +126,10 @@ def resvg_png_dest(input_svg: str) -> str:
 
 
 def font_dest() -> str:
-    return write_font.output_file(FLAGS.family, FLAGS.output, FLAGS.color_format)
+    if FLAGS.output_file is not None:
+        return os.path.abspath(FLAGS.output_file)
+    else:
+        return write_font.output_file(FLAGS.family, FLAGS.output, FLAGS.color_format)
 
 
 def skia_png_dest(input_svg: str) -> str:
