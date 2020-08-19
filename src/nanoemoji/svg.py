@@ -86,10 +86,14 @@ def _add_unique_gradients(
             svg_defs.append(gradient)
 
 
+def _ntos(n: float) -> str:
+    return svg_meta.ntos(round(n, 3))
+
+
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
     # TODO handle rotation: Affine2D uses radiens, svg is in degrees
-    return f'matrix({" ".join((svg_meta.ntos(v) for v in transform))})'
+    return f'matrix({" ".join((_ntos(v) for v in transform))})'
 
 
 def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
@@ -130,9 +134,9 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                 svg_use.attrib["href"] = f'#{el.attrib["id"]}'
                 tx, ty = reuse.gettranslate()
                 if tx:
-                    svg_use.attrib["x"] = svg_meta.ntos(tx)
+                    svg_use.attrib["x"] = _ntos(tx)
                 if ty:
-                    svg_use.attrib["y"] = svg_meta.ntos(ty)
+                    svg_use.attrib["y"] = _ntos(ty)
                 transform = reuse.translate(-tx, -ty)
                 if transform != Affine2D.identity():
                     # TODO apply scale and rotation. Just slap a transform on the <use>?
