@@ -100,7 +100,7 @@ def write_preamble(nw):
     if FLAGS.gen_svg_font_diffs:
         nw.rule(
             "write_svg2png",
-            f"cairosvg -H {FLAGS.svg_font_diff_resolution}  -W {FLAGS.svg_font_diff_resolution} -f png -o $out $in",
+            f"resvg -h {FLAGS.svg_font_diff_resolution}  -w {FLAGS.svg_font_diff_resolution} $in $out",
         )
         module_rule(
             "write_font2png",
@@ -111,7 +111,7 @@ def write_preamble(nw):
         )
         module_rule(
             "write_diffreport",
-            f"--lhs_dir cairo_png --rhs_dir skia_png --output_file $out $in",
+            f"--lhs_dir resvg_png --rhs_dir skia_png --output_file $out $in",
         )
     nw.newline()
 
@@ -120,9 +120,9 @@ def picosvg_dest(input_svg: str) -> str:
     return os.path.join("picosvg", os.path.basename(input_svg))
 
 
-def cairo_png_dest(input_svg: str) -> str:
+def resvg_png_dest(input_svg: str) -> str:
     dest_file = os.path.splitext(os.path.basename(input_svg))[0] + ".png"
-    return os.path.join("cairo_png", dest_file)
+    return os.path.join("resvg_png", dest_file)
 
 
 def font_dest() -> str:
@@ -169,7 +169,7 @@ def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str])
 
     # render each svg => png
     for svg_file in svg_files:
-        nw.build(cairo_png_dest(svg_file), "write_svg2png", rel_build(svg_file))
+        nw.build(resvg_png_dest(svg_file), "write_svg2png", rel_build(svg_file))
     nw.newline()
 
     # render each input from the font => png
@@ -184,7 +184,7 @@ def write_svg_font_diff_build(nw: ninja_syntax.Writer, svg_files: Sequence[str])
     # create comparison images
     for svg_file in svg_files:
         inputs = [
-            cairo_png_dest(svg_file),
+            resvg_png_dest(svg_file),
             skia_png_dest(svg_file),
         ]
         nw.build(diff_png_dest(svg_file), "write_pngdiff", inputs)
@@ -202,7 +202,7 @@ def _run(argv):
 
     os.makedirs(build_dir(), exist_ok=True)
     if FLAGS.gen_svg_font_diffs:
-        os.makedirs(os.path.join(build_dir(), "cairo_png"), exist_ok=True)
+        os.makedirs(os.path.join(build_dir(), "resvg_png"), exist_ok=True)
         os.makedirs(os.path.join(build_dir(), "skia_png"), exist_ok=True)
         os.makedirs(os.path.join(build_dir(), "diff_png"), exist_ok=True)
 
