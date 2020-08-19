@@ -4,7 +4,7 @@
 #
 #    pip-compile setup.py
 #
-absl-py==0.9.0            # via nanoemoji (setup.py)
+absl-py==0.10.0            # via nanoemoji (setup.py)
 appdirs==1.4.4            # via fs
 attrs==19.3.0             # via ufolib2
 booleanoperations==0.9.0  # via ufo2ft
