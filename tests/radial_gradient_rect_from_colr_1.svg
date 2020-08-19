@@ -5,5 +5,5 @@
       <stop offset="0.75" stop-color="orange"/>
     </radialGradient>
   </defs>
-  <path fill="url(#g1)" d="M2,2 L2,4 L8,4 L8,2 z"/>
+  <path fill="url(#g1)" d="M2,2 L2,4 L8,4 L8,2 Z"/>
 </svg>

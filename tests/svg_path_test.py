@@ -26,8 +26,8 @@ def test_addComponent_decompose():
     pen.addComponent("a", Affine2D.identity())
 
     assert pen.path.d == (
-        "M0,0 L0,10 L10,10 L10,0 z "
-        "M0,15 C0,20 10,20 10,15 z "
+        "M0,0 L0,10 L10,10 L10,0 Z "
+        "M0,15 C0,20 10,20 10,15 Z "
         "M0,-5 Q0,-8 1.5,-9 Q3,-10 5,-10 Q7,-10 8.5,-9 Q10,-8 10,-5"
     )
 
@@ -37,14 +37,14 @@ def test_addComponent_decompose_with_transform():
     pen.addComponent("a", Affine2D(2, 0, 0, 2, 0, 0))
 
     assert pen.path.d == (
-        "M0,0 L0,20 L20,20 L20,0 z "
-        "M0,30 C0,40 20,40 20,30 z "
+        "M0,0 L0,20 L20,20 L20,0 Z "
+        "M0,30 C0,40 20,40 20,30 Z "
         "M0,-10 Q0,-16 3,-18 Q6,-20 10,-20 Q14,-20 17,-18 Q20,-16 20,-10"
     )
 
 
 def test_draw_onto_existing_path():
-    path = SVGPath(d="M0,0 L0,10 L10,10 L10,0 z")
+    path = SVGPath(d="M0,0 L0,10 L10,10 L10,0 Z")
     pen = SVGPathPen(path=path)
 
     pen.moveTo((0, 15))
@@ -52,7 +52,7 @@ def test_draw_onto_existing_path():
     pen.lineTo((10, 15))
     pen.closePath()
 
-    assert path.d == "M0,0 L0,10 L10,10 L10,0 z M0,15 L5,20 L10,15 z"
+    assert path.d == "M0,0 L0,10 L10,10 L10,0 Z M0,15 L5,20 L10,15 Z"
 
 
 def test_addComponent_missing():
@@ -65,12 +65,12 @@ def test_addComponent_missing():
 @pytest.mark.parametrize(
     "d",
     [
-        "M0,0 L0,10 L10,10 L10,0 z",
+        "M0,0 L0,10 L10,10 L10,0 Z",
         "M0,0 L0,10 L10,10 L10,0",
-        "M0,0 L0,10 L10,10 L10,0 z M12,0 L12,10 L22,10 L22,0",
-        "M0,0 L0,10 L10,10 L10,0 M12,0 L12,10 L22,10 L22,0 z",
-        "M0,0 C0,3 2,5 5,5 C8,5 10,3 10,0 C10,-3 8,-5 5,-5 C2,-5 0,-3 0,0 z",
-        "M0,0 Q0,10 10,10 Q20,10 20,0 z",
+        "M0,0 L0,10 L10,10 L10,0 Z M12,0 L12,10 L22,10 L22,0",
+        "M0,0 L0,10 L10,10 L10,0 M12,0 L12,10 L22,10 L22,0 Z",
+        "M0,0 C0,3 2,5 5,5 C8,5 10,3 10,0 C10,-3 8,-5 5,-5 C2,-5 0,-3 0,0 Z",
+        "M0,0 Q0,10 10,10 Q20,10 20,0 Z",
     ],
 )
 def test_roundtrip_path_with_pen(d):
