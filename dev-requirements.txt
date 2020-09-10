@@ -14,7 +14,7 @@ importlib-metadata==1.7.0  # via pluggy, pytest
 iniconfig==1.0.1          # via pytest
 more-itertools==8.4.0     # via pytest
 networkx==2.4             # via importlab
-ninja==1.10.0.post1       # via pytype
+ninja==1.10.0.post2       # via pytype
 packaging==20.4           # via pytest
 pathspec==0.8.0           # via black
 pip-tools==5.3.1          # via -r dev-requirements.in
