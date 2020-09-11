@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e001"/>
+    <GlyphID id="4" name="e000.0"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="20"/>
+    <mtx name="e000.0" width="100" lsb="20"/>
+    <mtx name="e001" width="100" lsb="20"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000" xMin="20" yMin="60" xMax="80" yMax="80">
+      <component glyphName="e000.0" x="0" y="0" flags="0x204"/>
+    </TTGlyph>
+
+    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
+      <contour>
+        <pt x="20" y="80" on="1"/>
+        <pt x="20" y="60" on="1"/>
+        <pt x="80" y="60" on="1"/>
+        <pt x="80" y="80" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001" xMin="20" yMin="60" xMax="80" yMax="80">
+      <component glyphName="e000.0" x="0" y="0" flags="0x204"/>
+    </TTGlyph>
+
+  </glyf>
+
+</ttFont>

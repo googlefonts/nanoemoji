@@ -100,6 +100,8 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
             "untouchedsvg",
             ".ttf",
         ),
+        # keep single-component composites if component reused by more than one glyph
+        (("one_rect.svg", "one_rect.svg"), "reused_rect_glyf.ttx", "glyf", ".ttf"),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
