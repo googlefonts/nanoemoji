@@ -297,6 +297,7 @@ def _glyf_ufo(ufo, color_glyphs):
         if len(parent_glyph.components) == 1:
             component = ufo[parent_glyph.components[0].baseGlyph]
             del ufo[component.name]
+            component.unicode = parent_glyph.unicode
             ufo[color_glyph.glyph_name] = component
             assert component.name == color_glyph.glyph_name
 
