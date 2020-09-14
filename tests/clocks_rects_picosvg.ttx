@@ -25,15 +25,15 @@
     <cmap_format_4 platformID="0" platEncID="3" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
       <map code="0xe000" name="e000"/><!-- ???? -->
-      <map code="0xe001" name="e002"/><!-- ???? -->
-      <map code="0xe002" name="e001"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+      <map code="0xe002" name="e002"/><!-- ???? -->
       <map code="0xe003" name="e003"/><!-- ???? -->
     </cmap_format_4>
     <cmap_format_4 platformID="3" platEncID="1" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
       <map code="0xe000" name="e000"/><!-- ???? -->
-      <map code="0xe001" name="e002"/><!-- ???? -->
-      <map code="0xe002" name="e001"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
+      <map code="0xe002" name="e002"/><!-- ???? -->
       <map code="0xe003" name="e003"/><!-- ???? -->
     </cmap_format_4>
   </cmap>
