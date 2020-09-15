@@ -116,9 +116,7 @@ def write_preamble(nw):
             "write_font2png",
             f"--height {FLAGS.svg_font_diff_resolution}  --width {FLAGS.svg_font_diff_resolution} --output_file $out $in",
         )
-        module_rule(
-            "write_pngdiff", f"--output_file $out $in",
-        )
+        module_rule("write_pngdiff", f"--output_file $out $in")
         module_rule(
             "write_diffreport",
             f"--lhs_dir resvg_png --rhs_dir skia_png --output_file $out $in",
@@ -171,9 +169,7 @@ def write_fea_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
 
 def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
     inputs = ["codepointmap.csv", "features.fea"] + [picosvg_dest(f) for f in svg_files]
-    nw.build(
-        font_dest(), "write_font", inputs,
-    )
+    nw.build(font_dest(), "write_font", inputs)
     nw.newline()
 
 

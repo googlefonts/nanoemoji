@@ -67,7 +67,7 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
 
 
 def _add_unique_gradients(
-    svg_defs: etree.Element, color_glyph: ColorGlyph, reuse_cache: ReuseCache,
+    svg_defs: etree.Element, color_glyph: ColorGlyph, reuse_cache: ReuseCache
 ):
     for gradient in color_glyph.picosvg.xpath("//svg:defs/*"):
         gradient = copy.deepcopy(gradient)
