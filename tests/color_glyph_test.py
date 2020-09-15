@@ -224,23 +224,33 @@ def _round_gradient_coordinates(paint, prec=6):
             {
                 PaintLinearGradient(
                     stops=(
-                        ColorStop(stopOffset=0.1, color=Color.fromstring("blue", alpha=0.4)),
-                        ColorStop(stopOffset=0.9, color=Color.fromstring("cyan", alpha=0.4 * 0.8)),
+                        ColorStop(
+                            stopOffset=0.1, color=Color.fromstring("blue", alpha=0.4)
+                        ),
+                        ColorStop(
+                            stopOffset=0.9,
+                            color=Color.fromstring("cyan", alpha=0.4 * 0.8),
+                        ),
                     ),
                     p0=Point(200.0, 800.0),
                     p1=Point(800.0, 800.0),
                 ),
                 PaintRadialGradient(
                     stops=(
-                        ColorStop(stopOffset=0.1, color=Color.fromstring("red", alpha=0.5),),
-                        ColorStop(stopOffset=0.9, color=Color.fromstring("yellow", alpha=0.5 * 0.8),),
+                        ColorStop(
+                            stopOffset=0.1, color=Color.fromstring("red", alpha=0.5),
+                        ),
+                        ColorStop(
+                            stopOffset=0.9,
+                            color=Color.fromstring("yellow", alpha=0.5 * 0.8),
+                        ),
                     ),
                     c0=Point(x=500.0, y=400.0),
                     c1=Point(x=500.0, y=400.0),
                     r0=0.0,
                     r1=300.0,
                     affine2x2=(1.0, 0.0, 0.0, -0.333333),
-                )
+                ),
             },
         ),
     ],
