@@ -24,9 +24,9 @@ To help confirm valid output `nanoemoji` can optionally perform image diffs
 between resvg rendering of the original SVGs and Skia rendering from the compiled font. Usage:
 
 ```
-# Mac only for now, make sure colr_test is compiled and on PATH
+# Make sure colr_test is compiled and on PATH
 git clone git@github.com:rsheeter/skia_colr.git
-(cd colr_test && ./build_mac_colr.sh)
+(cd colr_test && ./build_colr.sh)
 export PATH="$PATH:$(cd skia_colr/out/Static/ && pwd)"
 which colr_test
 
