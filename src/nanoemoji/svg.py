@@ -16,6 +16,7 @@
 
 import copy
 import dataclasses
+from io import BytesIO
 from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
@@ -149,12 +150,36 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
             svg_use.attrib["href"] = f'#{el.attrib["id"]}'
 
 
+def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
+    # A TTFont might be opened lazily and some tables only partially decompiled.
+    # So for this to work on any TTFont, we first compile everything to a temporary
+    # stream then reload with lazy=False. Input font is modified in-place.
+    tmp = BytesIO()
+    ttfont.save(tmp)
+    tmp.seek(0)
+    ttfont2 = ttLib.TTFont(tmp, lazy=False)
+    for tag in ttfont2.keys():
+        table = ttfont2[tag]
+        # cmap is exceptional in that it always loads subtables lazily upon getting
+        # their attributes, no matter the value of TTFont.lazy option.
+        # TODO: remove this hack once fixed in fonttools upstream
+        if tag == "cmap":
+            _ = [st.cmap for st in table.tables]
+        ttfont[tag] = table
+
+
 def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
     ttfont: ttLib.TTFont,
     reuse_groups: Tuple[Tuple[str, ...]],
 ):
-    # svg requires glyphs in same doc have sequential gids; reshuffle to make this true
+    # svg requires glyphs in same doc have sequential gids; reshuffle to make this true.
+
+    # Changing the order of glyphs in a TTFont requires that all tables that use
+    # glyph indexes have been fully decompiled (loaded with lazy=False).
+    # Cf. https://github.com/fonttools/fonttools/issues/2060
+    _ensure_ttfont_fully_decompiled(ttfont)
+
     glyph_order = ttfont.getGlyphOrder()[: -len(color_glyphs)]
     gid = len(glyph_order)
     for group in reuse_groups:
