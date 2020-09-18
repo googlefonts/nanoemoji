@@ -14,9 +14,35 @@
 
 """Small helper functions."""
 
+import pathlib
+import shlex
+from typing import List
+
 
 def only(filter_fn, iterable):
     it = filter(filter_fn, iterable)
     result = next(it)
     assert next(it, None) is None
+    return result
+
+
+def expand_ninja_response_files(argv: List[str]) -> List[str]:
+    """
+    Extend argument list with MSVC-style '@'-prefixed response files.
+
+    Ninja build rules support this mechanism to allow passing a very long list of inputs
+    that may exceed the shell's maximum command-line length.
+
+    References:
+    https://ninja-build.org/manual.html ("Rule variables")
+    https://docs.microsoft.com/en-us/cpp/build/reference/at-specify-a-compiler-response-file
+    """
+    result = []
+    for arg in argv:
+        if arg.startswith("@"):
+            with open(arg[1:], "r") as rspfile:
+                rspfile_content = rspfile.read()
+            result.extend(shlex.split(rspfile_content))
+        else:
+            result.append(arg)
     return result

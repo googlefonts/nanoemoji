@@ -469,6 +469,8 @@ def output_file(family, output, color_format):
 
 
 def main(argv):
+    argv = util.expand_ninja_response_files(argv)
+
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,

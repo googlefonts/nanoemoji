@@ -60,13 +60,21 @@ def build_dir() -> str:
     return os.path.abspath(FLAGS.build_dir)
 
 
-def rel_self(path: str) -> str:
-    path = os.path.normpath(os.path.join(self_dir(), path))
-    return os.path.relpath(path, self_dir())
+# portable way to say '/'
+_FILESYSTEM_ROOT_PATH = os.path.abspath(os.sep)
 
 
 def rel_build(path: str) -> str:
-    return os.path.relpath(path, build_dir())
+    path = os.path.abspath(path)
+    build_path = build_dir()
+    # if the build path is out-of-source and doesn't share any common prefix
+    # with source path, relative paths as created by os.path.relpath would reach
+    # beyond the filesystem root thus creating issues with ninja; plus, they aren't
+    # shorter than equivalent absolute paths, so we prefer the latter in this case.
+    prefix = os.path.commonpath([path, build_path])
+    if prefix == _FILESYSTEM_ROOT_PATH:
+        return path
+    return os.path.relpath(path, build_path)
 
 
 def resolve_rel_build(path):
@@ -88,7 +96,7 @@ def write_preamble(nw):
     nw.rule("picosvg", "picosvg $in > $out")
     module_rule(
         "write_codepoints",
-        "$$(<$out.rsp) > $out",
+        "@$out.rsp > $out",
         rspfile="$out.rsp",
         rspfile_content="$in",
     )
@@ -105,7 +113,10 @@ def write_preamble(nw):
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
         + keep_glyph_names
-        + " --output_file $out $in",
+        + " --output_file $out"
+        + " @$out.rsp",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
     )
     if FLAGS.gen_svg_font_diffs:
         nw.rule(
@@ -119,7 +130,9 @@ def write_preamble(nw):
         module_rule("write_pngdiff", f"--output_file $out $in")
         module_rule(
             "write_diffreport",
-            f"--lhs_dir resvg_png --rhs_dir skia_png --output_file $out $in",
+            f"--lhs_dir resvg_png --rhs_dir skia_png --output_file $out @$out.rsp",
+            rspfile="$out.rsp",
+            rspfile_content="$in",
         )
     nw.newline()
 
