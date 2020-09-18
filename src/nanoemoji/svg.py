@@ -170,6 +170,7 @@ def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
 
 def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
+    color_glyph_order: Sequence[str],
     ttfont: ttLib.TTFont,
     reuse_groups: Tuple[Tuple[str, ...]],
 ):
@@ -180,13 +181,29 @@ def _ensure_groups_grouped_in_glyph_order(
     # Cf. https://github.com/fonttools/fonttools/issues/2060
     _ensure_ttfont_fully_decompiled(ttfont)
 
-    glyph_order = ttfont.getGlyphOrder()[: -len(color_glyphs)]
+    # The glyph names in the TTFont may have been dropped (post table 3.0), so the
+    # names we see after decompiling the TTFont are made up and likely different
+    # from the input color glyph names. We only want to reorder the glyphs while
+    # keeping the existing names, we can't change order and rename at the same time
+    # or else tables that contain mappings keyed by glyph name would blow up.
+    # Thus, we need to match the old and current names by their position in the
+    # font's current glyph order: i.e. we assume all color glyphs are placed at the
+    # END of the glyph order.
+    current_glyph_order = ttfont.getGlyphOrder()
+    current_color_glyph_names = current_glyph_order[-len(color_glyphs) :]
+    assert len(color_glyph_order) == len(current_color_glyph_names)
+    rename_map = {
+        color_glyph_order[i]: current_color_glyph_names[i]
+        for i in range(len(color_glyph_order))
+    }
+
+    glyph_order = current_glyph_order[: -len(color_glyphs)]
     gid = len(glyph_order)
     for group in reuse_groups:
         for glyph_name in group:
             color_glyphs[glyph_name] = color_glyphs[glyph_name]._replace(glyph_id=gid)
             gid += 1
-        glyph_order.extend(group)
+        glyph_order.extend(rename_map[g] for g in group)
     ttfont.setGlyphOrder(glyph_order)
 
 
@@ -194,8 +211,11 @@ def _picosvg_docs(
     ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]
 ) -> Sequence[Tuple[str, int, int]]:
     reuse_groups = _glyph_groups(color_glyphs)
+    color_glyph_order = [c.glyph_name for c in color_glyphs]
     color_glyphs = {c.glyph_name: c for c in color_glyphs}
-    _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
+    _ensure_groups_grouped_in_glyph_order(
+        color_glyphs, color_glyph_order, ttfont, reuse_groups
+    )
 
     doc_list = []
     reuse_cache = ReuseCache()
