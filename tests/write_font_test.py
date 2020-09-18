@@ -30,6 +30,7 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
         color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
     )
     ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
 
     assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
     if keep_glyph_names:
