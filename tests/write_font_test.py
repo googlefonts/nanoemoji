@@ -109,6 +109,7 @@ def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
         color_format, svgs, output_format
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
     # sanity check the font
     # glyf should not have identical-except-name entries except .notdef and .space
     # SVG should not have identical paths or gradients
