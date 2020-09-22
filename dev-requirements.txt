@@ -30,7 +30,7 @@ six==1.15.0               # via importlab, packaging, pip-tools, pytype
 toml==0.10.1              # via black, pytest
 typed-ast==1.4.1          # via black, pytype
 typing-extensions==3.7.4.3  # via black
-zipp==3.1.0               # via importlib-metadata
+zipp==3.2.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
