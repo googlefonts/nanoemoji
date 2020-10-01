@@ -21,7 +21,7 @@ pyclipper==1.2.0          # via booleanoperations
 pytz==2020.1              # via fs
 regex==2020.7.14          # via nanoemoji (setup.py)
 six==1.15.0               # via absl-py, fs
-skia-pathops==0.4.1       # via picosvg
+skia-pathops==0.5.1       # via picosvg
 typing-extensions==3.7.4.2  # via ufolib2
 ufo2ft[cffsubr]==2.15.0   # via nanoemoji (setup.py)
 ufolib2==0.8.0            # via nanoemoji (setup.py)
