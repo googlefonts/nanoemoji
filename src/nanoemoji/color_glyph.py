@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl import flags
 from absl import logging
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
@@ -33,6 +34,12 @@ from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath
 from typing import Generator, NamedTuple, Tuple
 import ufoLib2
+
+
+FLAGS = flags.FLAGS
+
+
+flags.DEFINE_integer("reuse_level", 1, "Level of optimization")
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:

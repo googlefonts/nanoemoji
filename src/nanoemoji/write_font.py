@@ -18,6 +18,7 @@
 from absl import app
 from absl import flags
 from absl import logging
+from collections import defaultdict
 import csv
 from fontTools import ttLib
 from itertools import chain
@@ -329,6 +330,45 @@ def _colr_layer(colr_version: int, layer_glyph_name: str, paint: Paint, palette:
         raise ValueError(f"Unsupported COLR version: {colr_version}")
 
 
+def _extract_colr_glyphs(color_glyphs: Sequence[ColorGlyph]) -> Iterable[Tuple[Tuple[int, int, int]]]:
+    layers = list(list(c.as_painted_layers()) for c in color_glyphs)
+    def _key(glyph_idx, lbound, ubound): 
+        return tuple((l.paint, l.path.d, l.reuses)
+                     for l in layers[glyph_idx][lbound:ubound])
+
+    # count # of instances for every sequence of layers
+    layer_seqs = defaultdict(set)
+    for glyph_idx, painted_layers in enumerate(layers):
+        num_layers = len(layers[glyph_idx])
+        for lbound in range(num_layers):
+            for ubound in range(lbound + 1, num_layers):
+                layer_seqs[_key(glyph_idx, lbound, ubound)].add((glyph_idx, (lbound, ubound)))
+
+    # drop single-instance layers.
+    # Sort by #layers then #occurences, higher counts [higher value reuse] first
+    layer_seqs = sorted(((k, v) for k, v in layer_seqs.items() if len(v) > 1),
+                        key=lambda t: tuple(len(v) for v in t),
+                        reverse=True)
+
+    # define new color glyph for each group
+    colr_glyphs = defaultdict(list)  # gid => (lbound, ubound) layers to extract
+    consumed = defaultdict(set)
+    for _, instances in layer_seqs:
+        for glyph_idx, (lbound, ubound) in instances:
+            # if we already reuse layer in a higher priority sequence
+            # drop it out of this one
+            while lbound in consumed[glyph_idx] and lbound < ubound:
+                lbound += 1
+            while ubound in consumed[glyph_idx] and lbound < ubound:
+                ubound -= 1
+            if lbound >= ubound:
+                continue
+            consumed[glyph_idx].update(range(lbound, ubound))
+            colr_glyphs[_key(glyph_idx, lbound, ubound)].append((glyph_idx, lbound, ubound))
+
+    return tuple(tuple(s) for s in colr_glyphs.values() if len(s) > 1)
+
+
 def _colr_ufo(colr_version, ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for CORLv1, as 'alpha' is
@@ -344,8 +384,18 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
 
+    # examine layers to hoist out repeated layers to COLR glyphs
+    colr_insertions = {}
+    for idx, instances in enumerate(_extract_colr_glyphs(color_glyphs)):
+        logging.debug("%d instances of %s", len(instances), instances[0])
+        # TODO: actually create a COLR glyph
+        new_id = f"ColrGlyph{idx}"
+
+        for glyph_idx, layer_start, layer_end in instances:
+            colr_insertions[(color_glyphs[glyph_idx].glyph_name, layer_start)] = (layer_end, new_id)
+
     # each base glyph maps to a list of (glyph name, paint info) in z-order
-    color_layers = {}
+    ufo_color_layers = {}
 
     # glyphs by reuse_key
     glyphs = {}
@@ -362,7 +412,19 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         glyph_colr_layers = []
 
         # accumulate layers in z-order
-        for painted_layer in color_glyph.painted_layers:
+        painted_layers = color_glyph.painted_layers:
+        layer_idx = 0
+        while layer_idx < len(painted_layers):
+            end_idx, colr_glyph_id = colr_insertions.get((color_glyph.glyph_name, layer_idx), (-1, -1))
+            if end_idx != -1:
+                logging.debug("TODO: insert %s for %s layers %d..%d",
+                    colr_glyph_id, color_glyph.glyph_name, layer_idx, end_idx)
+                layer_idx = end_idx
+                continue
+
+            painted_layer = painted_layers[layer_idx]
+            layer_idx += 1
+
             # if we've seen this shape before reuse it
             # reset paint so same shape, different fill matches
             reuse_key = painted_layer.shape_cache_key()
@@ -377,9 +439,9 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
 
         colr_glyph = ufo.get(color_glyph.glyph_name)
         _draw_glyph_extents(ufo, colr_glyph)
-        color_layers[colr_glyph.name] = glyph_colr_layers
+        ufo_color_layers[colr_glyph.name] = glyph_colr_layers
 
-    ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
+    ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
 
 
 def _svg_ttfont(_, color_glyphs, ttfont, picosvg=True, compressed=False):
