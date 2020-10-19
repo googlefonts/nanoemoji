@@ -17,20 +17,23 @@ from nanoemoji import color_glyph
 from nanoemoji.paint import Extend
 from nanoemoji.svg import _svg_matrix, _ntos
 from nanoemoji.svg_path import SVGPathPen
-from picosvg import svg_meta
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
 import test_helper
 from lxml import etree
-from typing import Dict, NamedTuple, Sequence
+from typing import Any, Dict, Mapping, NamedTuple, Optional, Sequence
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
 _PAINT_SOLID = 1
 _PAINT_LINEAR_GRADIENT = 2
 _PAINT_RADIAL_GRADIENT = 3
+_PAINT_GLYPH = 4
+_PAINT_COLOR_GLYPH = 5
+_PAINT_TRANSFORM = 6
+_PAINT_COMPOSITE = 6
 
 
 class _ColorStop(NamedTuple):
@@ -163,33 +166,40 @@ def _radial_gradient_paint(
     c1: Point,
     r0: int,
     r1: int,
-    transform: Affine2D,
+    transform: Affine2D = Affine2D.identity(),
 ):
     # map centres and radii from UPEM to SVG space
     upem_to_vbox = _emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
-    c0 = upem_to_vbox.map_point(c0)
-    c1 = upem_to_vbox.map_point(c1)
+    fx, fy = upem_to_vbox.map_point(c0)
+    cx, cy = upem_to_vbox.map_point(c1)
     # _emsquare_to_viewbox guarantees view_box is square so scaling radii is ok
-    r0 = upem_to_vbox.map_point((r0, 0)).x
-    r1 = upem_to_vbox.map_point((r1, 0)).x
-
-    # COLRv1 centre points aren't affected by the gradient Affine2x2, whereas in SVG
-    # gradientTransform applies to everything; to prevent that, we must also map
-    # the centres with the inverse of gradientTransform, so they won't move.
-    inverse_transform = transform.inverse()
-    fx, fy = inverse_transform.map_point(c0)
-    cx, cy = inverse_transform.map_point(c1)
+    scalex, scaley = upem_to_vbox.getscale()
+    assert abs(scalex) == abs(scaley)
+    r0 *= abs(scalex)
+    r1 *= abs(scalex)
 
     gradient = etree.SubElement(svg_defs, "radialGradient")
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
     gradient.attrib["gradientUnits"] = "userSpaceOnUse"
-    gradient.attrib["fx"] = _ntos(fx)
-    gradient.attrib["fy"] = _ntos(fy)
-    gradient.attrib["fr"] = _ntos(r0)
+    if fx != cx or fy != cy:
+        gradient.attrib["fx"] = _ntos(fx)
+        gradient.attrib["fy"] = _ntos(fy)
+    if r0 != 0:
+        gradient.attrib["fr"] = _ntos(r0)
     gradient.attrib["cx"] = _ntos(cx)
     gradient.attrib["cy"] = _ntos(cy)
     gradient.attrib["r"] = _ntos(r1)
     if transform != Affine2D.identity():
+        # If the PaintRadialGradient is wrapped by a PaintTransform, we want to encode
+        # it as SVG 'gradientTransform' attribute. But we have already applied the
+        # upem_to_vbox transform to the gradient circles, so the latter are now defined
+        # using the SVG coordinate system. However the parent PaintTransform is
+        # specified in font EM units and must be applied before converting to SVG
+        # viewBox units. Thus to compute the final gradientTransform, we first reverse
+        # upem_to_vbox, apply the PaintTransform and finally convert back to SVG space.
+        transform = Affine2D.product(
+            upem_to_vbox.inverse(), Affine2D.product(transform, upem_to_vbox)
+        )
         gradient.attrib["gradientTransform"] = _svg_matrix(transform)
     if extend != Extend.PAD:
         gradient.attrib["spreadMethod"] = extend.name.lower()
@@ -222,75 +232,115 @@ def _colr_v0_glyph_to_svg(
     return svg_root
 
 
+def _colr_v1_paint_to_svg(
+    ttfont: ttLib.TTFont,
+    glyph_set: Mapping[str, Any],
+    svg_root: etree.Element,
+    view_box: Rect,
+    paint: otTables.Paint,
+    svg_path: Optional[etree.Element] = None,
+    transform: Affine2D = Affine2D.identity(),
+):
+    if paint.Format == _PAINT_SOLID:
+        assert svg_path is not None
+        _solid_paint(
+            svg_path, ttfont, paint.Color.PaletteIndex, paint.Color.Alpha.value
+        )
+    elif paint.Format == _PAINT_LINEAR_GRADIENT:
+        assert svg_path is not None
+        _linear_gradient_paint(
+            svg_root[0],
+            svg_path,
+            ttfont,
+            view_box,
+            stops=[
+                _ColorStop(
+                    stop.StopOffset.value,
+                    stop.Color.PaletteIndex,
+                    stop.Color.Alpha.value,
+                )
+                for stop in paint.ColorLine.ColorStop
+            ],
+            extend=Extend((paint.ColorLine.Extend.value,)),
+            p0=Point(paint.x0.value, paint.y0.value),
+            p1=Point(paint.x1.value, paint.y1.value),
+            p2=Point(paint.x2.value, paint.y2.value),
+        )
+    elif paint.Format == _PAINT_RADIAL_GRADIENT:
+        assert svg_path is not None
+        _radial_gradient_paint(
+            svg_root[0],
+            svg_path,
+            ttfont,
+            view_box,
+            stops=[
+                _ColorStop(
+                    stop.StopOffset.value,
+                    stop.Color.PaletteIndex,
+                    stop.Color.Alpha.value,
+                )
+                for stop in paint.ColorLine.ColorStop
+            ],
+            extend=Extend((paint.ColorLine.Extend.value,)),
+            c0=Point(paint.x0.value, paint.y0.value),
+            c1=Point(paint.x1.value, paint.y1.value),
+            r0=paint.r0.value,
+            r1=paint.r1.value,
+            transform=transform,
+        )
+    elif paint.Format == _PAINT_GLYPH:
+        assert svg_path is None, "recursive PaintGlyph is unsupported"
+        layer_glyph = paint.Glyph
+        svg_path = etree.SubElement(svg_root, "path")
+        if transform != Affine2D.identity():
+            svg_path.attrib["transform"] = _svg_matrix(transform)
+
+        _colr_v1_paint_to_svg(
+            ttfont,
+            glyph_set,
+            svg_root,
+            view_box,
+            paint.Paint,
+            svg_path,
+        )
+
+        _draw_svg_path(svg_path, view_box, ttfont, layer_glyph, glyph_set)
+    elif paint.Format == _PAINT_TRANSFORM:
+        transform = Affine2D.product(
+            (
+                Affine2D.identity()
+                if not paint.Transform
+                else Affine2D(
+                    paint.Transform.xx.value,
+                    paint.Transform.xy.value,
+                    paint.Transform.yx.value,
+                    paint.Transform.yy.value,
+                    paint.Transform.dx.value,
+                    paint.Transform.dy.value,
+                )
+            ),
+            transform,
+        )
+        _colr_v1_paint_to_svg(
+            ttfont,
+            glyph_set,
+            svg_root,
+            view_box,
+            paint.Paint,
+            svg_path,
+            transform=transform,
+        )
+    else:
+        raise NotImplementedError(paint.Format)
+
+
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont, view_box: Rect, glyph: otTables.BaseGlyphRecord
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
-    defs = svg_root[0]
-    for glyph_layer in glyph.LayerV1List.LayerV1Record:
-        svg_path = etree.SubElement(svg_root, "path")
-
-        # TODO care about variations, such as for alpha
-        paint = glyph_layer.Paint
-        if paint.Format == _PAINT_SOLID:
-            _solid_paint(
-                svg_path, ttfont, paint.Color.PaletteIndex, paint.Color.Alpha.value
-            )
-        elif paint.Format == _PAINT_LINEAR_GRADIENT:
-            _linear_gradient_paint(
-                defs,
-                svg_path,
-                ttfont,
-                view_box,
-                stops=[
-                    _ColorStop(
-                        stop.StopOffset.value,
-                        stop.Color.PaletteIndex,
-                        stop.Color.Alpha.value,
-                    )
-                    for stop in paint.ColorLine.ColorStop
-                ],
-                extend=Extend((paint.ColorLine.Extend.value,)),
-                p0=Point(paint.x0.value, paint.y0.value),
-                p1=Point(paint.x1.value, paint.y1.value),
-                p2=Point(paint.x2.value, paint.y2.value),
-            )
-        elif paint.Format == _PAINT_RADIAL_GRADIENT:
-            _radial_gradient_paint(
-                defs,
-                svg_path,
-                ttfont,
-                view_box,
-                stops=[
-                    _ColorStop(
-                        stop.StopOffset.value,
-                        stop.Color.PaletteIndex,
-                        stop.Color.Alpha.value,
-                    )
-                    for stop in paint.ColorLine.ColorStop
-                ],
-                extend=Extend((paint.ColorLine.Extend.value,)),
-                c0=Point(paint.x0.value, paint.y0.value),
-                c1=Point(paint.x1.value, paint.y1.value),
-                r0=paint.r0.value,
-                r1=paint.r1.value,
-                transform=(
-                    Affine2D.identity()
-                    if not paint.Transform
-                    else Affine2D(
-                        paint.Transform.xx.value,
-                        paint.Transform.xy.value,
-                        paint.Transform.yx.value,
-                        paint.Transform.yy.value,
-                        0,
-                        0,
-                    )
-                ),
-            )
-
-        _draw_svg_path(svg_path, view_box, ttfont, glyph_layer.LayerGlyph, glyph_set)
-
+    for paint in glyph.LayerV1List.Paint:
+        _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, view_box, paint)
     return svg_root
 
 

@@ -111,14 +111,13 @@ class PaintRadialGradient(Paint):
     c1: Point = Point()
     r0: float = 0.0
     r1: float = 0.0
-    affine2x2: Optional[Tuple[float, float, float, float]] = None
 
     def colors(self):
         for stop in self.stops:
             yield stop.color
 
     def to_ufo_paint(self, colors):
-        result = {
+        paint = {
             "format": self.format,
             "colorLine": _ufoColorLine(self, colors),
             "c0": self.c0,
@@ -126,6 +125,40 @@ class PaintRadialGradient(Paint):
             "r0": self.r0,
             "r1": self.r1,
         }
-        if self.affine2x2:
-            result["transform"] = self.affine2x2
-        return result
+        return paint
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintGlyph(Paint):
+    format: ClassVar[int] = 4
+    glyph: str
+    paint: Paint
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "format": self.format,
+            "glyph": self.glyph,
+            "paint": self.paint.to_ufo_paint(colors),
+        }
+        return paint
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintTransform(Paint):
+    format: ClassVar[int] = 6
+    transform: Tuple[float, float, float, float, float, float]
+    paint: Paint
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "format": self.format,
+            "transform": self.transform,
+            "paint": self.paint.to_ufo_paint(colors),
+        }
+        return paint

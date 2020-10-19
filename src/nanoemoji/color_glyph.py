@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl import logging
-import collections
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
 from nanoemoji.colors import Color
@@ -25,13 +24,14 @@ from nanoemoji.paint import (
     PaintLinearGradient,
     PaintRadialGradient,
     PaintSolid,
+    PaintTransform,
 )
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath
-from typing import Generator, Mapping, NamedTuple, Tuple
+from typing import Generator, NamedTuple, Tuple
 import ufoLib2
 
 
@@ -104,7 +104,7 @@ def _number_or_percentage(s: str, scale=1) -> float:
     return float(s[:-1]) / 100 * scale if s.endswith("%") else float(s)
 
 
-def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem):
+def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.0):
     width, height = _get_gradient_units_relative_scale(grad_el, view_box)
 
     x1 = _number_or_percentage(grad_el.attrib.get("x1", "0%"), width)
@@ -134,10 +134,11 @@ def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem):
     v = p0 - p1
     p2 = p1 + v.projection(n)
 
-    return {"p0": p0, "p1": p1, "p2": p2}
+    common_args = _common_gradient_parts(grad_el, shape_opacity)
+    return PaintLinearGradient(p0=p0, p1=p1, p2=p2, **common_args)
 
 
-def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
+def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.0):
     width, height = _get_gradient_units_relative_scale(grad_el, view_box)
 
     cx = _number_or_percentage(grad_el.attrib.get("cx", "50%"), width)
@@ -155,46 +156,68 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem):
     c1 = Point(cx, cy)
     r1 = r
 
-    transform = _get_gradient_transform(grad_el, shape_bbox, view_box, upem)
+    transform = map_viewbox_to_font_emsquare(view_box, upem)
 
-    # The optional Affine2x2 matrix of COLRv1.RadialGradient is used to transform
-    # the circles into ellipses "around their centres": i.e. centres coordinates
-    # are _not_ transformed by it. Thus we apply the full transform to them.
-    c0 = transform.map_point(c0)
-    c1 = transform.map_point(c1)
+    gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
+    if gradient_units == "objectBoundingBox":
+        bbox_space = Rect(0, 0, 1, 1)
+        bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
+        transform = Affine2D.product(bbox_transform, transform)
 
-    # As for the circle radii (which are affected by Affine2x2), we only scale them
-    # by the maximum of the (absolute) scale or skew.
-    # Then in Affine2x2 we only store a "fraction" of the original transform, i.e.
-    # multiplied by the inverse of the scale that we've already applied to the radii.
-    # Especially when gradientUnits="objectBoundingBox", where circle positions and
-    # radii are expressed using small floats in the range [0..1], this pre-scaling
-    # helps reducing the inevitable rounding errors that arise from storing these
-    # values as integers in COLRv1 tables.
-    s = max(abs(v) for v in transform[:4])
+    # can't have skew/rotation here: upem, view_box, shape_bbox are all rectangular
+    assert transform[1:3] == (0, 0)
+    # if viewBox is not square or if gradientUnits="objectBoundingBox" and the bbox
+    # is not square, we may end up with scaleX != scaleY; CORLv1 PaintRadialGradient
+    # by themselves can only define circles, not ellipses. We want to keep aspect ratio
+    # by applying a uniform scale to the circles, so we use the max (in absolute terms)
+    # of scaleX or scaleY.  We will then concatenate any remaining non-proportional
+    # transformation with the gradientTransform, and encode the latter as a COLRv1
+    # PaintTransform that wraps the PaintRadialGradient (see further below).
+    sx, sy = transform.getscale()
+    s = max(abs(sx), abs(sy))
+    sx = -s if sx < 0 else s
+    sy = -s if sy < 0 else s
+    proportional_transform = Affine2D(sx, 0, 0, sy, *transform.gettranslate())
 
-    rscale = Affine2D(s, 0, 0, s, 0, 0)
-    r0 = rscale.map_vector((r0, 0)).x
-    r1 = rscale.map_vector((r1, 0)).x
+    c0 = proportional_transform.map_point(c0)
+    c1 = proportional_transform.map_point(c1)
+    r0 *= s
+    r1 *= s
 
-    affine2x2 = Affine2D.product(rscale.inverse(), transform)
+    gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
+    gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
 
-    gradient = {
-        "c0": c0,
-        "c1": c1,
-        "r0": r0,
-        "r1": r1,
-        "affine2x2": (affine2x2[:4] if affine2x2 != Affine2D.identity() else None),
-    }
+    if "gradientTransform" in grad_el.attrib:
+        gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
+    else:
+        gradient_transform = Affine2D.identity()
 
     # TODO handle degenerate cases, fallback to solid, w/e
 
-    return gradient
+    if (
+        proportional_transform == transform
+        and gradient_transform == Affine2D.identity()
+    ):
+        # If the chain of trasforms applied so far ([bbox-to-]vbox-to-upem) maintains the
+        # circles' aspect ratio and we don't have any additional gradientTransform, we
+        # are done
+        return PaintRadialGradient(**gradient_args)
+    else:
+        # Otherwise we need to wrap our PaintRadialGradient in a PaintTransform.
+        # To compute the final transform, we first "undo" the transform that we have
+        # already applied to the circles (to restore their original coordinate system);
+        # then we can apply the SVG gradientTransform (if any), and finally the rest of
+        # the transforms. The order matters.
+        gradient_transform = Affine2D.product(
+            proportional_transform.inverse(),
+            Affine2D.product(gradient_transform, transform),
+        )
+        return PaintTransform(gradient_transform, PaintRadialGradient(**gradient_args))
 
 
 _GRADIENT_INFO = {
-    "linearGradient": (PaintLinearGradient, _parse_linear_gradient),
-    "radialGradient": (PaintRadialGradient, _parse_radial_gradient),
+    "linearGradient": _parse_linear_gradient,
+    "radialGradient": _parse_radial_gradient,
 }
 
 
@@ -289,20 +312,18 @@ class ColorGlyph(NamedTuple):
         upem = self.ufo.info.unitsPerEm
         if shape.fill.startswith("url("):
             el = self.picosvg.resolve_url(shape.fill, "*")
-
-            grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
-            grad_args = _common_gradient_parts(el, shape.opacity)
             try:
-                grad_args.update(
-                    grad_type_parser(
-                        el, shape.bounding_box(), self.picosvg.view_box(), upem
-                    )
+                return _GRADIENT_INFO[etree.QName(el).localname](
+                    el,
+                    shape.bounding_box(),
+                    self.picosvg.view_box(),
+                    upem,
+                    shape.opacity,
                 )
             except ValueError as e:
                 raise ValueError(
                     f"parse failed for {self.filename}, {etree.tostring(el)[:128]}"
                 ) from e
-            return grad_type(**grad_args)
 
         return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
 

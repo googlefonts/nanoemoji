@@ -26,7 +26,7 @@ from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
-from nanoemoji.paint import Paint
+from nanoemoji.paint import Paint, PaintGlyph
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -310,18 +310,20 @@ def _glyf_ufo(ufo, color_glyphs):
             assert component.name == color_glyph.glyph_name
 
 
-def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
+def _colr_layer(colr_version: int, layer_glyph_name: str, paint: Paint, palette: Sequence[Color]):
     # For COLRv0, paint is just the palette index
     # For COLRv1, it's a data structure describing paint
     if colr_version == 0:
         # COLRv0: draw using the first available color on the glyph_layer
         # Results for gradients will be suboptimal :)
         color = next(paint.colors())
-        return palette.index(color)
+        return (layer_glyph_name, palette.index(color))
 
     elif colr_version == 1:
-        # COLRv1: solid or gradient paint
-        return paint.to_ufo_paint(palette)
+        # COLRv1: layer is graph of (solid, gradients, etc.) paints.
+        # Root node is always a PaintGlyph (format 4) for now.
+        # TODO Support more paints (PaintTransform, PaintColorGlyph, PaintComposite)
+        return PaintGlyph(layer_glyph_name, paint).to_ufo_paint(palette)
 
     else:
         raise ValueError(f"Unsupported COLR version: {colr_version}")
@@ -370,8 +372,8 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             else:
                 glyph = glyphs[reuse_key]
 
-            paint = _colr_paint(colr_version, painted_layer.paint, colors)
-            glyph_colr_layers.append((glyph.name, paint))
+            layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
+            glyph_colr_layers.append(layer)
 
         colr_glyph = ufo.get(color_glyph.glyph_name)
         _draw_glyph_extents(ufo, colr_glyph)
