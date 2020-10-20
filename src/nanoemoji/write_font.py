@@ -27,7 +27,7 @@ from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
-from nanoemoji.paint import Paint, PaintGlyph
+from nanoemoji.paint import Paint, PaintColrGlyph, PaintGlyph, PaintSolid
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -59,6 +59,12 @@ class InputGlyph(NamedTuple):
     filename: str
     codepoints: Tuple[int, ...]
     picosvg: SVG
+
+
+class ColorGlyphSubset(NamedTuple):
+    color_glyph_idx: int
+    layer_start: int
+    layer_end: int
 
 
 # A color font generator.
@@ -234,7 +240,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         )
         glyph_names.append(base_glyph.name)
 
-        draw_svg_path(painted_layer.path, base_glyph.getPen(), svg_units_to_font_units)
+        draw_svg_path(SVGPath(d=painted_layer.path), base_glyph.getPen(), svg_units_to_font_units)
 
         glyph.components.append(
             Component(baseGlyph=base_glyph.name, transformation=Affine2D.identity())
@@ -252,7 +258,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
             )
     else:
         # Not a composite, just draw directly on the glyph
-        draw_svg_path(painted_layer.path, glyph.getPen(), svg_units_to_font_units)
+        draw_svg_path(SVGPath(d=painted_layer.path), glyph.getPen(), svg_units_to_font_units)
 
     ufo.glyphOrder += glyph_names
 
@@ -330,11 +336,22 @@ def _colr_layer(colr_version: int, layer_glyph_name: str, paint: Paint, palette:
         raise ValueError(f"Unsupported COLR version: {colr_version}")
 
 
+<<<<<<< HEAD
 def _extract_colr_glyphs(color_glyphs: Sequence[ColorGlyph]) -> Iterable[Tuple[Tuple[int, int, int]]]:
     layers = list(list(c.as_painted_layers()) for c in color_glyphs)
+=======
+def _inter_glyph_reuse_key(painted_layer: PaintedLayer) -> PaintedLayer:
+    """Individual glyf entries, including composites, can be reused.
+
+    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
+    return painted_layer._replace(paint=PaintSolid())
+
+
+def _extract_colr_glyphs(color_glyphs: Sequence[ColorGlyph]) -> Iterable[Tuple[ColorGlyphSubset]]:
+    layers = tuple(c.painted_layers for c in color_glyphs)
+>>>>>>> f24d8c0 (playing with finding common layers)
     def _key(glyph_idx, lbound, ubound): 
-        return tuple((l.paint, l.path.d, l.reuses)
-                     for l in layers[glyph_idx][lbound:ubound])
+        return tuple(layers[glyph_idx][lbound:ubound])
 
     # count # of instances for every sequence of layers
     layer_seqs = defaultdict(set)
@@ -350,8 +367,8 @@ def _extract_colr_glyphs(color_glyphs: Sequence[ColorGlyph]) -> Iterable[Tuple[T
                         key=lambda t: tuple(len(v) for v in t),
                         reverse=True)
 
-    # define new color glyph for each group
-    colr_glyphs = defaultdict(list)  # gid => (lbound, ubound) layers to extract
+    # find reused sequences of layers
+    reuse_groups = defaultdict(list)
     consumed = defaultdict(set)
     for _, instances in layer_seqs:
         for glyph_idx, (lbound, ubound) in instances:
@@ -364,9 +381,42 @@ def _extract_colr_glyphs(color_glyphs: Sequence[ColorGlyph]) -> Iterable[Tuple[T
             if lbound >= ubound:
                 continue
             consumed[glyph_idx].update(range(lbound, ubound))
-            colr_glyphs[_key(glyph_idx, lbound, ubound)].append((glyph_idx, lbound, ubound))
+            reuse_groups[_key(glyph_idx, lbound, ubound)].append(ColorGlyphSubset(glyph_idx, lbound, ubound))
 
-    return tuple(tuple(s) for s in colr_glyphs.values() if len(s) > 1)
+    return tuple(tuple(s) for s in reuse_groups.values() if len(s) > 1)
+
+
+def _ufo_colr_layers(colr_version, colors, color_glyph, colr_insertions, glyph_cache):
+    # The value for a COLOR_LAYERS_KEY entry per
+    # https://github.com/googlefonts/ufo2ft/pull/359
+    colr_layers = []
+
+    # accumulate layers in z-order
+    layer_idx = 0
+    while layer_idx < len(color_glyph.painted_layers):
+        end_idx, colr_glyph_name = colr_insertions.get((color_glyph.glyph_name, layer_idx), (-1, -1))
+        if end_idx != -1:
+            logging.debug("Insert %s for %s layers %d..%d",
+                colr_glyph_name, color_glyph.glyph_name, layer_idx, end_idx)
+            layer_idx = end_idx
+            layer = PaintColrGlyph(glyph=colr_glyph_name).to_ufo_paint(colors)
+        else:
+            painted_layer = color_glyph.painted_layers[layer_idx]
+            layer_idx += 1
+
+            # if we've seen this shape before reuse it
+            glyph_cache_key = _inter_glyph_reuse_key(painted_layer)
+            if glyph_cache_key not in glyph_cache:
+                glyph = _create_glyph(color_glyph, painted_layer)
+                glyph_cache[glyph_cache_key] = glyph
+            else:
+                glyph = glyph_cache[glyph_cache_key]
+
+            layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
+
+        colr_layers.append(layer)
+
+    return colr_layers
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
@@ -384,21 +434,33 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
 
-    # examine layers to hoist out repeated layers to COLR glyphs
-    colr_insertions = {}
-    for idx, instances in enumerate(_extract_colr_glyphs(color_glyphs)):
-        logging.debug("%d instances of %s", len(instances), instances[0])
-        # TODO: actually create a COLR glyph
-        new_id = f"ColrGlyph{idx}"
-
-        for glyph_idx, layer_start, layer_end in instances:
-            colr_insertions[(color_glyphs[glyph_idx].glyph_name, layer_start)] = (layer_end, new_id)
-
     # each base glyph maps to a list of (glyph name, paint info) in z-order
     ufo_color_layers = {}
 
-    # glyphs by reuse_key
-    glyphs = {}
+    # potentially reusable glyphs
+    glyph_cache = {}
+
+    # examine layers to hoist out repeated layers to COLR glyphs
+    colr_insertions = {}
+    if colr_version > 0:
+        for idx, instances in enumerate(_extract_colr_glyphs(color_glyphs)):
+            color_glyph = color_glyphs[instances[0].color_glyph_idx]
+            new_id = f"colr.{idx}"
+            logging.debug("Extracting %s for %d instances of %s", new_id, len(instances), instances[0])
+
+            new_color_glyph = color_glyph._replace(
+                filename=f"{color_glyph.filename}.{new_id}",
+                glyph_name = new_id,
+                glyph_id = len(ufo.glyphOrder),
+                codepoints = (),
+                painted_layers = color_glyph.painted_layers[instances[0].layer_start:instances[0].layer_end]
+            )
+            ufo_color_layers[new_id] = _ufo_colr_layers(colr_version, colors, new_color_glyph, colr_insertions, glyph_cache)
+            ufo.glyphOrder += [new_id]
+            for color_glyph_idx, layer_start, layer_end in instances:
+                colr_insertions[(color_glyphs[color_glyph_idx].glyph_name, layer_start)] = (layer_end, new_id)
+
+    # write glyphs using the hoisted COLR glyphs
     for color_glyph in color_glyphs:
         logging.debug(
             "%s %s %s",
@@ -407,41 +469,16 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             color_glyph.transform_for_font_space(),
         )
 
-        # The value for a COLOR_LAYERS_KEY entry per
-        # https://github.com/googlefonts/ufo2ft/pull/359
-        glyph_colr_layers = []
-
-        # accumulate layers in z-order
-        painted_layers = color_glyph.painted_layers:
-        layer_idx = 0
-        while layer_idx < len(painted_layers):
-            end_idx, colr_glyph_id = colr_insertions.get((color_glyph.glyph_name, layer_idx), (-1, -1))
-            if end_idx != -1:
-                logging.debug("TODO: insert %s for %s layers %d..%d",
-                    colr_glyph_id, color_glyph.glyph_name, layer_idx, end_idx)
-                layer_idx = end_idx
-                continue
-
-            painted_layer = painted_layers[layer_idx]
-            layer_idx += 1
-
-            # if we've seen this shape before reuse it
-            # reset paint so same shape, different fill matches
-            reuse_key = painted_layer.shape_cache_key()
-            if reuse_key not in glyphs:
-                glyph = _create_glyph(color_glyph, painted_layer)
-                glyphs[reuse_key] = glyph
-            else:
-                glyph = glyphs[reuse_key]
-
-            layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
-            glyph_colr_layers.append(layer)
+        ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(colr_version, colors, color_glyph, colr_insertions, glyph_cache)
 
         colr_glyph = ufo.get(color_glyph.glyph_name)
         _draw_glyph_extents(ufo, colr_glyph)
-        ufo_color_layers[colr_glyph.name] = glyph_colr_layers
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
+
+    # TEMPORARY
+    for k, v in ufo_color_layers.items():
+        print(k, v)
 
 
 def _svg_ttfont(_, color_glyphs, ttfont, picosvg=True, compressed=False):

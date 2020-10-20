@@ -179,6 +179,22 @@ class PaintGlyph(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
+class PaintColrGlyph(Paint):
+    format: ClassVar[int] = 5
+    glyph: str
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, _):
+        paint = {
+            "format": self.format,
+            "glyph": self.glyph,
+        }
+        return paint
+
+
+@dataclasses.dataclass(frozen=True)
 class PaintTransform(Paint):
     format: ClassVar[int] = 6
     transform: Tuple[float, float, float, float, float, float]
