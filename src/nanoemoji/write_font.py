@@ -34,6 +34,7 @@ import os
 import ufoLib2
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
+from picosvg.svg_types import SVGPath
 import regex
 import sys
 from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
@@ -284,9 +285,9 @@ def _glyf_ufo(ufo, color_glyphs):
             color_glyph.transform_for_font_space(),
         )
         parent_glyph = ufo[color_glyph.glyph_name]
-        for painted_layer in color_glyph.as_painted_layers():
+        for painted_layer in color_glyph.painted_layers:
             # if we've seen this shape before reuse it
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            reuse_key = painted_layer.shape_cache_key()
             if reuse_key not in glyphs:
                 glyph = _create_glyph(color_glyph, painted_layer)
                 glyphs[reuse_key] = glyph
@@ -326,13 +327,6 @@ def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
         raise ValueError(f"Unsupported COLR version: {colr_version}")
 
 
-def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
-    """Individual glyf entries, including composites, can be reused.
-
-    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
-    return (painted_layer.path.d, painted_layer.reuses)
-
-
 def _colr_ufo(colr_version, ufo, color_glyphs):
     # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for CORLv1, as 'alpha' is
@@ -366,9 +360,10 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         glyph_colr_layers = []
 
         # accumulate layers in z-order
-        for painted_layer in color_glyph.as_painted_layers():
+        for painted_layer in color_glyph.painted_layers:
             # if we've seen this shape before reuse it
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            # reset paint so same shape, different fill matches
+            reuse_key = painted_layer.shape_cache_key()
             if reuse_key not in glyphs:
                 glyph = _create_glyph(color_glyph, painted_layer)
                 glyphs[reuse_key] = glyph
