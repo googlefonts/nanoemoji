@@ -90,11 +90,11 @@ def _round_gradient_coordinates(paint, prec=6):
             c1=Point(round(paint.c1.x, prec), round(paint.c1.y, prec)),
             r0=round(paint.r0, prec),
             r1=round(paint.r1, prec),
-            affine2x2=(
-                tuple(round(v, prec) for v in paint.affine2x2)
-                if paint.affine2x2 is not None
-                else None
-            ),
+        )
+    elif isinstance(paint, PaintTransform):
+        return PaintTransform(
+            transform=tuple(round(v, prec) for v in paint.transform),
+            paint=_round_gradient_coordinates(paint.paint, prec),
         )
     else:
         return paint
@@ -129,36 +129,50 @@ def _round_gradient_coordinates(paint, prec=6):
         (
             "radial_gradient_rect.svg",
             {
-                PaintRadialGradient(
-                    extend=Extend.REPEAT,
-                    stops=(
-                        ColorStop(stopOffset=0.05, color=Color.fromstring("fuchsia")),
-                        ColorStop(stopOffset=0.75, color=Color.fromstring("orange")),
+                PaintTransform(
+                    transform=(1.0, 0.0, 0.0, 0.333333, 0.0, 533.333333),
+                    paint=PaintRadialGradient(
+                        extend=Extend.REPEAT,
+                        stops=(
+                            ColorStop(
+                                stopOffset=0.05, color=Color.fromstring("fuchsia")
+                            ),
+                            ColorStop(
+                                stopOffset=0.75, color=Color.fromstring("orange")
+                            ),
+                        ),
+                        c0=Point(500, 500),
+                        c1=Point(500, 500),
+                        r0=0,
+                        r1=300,
                     ),
-                    c0=Point(500, 700),
-                    c1=Point(500, 700),
-                    r0=0,
-                    r1=300,
-                    affine2x2=(1.0, 0.0, 0.0, -0.333333),
-                )
+                ),
             },
         ),
         # radial with gradientTransform
         (
             "radial_gradient_transform.svg",
             {
-                PaintRadialGradient(
-                    stops=(
-                        ColorStop(stopOffset=0.0, color=Color.fromstring("darkblue")),
-                        ColorStop(stopOffset=0.5, color=Color.fromstring("skyblue")),
-                        ColorStop(stopOffset=1.0, color=Color.fromstring("darkblue")),
+                PaintTransform(
+                    transform=(1.0, 0.0, -0.36397, 1.0, 363.970234, 0.0),
+                    paint=PaintRadialGradient(
+                        stops=(
+                            ColorStop(
+                                stopOffset=0.0, color=Color.fromstring("darkblue")
+                            ),
+                            ColorStop(
+                                stopOffset=0.5, color=Color.fromstring("skyblue")
+                            ),
+                            ColorStop(
+                                stopOffset=1.0, color=Color.fromstring("darkblue")
+                            ),
+                        ),
+                        c0=Point(x=325, y=500),
+                        c1=Point(x=325, y=500),
+                        r0=0,
+                        r1=500,
                     ),
-                    c0=Point(x=506.985117, y=500.0),
-                    c1=Point(x=506.985117, y=500.0),
-                    r0=0,
-                    r1=500,
-                    affine2x2=(1.0, 0.0, 0.36397, -1.0),
-                )
+                ),
             },
         ),
         # linear with gradientTransform
@@ -204,16 +218,18 @@ def _round_gradient_coordinates(paint, prec=6):
         (
             "radial_gradient_transform_2.svg",
             {
-                PaintRadialGradient(
-                    stops=(
-                        ColorStop(stopOffset=0.0, color=Color.fromstring("white")),
-                        ColorStop(stopOffset=1.0, color=Color.fromstring("black")),
+                PaintTransform(
+                    transform=(0.0, -1.0, 0.9288, 0.0, -623.55, 1944.609375),
+                    paint=PaintRadialGradient(
+                        stops=(
+                            ColorStop(stopOffset=0.0, color=Color.fromstring("white")),
+                            ColorStop(stopOffset=1.0, color=Color.fromstring("black")),
+                        ),
+                        c0=Point(x=971.484375, y=973.120312),
+                        c1=Point(x=971.484375, y=973.120312),
+                        r0=0.0,
+                        r1=129.015625,
                     ),
-                    c0=Point(x=280.284146, y=973.125),
-                    c1=Point(x=280.284146, y=973.125),
-                    r0=0.0,
-                    r1=129.015625,
-                    affine2x2=(0.0, -1.0, -0.9288, 0.0),
                 )
             },
         ),
@@ -235,21 +251,23 @@ def _round_gradient_coordinates(paint, prec=6):
                     p0=Point(200.0, 800.0),
                     p1=Point(800.0, 800.0),
                 ),
-                PaintRadialGradient(
-                    stops=(
-                        ColorStop(
-                            stopOffset=0.1, color=Color.fromstring("red", alpha=0.5)
+                PaintTransform(
+                    transform=(1.0, 0.0, 0.0, 0.333333, 0, 333.333333),
+                    paint=PaintRadialGradient(
+                        stops=(
+                            ColorStop(
+                                stopOffset=0.1, color=Color.fromstring("red", alpha=0.5)
+                            ),
+                            ColorStop(
+                                stopOffset=0.9,
+                                color=Color.fromstring("yellow", alpha=0.5 * 0.8),
+                            ),
                         ),
-                        ColorStop(
-                            stopOffset=0.9,
-                            color=Color.fromstring("yellow", alpha=0.5 * 0.8),
-                        ),
+                        c0=Point(x=500.0, y=200.0),
+                        c1=Point(x=500.0, y=200.0),
+                        r0=0.0,
+                        r1=300.0,
                     ),
-                    c0=Point(x=500.0, y=400.0),
-                    c1=Point(x=500.0, y=400.0),
-                    r0=0.0,
-                    r1=300.0,
-                    affine2x2=(1.0, 0.0, 0.0, -0.333333),
                 ),
             },
         ),
