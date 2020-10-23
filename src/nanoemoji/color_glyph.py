@@ -328,7 +328,7 @@ def _in_glyph_reuse_key(debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath
     """Within a glyph reuse shapes only when painted consistently.
 
     paint+normalized shape ensures this."""
-    return (_paint(debug_hint, upem, picosvg, shape), normalize(FLAGS.reuse_level, shape))
+    return (_paint(debug_hint, upem, picosvg, shape), normalize(shape, level=FLAGS.reuse_level))
 
 
 def _painted_layers(debug_hint: str, upem: int, picosvg: SVG) -> Generator[PaintedLayer, None, None]:
@@ -340,7 +340,7 @@ def _painted_layers(debug_hint: str, upem: int, picosvg: SVG) -> Generator[Paint
         paths = list(paths)
         transforms = ()
         if len(paths) > 1:
-            transforms = tuple(affine_between(FLAGS.reuse_level, paths[0], p) for p in paths[1:])
+            transforms = tuple(affine_between(paths[0], p, level=FLAGS.reuse_level) for p in paths[1:])
         for path, transform in zip(paths[1:], transforms):
             if transform is None:
                 raise ValueError(
