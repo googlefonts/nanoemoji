@@ -18,6 +18,7 @@ import os
 import re
 import sys
 from lxml import etree
+from fontTools import ttLib
 from nanoemoji import codepoints
 from nanoemoji import write_fea
 from nanoemoji import write_font
@@ -57,6 +58,12 @@ def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
             for idx, svg in enumerate(svgs)
         ],
     )
+
+
+def reload_font(ttfont):
+    tmp = io.BytesIO()
+    ttfont.save(tmp)
+    return ttLib.TTFont(tmp)
 
 
 def _save_actual_ttx(expected_ttx, ttx_content):

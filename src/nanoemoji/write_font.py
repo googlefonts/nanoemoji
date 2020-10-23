@@ -34,6 +34,7 @@ import os
 import ufoLib2
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
+from picosvg.svg_types import SVGPath
 import regex
 import sys
 from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
@@ -275,6 +276,7 @@ def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
 def _glyf_ufo(ufo, color_glyphs):
     # glyphs by reuse_key
     glyphs = {}
+    reused = set()
     for color_glyph in color_glyphs:
         logging.debug(
             "%s %s %s",
@@ -282,21 +284,28 @@ def _glyf_ufo(ufo, color_glyphs):
             color_glyph.glyph_name,
             color_glyph.transform_for_font_space(),
         )
-        parent_glyph = ufo.get(color_glyph.glyph_name)
-        for painted_layer in color_glyph.as_painted_layers():
+        parent_glyph = ufo[color_glyph.glyph_name]
+        for painted_layer in color_glyph.painted_layers:
             # if we've seen this shape before reuse it
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            reuse_key = painted_layer.shape_cache_key()
             if reuse_key not in glyphs:
                 glyph = _create_glyph(color_glyph, painted_layer)
                 glyphs[reuse_key] = glyph
             else:
                 glyph = glyphs[reuse_key]
+                reused.add(glyph.name)
             parent_glyph.components.append(Component(baseGlyph=glyph.name))
 
-        # No great reason to keep single-component glyphs around
-        if len(parent_glyph.components) == 1:
+    for color_glyph in color_glyphs:
+        parent_glyph = ufo[color_glyph.glyph_name]
+        # No great reason to keep single-component glyphs around (unless reused)
+        if (
+            len(parent_glyph.components) == 1
+            and parent_glyph.components[0].baseGlyph not in reused
+        ):
             component = ufo[parent_glyph.components[0].baseGlyph]
             del ufo[component.name]
+            component.unicode = parent_glyph.unicode
             ufo[color_glyph.glyph_name] = component
             assert component.name == color_glyph.glyph_name
 
@@ -316,13 +325,6 @@ def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
 
     else:
         raise ValueError(f"Unsupported COLR version: {colr_version}")
-
-
-def _inter_glyph_reuse_key(painted_layer: PaintedLayer):
-    """Individual glyf entries, including composites, can be reused.
-
-    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
-    return (painted_layer.path.d, painted_layer.reuses)
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
@@ -358,9 +360,10 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         glyph_colr_layers = []
 
         # accumulate layers in z-order
-        for painted_layer in color_glyph.as_painted_layers():
+        for painted_layer in color_glyph.painted_layers:
             # if we've seen this shape before reuse it
-            reuse_key = _inter_glyph_reuse_key(painted_layer)
+            # reset paint so same shape, different fill matches
+            reuse_key = painted_layer.shape_cache_key()
             if reuse_key not in glyphs:
                 glyph = _create_glyph(color_glyph, painted_layer)
                 glyphs[reuse_key] = glyph
@@ -461,6 +464,8 @@ def output_file(family, output, color_format):
 
 
 def main(argv):
+    argv = util.expand_ninja_response_files(argv)
+
     config = ColorFontConfig(
         upem=FLAGS.upem,
         family=FLAGS.family,
