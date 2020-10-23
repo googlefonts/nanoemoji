@@ -456,6 +456,7 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
                 painted_layers = color_glyph.painted_layers[instances[0].layer_start:instances[0].layer_end]
             )
             ufo_color_layers[new_id] = _ufo_colr_layers(colr_version, colors, new_color_glyph, colr_insertions, glyph_cache)
+            ufo.newGlyph(new_id)
             ufo.glyphOrder += [new_id]
             for color_glyph_idx, layer_start, layer_end in instances:
                 colr_insertions[(color_glyphs[color_glyph_idx].glyph_name, layer_start)] = (layer_end, new_id)
