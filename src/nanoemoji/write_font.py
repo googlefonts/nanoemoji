@@ -27,7 +27,9 @@ from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
-from nanoemoji.paint import Paint, PaintColrGlyph, PaintGlyph, PaintSolid
+from nanoemoji.paint import (
+    CompositeMode, Paint, PaintComposite, PaintColrGlyph, PaintGlyph, PaintSolid
+)
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -38,7 +40,16 @@ from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 import regex
 import sys
-from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Sequence,
+    Tuple,
+)
 from ufoLib2.objects import Component, Glyph
 import ufo2ft
 
@@ -416,7 +427,42 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, colr_insertions, glyph_c
 
         colr_layers.append(layer)
 
+    if colr_version > 0 and len(colr_layers) > MAX_LAYER_V1_COUNT:
+        logging.info(
+            "%s contains > {MAX_LAYER_V1_COUNT} layers (%s); "
+            "merging last layers in PaintComposite tree",
+            color_glyph.glyph_name,
+            len(colr_layers),
+        )
+
+        i = MAX_LAYER_V1_COUNT - 1
+        colr_layers[i:] = [_build_composite_layer(colr_layers[i:])]
+
     return colr_layers
+
+
+def _build_composite_layer(layers: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
+    """Construct PaintComposite binary tree from list of UFO color layers.
+
+    Layers are in z-order, from bottom to top layer. We use SRC_OVER compositing
+    mode to paint "source" over "backdrop". The binary tree is balanced to keep
+    its depth short and limit the risk of RecursionError.
+    """
+    assert layers
+
+    if len(layers) == 1:
+        return layers[0]
+
+    mid = len(layers) // 2
+    return dict(
+        format=PaintComposite.format,
+        mode=CompositeMode.SRC_OVER.name.lower(),
+        backdrop=_build_composite_layer(layers[:mid]),
+        source=_build_composite_layer(layers[mid:]),
+    )
+
+
+MAX_LAYER_V1_COUNT = 255
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
