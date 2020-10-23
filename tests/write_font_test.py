@@ -30,6 +30,7 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
         color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
     )
     ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
 
     assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
     if keep_glyph_names:
@@ -100,6 +101,8 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
             "untouchedsvg",
             ".ttf",
         ),
+        # keep single-component composites if component reused by more than one glyph
+        (("one_rect.svg", "one_rect.svg"), "reused_rect_glyf.ttx", "glyf", ".ttf"),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
@@ -107,6 +110,7 @@ def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
         color_format, svgs, output_format
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
     # sanity check the font
     # glyf should not have identical-except-name entries except .notdef and .space
     # SVG should not have identical paths or gradients

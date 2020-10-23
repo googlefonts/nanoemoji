@@ -222,6 +222,59 @@ class PaintedLayer(NamedTuple):
     path: SVGPath
     reuses: Tuple[Affine2D]
 
+    def shape_cache_key(self):
+        # a hashable cache key ignoring paint
+        return (self.path.d, self.reuses)
+
+
+def _paint(debug_hint, upem, picosvg, shape):
+    if shape.fill.startswith("url("):
+        el = picosvg.resolve_url(shape.fill, "*")
+
+        grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
+        grad_args = _common_gradient_parts(el, shape.opacity)
+        try:
+            grad_args.update(
+                grad_type_parser(el, shape.bounding_box(), picosvg.view_box(), upem)
+            )
+        except ValueError as e:
+            raise ValueError(
+                f"parse failed for {debug_hint}, {etree.tostring(el)[:128]}"
+            ) from e
+        return grad_type(**grad_args)
+
+    return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
+
+
+def _in_glyph_reuse_key(
+    debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath
+) -> Tuple[Paint, SVGPath]:
+    """Within a glyph reuse shapes only when painted consistently.
+
+    paint+normalized shape ensures this."""
+    return (_paint(debug_hint, upem, picosvg, shape), normalize(shape))
+
+
+def _painted_layers(
+    debug_hint: str, upem: int, picosvg: SVG
+) -> Generator[PaintedLayer, None, None]:
+    # Don't sort; we only want to find groups that are consecutive in the picosvg
+    # to ensure we don't mess up layer order
+    for (paint, normalized), paths in groupby(
+        picosvg.shapes(),
+        key=lambda s: _in_glyph_reuse_key(debug_hint, upem, picosvg, s),
+    ):
+        paths = list(paths)
+        transforms = ()
+        if len(paths) > 1:
+            transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
+        for path, transform in zip(paths[1:], transforms):
+            if transform is None:
+                raise ValueError(
+                    f"{debug_hint} grouped {paths[0]} and {path} but no affine_between could be computed"
+                )
+        yield PaintedLayer(paint, paths[0], transforms)
+
 
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
@@ -229,6 +282,7 @@ class ColorGlyph(NamedTuple):
     glyph_name: str
     glyph_id: int
     codepoints: Tuple[int, ...]
+    painted_layers: Tuple[PaintedLayer, ...]
     picosvg: SVG
 
     def _paint(self, shape):
@@ -252,12 +306,6 @@ class ColorGlyph(NamedTuple):
 
         return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
 
-    def _in_glyph_reuse_key(self, shape: SVGPath) -> Tuple[Paint, SVGPath]:
-        """Within a glyph reuse shapes only when painted consistently.
-
-        paint+normalized shape ensures this."""
-        return (self._paint(shape), normalize(shape))
-
     @staticmethod
     def create(ufo, filename, glyph_id, codepoints, picosvg):
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
@@ -270,7 +318,10 @@ class ColorGlyph(NamedTuple):
             base_glyph.unicode = next(iter(codepoints))
 
         # Grab the transform + (color, glyph) layers for COLR
-        return ColorGlyph(ufo, filename, glyph_name, glyph_id, codepoints, picosvg)
+        painted_layers = tuple(_painted_layers(filename, ufo.info.unitsPerEm, picosvg))
+        return ColorGlyph(
+            ufo, filename, glyph_name, glyph_id, codepoints, painted_layers, picosvg
+        )
 
     def _has_viewbox_for_transform(self) -> bool:
         view_box = self.picosvg.view_box()
@@ -296,26 +347,9 @@ class ColorGlyph(NamedTuple):
             self.picosvg.view_box(), self.ufo.info.unitsPerEm
         )
 
-    def as_painted_layers(self) -> Generator[PaintedLayer, None, None]:
-        # Don't sort; we only want to find groups that are consecutive in the picosvg
-        # to ensure we don't mess up layer order
-        for (paint, normalized), paths in groupby(
-            self.picosvg.shapes(), key=self._in_glyph_reuse_key
-        ):
-            paths = list(paths)
-            transforms = ()
-            if len(paths) > 1:
-                transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
-            for path, transform in zip(paths[1:], transforms):
-                if transform is None:
-                    raise ValueError(
-                        f"{self.filename} grouped {paths[0]} and {path} but no affine_between could be computed"
-                    )
-            yield PaintedLayer(paint, paths[0], transforms)
-
     def paints(self):
         """Set of Paint used by this glyph."""
-        return {l.paint for l in self.as_painted_layers()}
+        return {l.paint for l in self.painted_layers}
 
     def colors(self):
         """Set of Color used by this glyph."""
