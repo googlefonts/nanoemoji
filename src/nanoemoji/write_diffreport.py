@@ -20,6 +20,7 @@ import functools
 from PIL import Image, ImageChops, ImageStat
 from pathlib import Path
 from textwrap import dedent
+from nanoemoji import util
 
 
 FLAGS = flags.FLAGS
@@ -46,7 +47,9 @@ def _rhs(diff_file):
 
 
 def main(argv):
-    diff_files = (Path(diff_file) for diff_file in argv[1:])
+    diff_files = (
+        Path(diff_file) for diff_file in util.expand_ninja_response_files(argv[1:])
+    )
     diff_files = sorted(diff_files, key=_diff_value, reverse=True)
     with open(FLAGS.output_file, "w") as f:
         f.write(

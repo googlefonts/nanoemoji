@@ -16,10 +16,11 @@
 
 from absl import app
 from nanoemoji import codepoints
+from nanoemoji import util
 
 
 def main(argv):
-    for svg_file in argv[1:]:
+    for svg_file in util.expand_ninja_response_files(argv[1:]):
         print(codepoints.csv_line(svg_file))
 
 
