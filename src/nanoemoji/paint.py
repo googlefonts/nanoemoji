@@ -17,7 +17,7 @@
 Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
 import dataclasses
-from enum import Enum
+from enum import Enum, IntEnum
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
 from typing import ClassVar, Generator, Optional, Sequence, Tuple
@@ -27,6 +27,38 @@ class Extend(Enum):
     PAD = (0,)
     REPEAT = (1,)
     REFLECT = (2,)
+
+
+# Porter-Duff modes for COLRv1 PaintComposite:
+# https://github.com/googlefonts/colr-gradients-spec/tree/off_sub_1#compositemode-enumeration
+class CompositeMode(IntEnum):
+    CLEAR = 0
+    SRC = 1
+    DEST = 2
+    SRC_OVER = 3
+    DEST_OVER = 4
+    SRC_IN = 5
+    DEST_IN = 6
+    SRC_OUT = 7
+    DEST_OUT = 8
+    SRC_ATOP = 9
+    DEST_ATOP = 10
+    XOR = 11
+    SCREEN = 12
+    OVERLAY = 13
+    DARKEN = 14
+    LIGHTEN = 15
+    COLOR_DODGE = 16
+    COLOR_BURN = 17
+    HARD_LIGHT = 18
+    SOFT_LIGHT = 19
+    DIFFERENCE = 20
+    EXCLUSION = 21
+    MULTIPLY = 22
+    HSL_HUE = 23
+    HSL_SATURATION = 24
+    HSL_COLOR = 25
+    HSL_LUMINOSITY = 26
 
 
 @dataclasses.dataclass(frozen=True)
@@ -160,5 +192,26 @@ class PaintTransform(Paint):
             "format": self.format,
             "transform": self.transform,
             "paint": self.paint.to_ufo_paint(colors),
+        }
+        return paint
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintComposite(Paint):
+    format: ClassVar[int] = 7
+    mode: CompositeMode
+    source: Paint
+    backdrop: Paint
+
+    def colors(self):
+        yield from self.source.colors()
+        yield from self.backdrop.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "format": self.format,
+            "mode": self.mode.name.lower(),
+            "source": self.source.to_ufo_paint(colors),
+            "backdrop": self.backdrop.to_ufo_paint(colors),
         }
         return paint
