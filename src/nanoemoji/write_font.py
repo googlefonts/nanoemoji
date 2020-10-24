@@ -166,6 +166,9 @@ flags.DEFINE_enum(
 flags.DEFINE_bool(
     "keep_glyph_names", False, "Whether or not to store glyph names in the font."
 )
+flags.DEFINE_bool(
+    "extract_colr_glyphs", True, "Whether to try to extract common layer sequences."
+)
 
 
 def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
@@ -510,7 +513,7 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
 
     # examine layers to hoist out repeated layers to COLR glyphs
     colr_insertions = {}
-    if colr_version > 0:
+    if colr_version > 0 and FLAGS.extract_colr_glyphs:
         for idx, instances in enumerate(_extract_colr_glyphs(color_glyphs)):
             color_glyph = color_glyphs[instances[0].color_glyph_idx]
             new_id = f"colr.{idx}"

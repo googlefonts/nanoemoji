@@ -81,6 +81,13 @@ def resolve_rel_build(path):
     return os.path.abspath(os.path.join(build_dir(), path))
 
 
+def _bool_flag(name):
+    flag = " --"
+    if not getattr(FLAGS, name):
+        flag += "no"
+    flag += name
+    return flag
+
 def write_preamble(nw):
     def module_rule(mod_name, arg_pattern, rspfile=None, rspfile_content=None):
         nw.rule(
@@ -102,17 +109,14 @@ def write_preamble(nw):
     )
     module_rule("write_fea", "$in > $out")
 
-    keep_glyph_names = " --"
-    if not FLAGS.keep_glyph_names:
-        keep_glyph_names += "no"
-    keep_glyph_names += "keep_glyph_names"
     module_rule(
         "write_font",
         f" --upem {FLAGS.upem}"
         + f' --family "{FLAGS.family}"'
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
-        + keep_glyph_names
+        + _bool_flag("keep_glyph_names")
+        + _bool_flag("extract_colr_glyphs")
         + f" --reuse_level {FLAGS.reuse_level}"
         + " -v 1"
         + " --output_file $out"
