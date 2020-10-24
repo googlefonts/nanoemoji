@@ -273,6 +273,7 @@ def _round_gradient_coordinates(paint, prec=6):
         ),
     ],
 )
+@pytest.mark.usefixtures("absl_flags")
 def test_paint_from_shape(svg_in, expected_paints):
     color_glyph = ColorGlyph.create(_ufo(1000), "duck", 1, [0x0042], _nsvg(svg_in))
     assert {

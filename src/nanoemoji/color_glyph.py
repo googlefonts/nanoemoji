@@ -142,7 +142,9 @@ def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
     p2 = p1 + v.projection(n)
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
-    return PaintLinearGradient(p0=p0, p1=p1, p2=p2, **common_args)
+    return PaintLinearGradient(
+        p0=p0, p1=p1, p2=p2, **common_args  # pytype: disable=wrong-arg-types
+    )
 
 
 def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.0):
@@ -208,7 +210,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
         # If the chain of trasforms applied so far ([bbox-to-]vbox-to-upem) maintains the
         # circles' aspect ratio and we don't have any additional gradientTransform, we
         # are done
-        return PaintRadialGradient(**gradient_args)
+        return PaintRadialGradient(**gradient_args)  # pytype: disable=wrong-arg-types
     else:
         # Otherwise we need to wrap our PaintRadialGradient in a PaintTransform.
         # To compute the final transform, we first "undo" the transform that we have
@@ -219,7 +221,10 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
             proportional_transform.inverse(),
             Affine2D.product(gradient_transform, transform),
         )
-        return PaintTransform(gradient_transform, PaintRadialGradient(**gradient_args))
+        return PaintTransform(
+            gradient_transform,
+            PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
+        )
 
 
 _GRADIENT_INFO = {
@@ -254,56 +259,7 @@ class PaintedLayer(NamedTuple):
 
     def shape_cache_key(self):
         # a hashable cache key ignoring paint
-        return (self.path.d, self.reuses)
-
-
-def _paint(debug_hint, upem, picosvg, shape):
-    if shape.fill.startswith("url("):
-        el = picosvg.resolve_url(shape.fill, "*")
-
-        grad_type, grad_type_parser = _GRADIENT_INFO[etree.QName(el).localname]
-        grad_args = _common_gradient_parts(el, shape.opacity)
-        try:
-            grad_args.update(
-                grad_type_parser(el, shape.bounding_box(), picosvg.view_box(), upem)
-            )
-        except ValueError as e:
-            raise ValueError(
-                f"parse failed for {debug_hint}, {etree.tostring(el)[:128]}"
-            ) from e
-        return grad_type(**grad_args)
-
-    return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
-
-
-def _in_glyph_reuse_key(
-    debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath
-) -> Tuple[Paint, SVGPath]:
-    """Within a glyph reuse shapes only when painted consistently.
-
-    paint+normalized shape ensures this."""
-    return (_paint(debug_hint, upem, picosvg, shape), normalize(shape))
-
-
-def _painted_layers(
-    debug_hint: str, upem: int, picosvg: SVG
-) -> Generator[PaintedLayer, None, None]:
-    # Don't sort; we only want to find groups that are consecutive in the picosvg
-    # to ensure we don't mess up layer order
-    for (paint, normalized), paths in groupby(
-        picosvg.shapes(),
-        key=lambda s: _in_glyph_reuse_key(debug_hint, upem, picosvg, s),
-    ):
-        paths = list(paths)
-        transforms = ()
-        if len(paths) > 1:
-            transforms = tuple(affine_between(paths[0], p) for p in paths[1:])
-        for path, transform in zip(paths[1:], transforms):
-            if transform is None:
-                raise ValueError(
-                    f"{debug_hint} grouped {paths[0]} and {path} but no affine_between could be computed"
-                )
-        yield PaintedLayer(paint, paths[0], transforms)
+        return (self.path, self.reuses)
 
 
 def _paint(debug_hint, upem, picosvg, shape):
@@ -324,23 +280,33 @@ def _paint(debug_hint, upem, picosvg, shape):
 
     return PaintSolid(color=Color.fromstring(shape.fill, alpha=shape.opacity))
 
-def _in_glyph_reuse_key(debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath) -> Tuple[Paint, SVGPath]:
+
+def _in_glyph_reuse_key(
+    debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath
+) -> Tuple[Paint, SVGPath]:
     """Within a glyph reuse shapes only when painted consistently.
-
     paint+normalized shape ensures this."""
-    return (_paint(debug_hint, upem, picosvg, shape), normalize(shape, level=FLAGS.reuse_level))
+    return (
+        _paint(debug_hint, upem, picosvg, shape),
+        normalize(shape, level=FLAGS.reuse_level),
+    )
 
 
-def _painted_layers(debug_hint: str, upem: int, picosvg: SVG) -> Generator[PaintedLayer, None, None]:
+def _painted_layers(
+    debug_hint: str, upem: int, picosvg: SVG
+) -> Generator[PaintedLayer, None, None]:
     # Don't sort; we only want to find groups that are consecutive in the picosvg
     # to ensure we don't mess up layer order
     for (paint, normalized), paths in groupby(
-        picosvg.shapes(), key=lambda s: _in_glyph_reuse_key(debug_hint, upem, picosvg, s)
+        picosvg.shapes(),
+        key=lambda s: _in_glyph_reuse_key(debug_hint, upem, picosvg, s),
     ):
         paths = list(paths)
         transforms = ()
         if len(paths) > 1:
-            transforms = tuple(affine_between(paths[0], p, level=FLAGS.reuse_level) for p in paths[1:])
+            transforms = tuple(
+                affine_between(paths[0], p, level=FLAGS.reuse_level) for p in paths[1:]
+            )
         for path, transform in zip(paths[1:], transforms):
             if transform is None:
                 raise ValueError(
@@ -376,18 +342,19 @@ class ColorGlyph(NamedTuple):
         )
 
     def _has_viewbox_for_transform(self) -> bool:
-        if self.view_box is None:
+        view_box = self.picosvg.view_box()
+        if view_box is None:
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
-        return self.view_box is not None
+        return view_box is not None
 
     def transform_for_font_space(self):
         """Creates a Transform to map SVG coords to font coords"""
         if not self._has_viewbox_for_transform():
             return Affine2D.identity()
         return map_viewbox_to_font_emsquare(
-            self.view_box, self.ufo.info.unitsPerEm
+            self.picosvg.view_box(), self.ufo.info.unitsPerEm
         )
 
     def transform_for_otsvg_space(self):
@@ -395,7 +362,7 @@ class ColorGlyph(NamedTuple):
         if not self._has_viewbox_for_transform():
             return Affine2D.identity()
         return map_viewbox_to_otsvg_emsquare(
-            self.view_box, self.ufo.info.unitsPerEm
+            self.picosvg.view_box(), self.ufo.info.unitsPerEm
         )
 
     def paints(self):

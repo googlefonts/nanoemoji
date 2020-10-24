@@ -21,6 +21,7 @@ from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.disjoint_set import DisjointSet
+from nanoemoji.paint import Paint
 from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
@@ -103,7 +104,11 @@ def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
 
     # TODO we could recycle shapes that differ only in paint, would just need to
     # transfer the paint attributes onto the use element if they differ
-    return (view_box, painted_layer.paint, painted_layer.path.d, painted_layer.reuses)
+    return (view_box, painted_layer.paint, painted_layer.path, painted_layer.reuses)
+
+
+def _apply_paint(el: etree.Element, paint: Paint):
+    el.attrib.update(paint.to_svg_paint())
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
@@ -120,12 +125,15 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
             raise ValueError(f"{color_glyph.filename} must declare view box")
         reuse_key = _inter_glyph_reuse_key(view_box, painted_layer)
         if reuse_key not in reuse_cache.shapes:
-            el = to_element(painted_layer.path)
+            el = to_element(SVGPath(d=painted_layer.path))
             match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
             if match:
                 el.attrib[
                     "fill"
                 ] = f"url(#{reuse_cache.old_to_new_id.get(match.group(1), match.group(1))})"
+            else:
+                _apply_paint(el, painted_layer.paint)
+
             svg_g.append(el)
             reuse_cache.shapes[reuse_key] = el
             for reuse in painted_layer.reuses:

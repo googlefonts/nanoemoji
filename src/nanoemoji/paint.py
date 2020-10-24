@@ -20,7 +20,7 @@ import dataclasses
 from enum import Enum, IntEnum
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
-from typing import ClassVar, Generator, Optional, Sequence, Tuple
+from typing import Any, ClassVar, Generator, Mapping, Optional, Sequence, Tuple
 
 
 class Extend(Enum):
@@ -73,6 +73,9 @@ class Paint:
         raise NotImplementedError()
 
     def to_ufo_paint(self, colors: Sequence[Color]):
+        raise NotImplementedError()
+
+    def to_svg_paint(self) -> Mapping[str, Any]:
         raise NotImplementedError()
 
 
@@ -182,9 +185,6 @@ class PaintGlyph(Paint):
 class PaintColrGlyph(Paint):
     format: ClassVar[int] = 5
     glyph: str
-
-    def colors(self):
-        yield from self.paint.colors()
 
     def to_ufo_paint(self, _):
         paint = {
