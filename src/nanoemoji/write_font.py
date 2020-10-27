@@ -77,10 +77,12 @@ class InputGlyph(NamedTuple):
     picosvg: SVG
 
 
-class ColorGlyphSubset(NamedTuple):
-    color_glyph_idx: int
-    layer_start: int
-    layer_end: int
+class ColorGlyphSlice(NamedTuple):
+    src_glyph: str
+    target_glyph: str
+    src_start: int
+    dest_start: int
+    num_layers: int
 
 
 # A color font generator.
@@ -368,9 +370,9 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer) -> PaintedLayer:
     return painted_layer._replace(paint=PaintSolid())
 
 
-def _extract_colr_glyphs(
+def _extract_colr_slices(
     color_glyphs: Sequence[ColorGlyph],
-) -> Iterable[Tuple[ColorGlyphSubset]]:
+) -> Iterable[Tuple[ColorGlyphSlice]]:
     layers = tuple(c.painted_layers for c in color_glyphs)
 
     def _key(glyph_idx, lbound, ubound):
@@ -409,10 +411,24 @@ def _extract_colr_glyphs(
                 continue
             consumed[glyph_idx].update(range(lbound, ubound))
             reuse_groups[_key(glyph_idx, lbound, ubound)].append(
-                ColorGlyphSubset(glyph_idx, lbound, ubound)
+                (color_glyphs[glyph_idx].glyph_name, lbound, ubound)
             )
 
-    return tuple(tuple(s) for s in reuse_groups.values() if len(s) > 1)
+    # return only groups that have > 1 instance
+    for group in reuse_groups.values():
+        if len(group) <= 1:
+            continue
+        # Point repeats at the appropriate slice of first occurence
+        src_glyph, src_start, src_end = group[0]
+        for dest_glyph, dest_start, dest_end in group[1:]:
+            assert dest_end - dest_start == src_end - src_start
+            yield ColorGlyphSlice(
+                src_glyph,
+                dest_glyph,
+                src_start,
+                dest_start,
+                src_end - src_start + 1
+                )
 
 
 def _ufo_colr_layers(colr_version, colors, color_glyph, colr_insertions, glyph_cache):
@@ -423,19 +439,15 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, colr_insertions, glyph_c
     # accumulate layers in z-order
     layer_idx = 0
     while layer_idx < len(color_glyph.painted_layers):
-        end_idx, colr_glyph_name = colr_insertions.get(
-            (color_glyph.glyph_name, layer_idx), (-1, -1)
-        )
-        if end_idx != -1:
-            logging.debug(
-                "Insert %s for %s layers %d..%d",
-                colr_glyph_name,
-                color_glyph.glyph_name,
-                layer_idx,
-                end_idx,
-            )
-            layer_idx = end_idx
-            layer = PaintColrGlyph(glyph=colr_glyph_name).to_ufo_paint(colors)
+        colr_slice = colr_insertions.get((color_glyph.glyph_name, layer_idx), None)
+        if colr_slice:
+            logging.debug("Applying slice %s", colr_slice)
+            layer = PaintColrGlyph(
+                glyph=colr_slice.src_glyph,
+                first_layer_index = colr_slice.src_start,
+                last_layer_index = colr_slice.src_start + colr_slice.num_layers - 1,
+                ).to_ufo_paint(colors)
+            layer_idx += colr_slice.num_layers
         else:
             painted_layer = color_glyph.painted_layers[layer_idx]
             layer_idx += 1
@@ -514,36 +526,10 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     # examine layers to hoist out repeated layers to COLR glyphs
     colr_insertions = {}
     if colr_version > 0 and FLAGS.extract_colr_glyphs:
-        for idx, instances in enumerate(_extract_colr_glyphs(color_glyphs)):
-            color_glyph = color_glyphs[instances[0].color_glyph_idx]
-            new_id = f"colr.{idx}"
-            logging.debug(
-                "Extracting %s for %d instances of %s",
-                new_id,
-                len(instances),
-                instances[0],
-            )
+        for colr_slice in _extract_colr_slices(color_glyphs):
+            colr_insertions[(colr_slice.target_glyph, colr_slice.dest_start)] = colr_slice
 
-            new_color_glyph = color_glyph._replace(
-                filename=f"{color_glyph.filename}.{new_id}",
-                glyph_name=new_id,
-                glyph_id=len(ufo.glyphOrder),
-                codepoints=(),
-                painted_layers=color_glyph.painted_layers[
-                    instances[0].layer_start : instances[0].layer_end
-                ],
-            )
-            ufo_color_layers[new_id] = _ufo_colr_layers(
-                colr_version, colors, new_color_glyph, colr_insertions, glyph_cache
-            )
-            ufo.newGlyph(new_id)
-            ufo.glyphOrder += [new_id]
-            for color_glyph_idx, layer_start, layer_end in instances:
-                colr_insertions[
-                    (color_glyphs[color_glyph_idx].glyph_name, layer_start)
-                ] = (layer_end, new_id)
-
-    # write glyphs using the hoisted COLR glyphs
+    # write glyphs using subsets of other COLR glyphs
     for color_glyph in color_glyphs:
         logging.debug(
             "%s %s %s",

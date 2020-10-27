@@ -38,18 +38,22 @@ class DAG:
         self.nth_of_type = {}
         self.count_of_type = Counter()
 
+    def visited(self, node_id):
+        return node_id in self.nth_of_type
+
     def edge(self, src, dest):
-        if dest not in self.nth_of_type:
+        if not self.visited(dest):
             dest_type = dest[:dest.index("_")]
             self.count_of_type[dest_type] += 1
             self.nth_of_type[dest] = self.count_of_type[dest_type]
 
             #if len(dest) > 32:
             #    self.graph.node(dest, f"{dest_type}.{self.nth_of_type[dest]}")
-        if src is not None and (src, dest) not in self.edges:
+        new_edge = (src, dest) not in self.edges
+        if src is not None and new_edge:
             self.graph.edge(src, dest)
-            self.edges.add((src, dest))
-
+        self.edges.add((src, dest))
+        return new_edge
 
 
 def _base_glyphs(font, filter_fn):
@@ -104,7 +108,13 @@ def _paint_node_id(palette, paint):
     if paint.Format == 4:
         return "Glyph_" + paint.Glyph
     if paint.Format == 5:
-        return "Colr_" + paint.Glyph
+        id_parts = (
+            "Slice",
+            "Base",
+            paint.Glyph,
+            "%d..%d" % (paint.FirstLayerIndex, paint.LastLayerIndex),
+            )
+        return "_".join(id_parts)
     if paint.Format == 6:
         id_parts = (
             "Transform",
@@ -126,26 +136,28 @@ def _paint_node_id(palette, paint):
     raise NotImplementedError(f"id for format {paint.Format} ({dir(paint)})")
 
 def _paint(dag, parent, font, paint, depth):
+    if depth > 256:
+        raise NotImplementedError("Too deep, something wrong?")
     palette = font["CPAL"].palettes[0]
     node_id = _paint_node_id(palette, paint)
     print(_indent(depth), node_id)
 
-    # if node_attr:
-    #     dag.graph.node(name, **node_attr)
-    dag.edge(parent, node_id)
+    new_edge = dag.edge(parent, node_id)
 
     # Descend
-    if paint.Format in (2, 3):
-        dag.edge(node_id, _color_line_node_id(palette, paint.ColorLine))
-    elif paint.Format == 4:
-        _paint(dag, node_id, font, paint.Paint, depth + 1)
-    elif paint.Format == 5:
-        _glyph(dag, node_id, font, _only(_base_glyphs(font, lambda g: g.BaseGlyph == paint.Glyph)), depth + 1)
-    elif paint.Format == 6:
-        _paint(dag, node_id, font, paint.Paint, depth + 1)
-    elif paint.Format == 7:
-        _paint(dag, node_id, font, paint.BackdropPaint, depth + 1)
-        _paint(dag, node_id, font, paint.SourcePaint, depth + 1)
+    if new_edge:
+        if paint.Format in (2, 3):
+            dag.edge(node_id, _color_line_node_id(palette, paint.ColorLine))
+        elif paint.Format == 4:
+            _paint(dag, node_id, font, paint.Paint, depth + 1)
+        # adding format 5 edges makes the result a horrible mess
+        #elif paint.Format == 5:
+        #   _glyph(dag, node_id, font, _only(_base_glyphs(font, lambda g: g.BaseGlyph == paint.Glyph)), depth + 1)
+        elif paint.Format == 6:
+            _paint(dag, node_id, font, paint.Paint, depth + 1)
+        elif paint.Format == 7:
+            _paint(dag, node_id, font, paint.BackdropPaint, depth + 1)
+            _paint(dag, node_id, font, paint.SourcePaint, depth + 1)
 
 
 def _glyph(dag, parent, font, base_glyph, depth=0):
@@ -167,6 +179,9 @@ def main(argv):
     for base_glyph in _base_glyphs(font, lambda _: True):
         _glyph(dag, None, font, base_glyph)
 
+    print("Count by type")
+    for node_type, count in sorted(dag.count_of_type.items()):
+        print("  ", node_type, count)
     print("wrote", dag.graph.render())
 
 
