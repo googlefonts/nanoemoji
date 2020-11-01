@@ -27,7 +27,7 @@ pytype==2020.9.14 ; python_version < "3.8"  # via -r dev-requirements.in
 pyyaml==5.3.1             # via pytype
 regex==2020.7.14          # via black
 six==1.15.0               # via importlab, packaging, pip-tools, pytype
-toml==0.10.1              # via black, pytest
+toml==0.10.2              # via black, pytest
 typed-ast==1.4.1          # via black, pytype
 typing-extensions==3.7.4.3  # via black
 zipp==3.3.1               # via importlib-metadata
