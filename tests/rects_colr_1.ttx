@@ -93,53 +93,58 @@
       <!-- BaseGlyphCount=2 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1List>
-          <!-- LayerCount=2 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="1">
-            <LayerGlyph value="e000.1"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Alpha value="0.8"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="8"><!-- PaintColrLayers -->
+          <NumLayers value="2"/>
+          <FirstLayerIndex value="0"/>
+        </Paint>
       </BaseGlyphV1Record>
       <BaseGlyphV1Record index="1">
         <BaseGlyph value="e001"/>
-        <LayerV1List>
-          <!-- LayerCount=2 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="2"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="1">
-            <LayerGlyph value="e000.1"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="1"/>
-                <Alpha value="0.8"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="8"><!-- PaintColrLayers -->
+          <NumLayers value="2"/>
+          <FirstLayerIndex value="2"/>
+        </Paint>
       </BaseGlyphV1Record>
     </BaseGlyphV1List>
+    <LayerV1List>
+      <!-- LayerCount=4 -->
+      <Paint index="0" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="0.8"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.1"/>
+      </Paint>
+      <Paint index="2" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="3" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="1"/>
+            <Alpha value="0.8"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.1"/>
+      </Paint>
+    </LayerV1List>
   </COLR>
 
   <CPAL>

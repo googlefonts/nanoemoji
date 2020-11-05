@@ -75,9 +75,6 @@ class Paint:
     def to_ufo_paint(self, colors: Sequence[Color]):
         raise NotImplementedError()
 
-    def to_svg_paint(self) -> Mapping[str, Any]:
-        raise NotImplementedError()
-
 
 @dataclasses.dataclass(frozen=True)
 class PaintSolid(Paint):
@@ -235,3 +232,7 @@ class PaintComposite(Paint):
             "backdrop": self.backdrop.to_ufo_paint(colors),
         }
         return paint
+
+@dataclasses.dataclass(frozen=True)
+class PaintColrLayers(Paint):
+    format: ClassVar[int] = 8

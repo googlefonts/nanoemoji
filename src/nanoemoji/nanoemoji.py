@@ -116,7 +116,6 @@ def write_preamble(nw):
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
         + _bool_flag("keep_glyph_names")
-        + _bool_flag("extract_colr_glyphs")
         + f" --reuse_level {FLAGS.reuse_level}"
         + " -v 1"
         + " --output_file $out"

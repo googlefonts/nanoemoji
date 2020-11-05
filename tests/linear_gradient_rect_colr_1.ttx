@@ -69,40 +69,40 @@
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1List>
-          <!-- LayerCount=1 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="2">
-              <ColorLine>
-                <Extend value="pad"/>
-                <!-- StopCount=2 -->
-                <ColorStop index="0">
-                  <StopOffset value="0.1"/>
-                  <Color>
-                    <PaletteIndex value="0"/>
-                    <Alpha value="1.0"/>
-                  </Color>
-                </ColorStop>
-                <ColorStop index="1">
-                  <StopOffset value="0.9"/>
-                  <Color>
-                    <PaletteIndex value="1"/>
-                    <Alpha value="0.8"/>
-                  </Color>
-                </ColorStop>
-              </ColorLine>
-              <x0 value="20"/>
-              <y0 value="80"/>
-              <x1 value="80"/>
-              <y1 value="80"/>
-              <x2 value="80"/>
-              <y2 value="80"/>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="4"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintLinearGradient -->
+            <ColorLine>
+              <Extend value="pad"/>
+              <!-- StopCount=2 -->
+              <ColorStop index="0">
+                <StopOffset value="0.1"/>
+                <Color>
+                  <PaletteIndex value="0"/>
+                  <Alpha value="1.0"/>
+                </Color>
+              </ColorStop>
+              <ColorStop index="1">
+                <StopOffset value="0.9"/>
+                <Color>
+                  <PaletteIndex value="1"/>
+                  <Alpha value="0.8"/>
+                </Color>
+              </ColorStop>
+            </ColorLine>
+            <x0 value="20"/>
+            <y0 value="80"/>
+            <x1 value="80"/>
+            <y1 value="80"/>
+            <x2 value="80"/>
+            <y2 value="80"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
       </BaseGlyphV1Record>
     </BaseGlyphV1List>
+    <LayerV1List>
+      <!-- LayerCount=0 -->
+    </LayerV1List>
   </COLR>
 
   <CPAL>

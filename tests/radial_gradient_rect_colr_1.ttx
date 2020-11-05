@@ -69,11 +69,9 @@
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1List>
-          <!-- LayerCount=1 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="3">
+        <Paint Format="4"><!-- PaintGlyph -->
+          <Paint Format="6"><!-- PaintTransform -->
+            <Paint Format="3"><!-- PaintRadialGradient -->
               <ColorLine>
                 <Extend value="repeat"/>
                 <!-- StopCount=2 -->
@@ -93,22 +91,28 @@
                 </ColorStop>
               </ColorLine>
               <x0 value="50"/>
-              <y0 value="70"/>
+              <y0 value="50"/>
               <r0 value="0"/>
               <x1 value="50"/>
-              <y1 value="70"/>
+              <y1 value="50"/>
               <r1 value="30"/>
-              <Transform>
-                <xx value="1.0"/>
-                <xy value="0.0"/>
-                <yx value="0.0"/>
-                <yy value="-0.33333"/>
-              </Transform>
             </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+            <Transform>
+              <xx value="1.0"/>
+              <yx value="0.0"/>
+              <xy value="0.0"/>
+              <yy value="0.33333"/>
+              <dx value="0.0"/>
+              <dy value="53.33333"/>
+            </Transform>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
       </BaseGlyphV1Record>
     </BaseGlyphV1List>
+    <LayerV1List>
+      <!-- LayerCount=0 -->
+    </LayerV1List>
   </COLR>
 
   <CPAL>

@@ -42,6 +42,7 @@ from colr_to_svg import colr_to_svg
         ),
     ],
 )
+@pytest.mark.usefixtures("absl_flags")
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_format):
     config, glyph_inputs = test_helper.color_font_config(
         color_format, (svg_in,), output_format

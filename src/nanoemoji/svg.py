@@ -21,7 +21,17 @@ from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.disjoint_set import DisjointSet
-from nanoemoji.paint import Paint
+from nanoemoji.paint import (
+    Paint,
+    PaintSolid,
+    PaintLinearGradient,
+    PaintRadialGradient,
+    PaintGlyph,
+    PaintColrGlyph,
+    PaintTransform,
+    PaintComposite,
+    PaintColrLayers,
+)
 from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
@@ -107,11 +117,21 @@ def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
     return (view_box, painted_layer.paint, painted_layer.path, painted_layer.reuses)
 
 
-def _apply_paint(el: etree.Element, paint: Paint):
-    el.attrib.update(paint.to_svg_paint())
+def _apply_paint(svg_defs: etree.Element, el: etree.Element, paint: Paint, reuse_cache: ReuseCache):
+
+    if paint.format == PaintSolid.format:
+        color = paint.color
+        el.attrib["fill"] = color.opaque().to_string()
+        if color.alpha != 1.0:
+            el.attrib["opacity"] = _ntos(color.alpha)
+
+    else:
+        raise NotImplementedError(f"TODO svg for paint format {paint.format}")
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
+    svg_defs = svg.xpath_one("//svg:defs")
+
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
@@ -132,7 +152,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     "fill"
                 ] = f"url(#{reuse_cache.old_to_new_id.get(match.group(1), match.group(1))})"
             else:
-                _apply_paint(el, painted_layer.paint)
+                _apply_paint(svg_defs, el, painted_layer.paint, reuse_cache)
 
             svg_g.append(el)
             reuse_cache.shapes[reuse_key] = el
@@ -233,9 +253,7 @@ def _picosvg_docs(
             r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
         )
 
-        svg_defs = svg.xpath_one("//svg:defs")
         for color_glyph in (color_glyphs[g] for g in group):
-            _add_unique_gradients(svg_defs, color_glyph, reuse_cache)
             _add_glyph(svg, color_glyph, reuse_cache)
 
         gids = tuple(color_glyphs[g].glyph_id for g in group)

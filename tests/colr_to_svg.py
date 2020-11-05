@@ -14,7 +14,17 @@
 
 from nanoemoji import colors
 from nanoemoji import color_glyph
-from nanoemoji.paint import Extend
+from nanoemoji.paint import (
+    Extend,
+    PaintSolid,
+    PaintLinearGradient,
+    PaintRadialGradient,
+    PaintGlyph,
+    PaintColrGlyph,
+    PaintTransform,
+    PaintComposite,
+    PaintColrLayers,
+)
 from nanoemoji.svg import _svg_matrix, _ntos
 from nanoemoji.svg_path import SVGPathPen
 from picosvg.svg import SVG
@@ -26,14 +36,6 @@ from lxml import etree
 from typing import Any, Dict, Mapping, NamedTuple, Optional, Sequence
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
-
-_PAINT_SOLID = 1
-_PAINT_LINEAR_GRADIENT = 2
-_PAINT_RADIAL_GRADIENT = 3
-_PAINT_GLYPH = 4
-_PAINT_COLOR_GLYPH = 5
-_PAINT_TRANSFORM = 6
-_PAINT_COMPOSITE = 6
 
 
 class _ColorStop(NamedTuple):
@@ -241,12 +243,12 @@ def _colr_v1_paint_to_svg(
     svg_path: Optional[etree.Element] = None,
     transform: Affine2D = Affine2D.identity(),
 ):
-    if paint.Format == _PAINT_SOLID:
+    if paint.Format == PaintSolid.format:
         assert svg_path is not None
         _solid_paint(
             svg_path, ttfont, paint.Color.PaletteIndex, paint.Color.Alpha.value
         )
-    elif paint.Format == _PAINT_LINEAR_GRADIENT:
+    elif paint.Format == PaintLinearGradient.format:
         assert svg_path is not None
         _linear_gradient_paint(
             svg_root[0],
@@ -266,7 +268,7 @@ def _colr_v1_paint_to_svg(
             p1=Point(paint.x1.value, paint.y1.value),
             p2=Point(paint.x2.value, paint.y2.value),
         )
-    elif paint.Format == _PAINT_RADIAL_GRADIENT:
+    elif paint.Format == PaintRadialGradient.format:
         assert svg_path is not None
         _radial_gradient_paint(
             svg_root[0],
@@ -288,7 +290,7 @@ def _colr_v1_paint_to_svg(
             r1=paint.r1.value,
             transform=transform,
         )
-    elif paint.Format == _PAINT_GLYPH:
+    elif paint.Format == PaintGlyph.format:
         assert svg_path is None, "recursive PaintGlyph is unsupported"
         layer_glyph = paint.Glyph
         svg_path = etree.SubElement(svg_root, "path")
@@ -305,7 +307,7 @@ def _colr_v1_paint_to_svg(
         )
 
         _draw_svg_path(svg_path, view_box, ttfont, layer_glyph, glyph_set)
-    elif paint.Format == _PAINT_TRANSFORM:
+    elif paint.Format == PaintTransform.format:
         transform = Affine2D.product(
             (
                 Affine2D.identity()
@@ -330,6 +332,18 @@ def _colr_v1_paint_to_svg(
             svg_path,
             transform=transform,
         )
+    elif paint.Format == PaintColrLayers.format:
+        layerList = ttfont["COLR"].table.LayerV1List.Paint
+        assert layerList, "Paint layers without a layer list :("
+        for child_paint in layerList[paint.FirstLayerIndex:paint.FirstLayerIndex+paint.NumLayers]:
+            _colr_v1_paint_to_svg(
+                ttfont,
+                glyph_set,
+                svg_root,
+                view_box,
+                child_paint,
+                svg_path,
+            )
     else:
         raise NotImplementedError(paint.Format)
 
@@ -339,8 +353,7 @@ def _colr_v1_glyph_to_svg(
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
-    for paint in glyph.LayerV1List.Paint:
-        _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, view_box, paint)
+    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, view_box, glyph.Paint)
     return svg_root
 
 

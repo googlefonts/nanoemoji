@@ -289,183 +289,156 @@
       <!-- BaseGlyphCount=2 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1List>
-          <!-- LayerCount=7 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="2">
-              <ColorLine>
-                <Extend value="pad"/>
-                <!-- StopCount=2 -->
-                <ColorStop index="0">
-                  <StopOffset value="0.3212"/>
-                  <Color>
-                    <PaletteIndex value="6"/>
-                    <Alpha value="1.0"/>
-                  </Color>
-                </ColorStop>
-                <ColorStop index="1">
-                  <StopOffset value="1.0"/>
-                  <Color>
-                    <PaletteIndex value="5"/>
-                    <Alpha value="1.0"/>
-                  </Color>
-                </ColorStop>
-              </ColorLine>
-              <x0 value="50"/>
-              <y0 value="85"/>
-              <x1 value="50"/>
-              <y1 value="13"/>
-              <x2 value="50"/>
-              <y2 value="13"/>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="1">
-            <LayerGlyph value="e000.1"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="2">
-            <LayerGlyph value="e000.2"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="1"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="3">
-            <LayerGlyph value="e000.3"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="2"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="4">
-            <LayerGlyph value="e000.4"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="8"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="5">
-            <LayerGlyph value="e000.5"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="3"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="6">
-            <LayerGlyph value="e000.6"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="2"/>
-                <Alpha value="0.2"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="8"><!-- PaintColrLayers -->
+          <NumLayers value="7"/>
+          <FirstLayerIndex value="0"/>
+        </Paint>
       </BaseGlyphV1Record>
       <BaseGlyphV1Record index="1">
         <BaseGlyph value="e001"/>
-        <LayerV1List>
-          <!-- LayerCount=7 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="2">
-              <ColorLine>
-                <Extend value="pad"/>
-                <!-- StopCount=2 -->
-                <ColorStop index="0">
-                  <StopOffset value="0.3212"/>
-                  <Color>
-                    <PaletteIndex value="6"/>
-                    <Alpha value="1.0"/>
-                  </Color>
-                </ColorStop>
-                <ColorStop index="1">
-                  <StopOffset value="1.0"/>
-                  <Color>
-                    <PaletteIndex value="5"/>
-                    <Alpha value="1.0"/>
-                  </Color>
-                </ColorStop>
-              </ColorLine>
-              <x0 value="50"/>
-              <y0 value="85"/>
-              <x1 value="50"/>
-              <y1 value="13"/>
-              <x2 value="50"/>
-              <y2 value="13"/>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="1">
-            <LayerGlyph value="e000.1"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="4"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="2">
-            <LayerGlyph value="e001.0"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="7"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="3">
-            <LayerGlyph value="e000.3"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="2"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="4">
-            <LayerGlyph value="e000.4"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="8"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="5">
-            <LayerGlyph value="e000.5"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="3"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="6">
-            <LayerGlyph value="e000.6"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="2"/>
-                <Alpha value="0.2"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="8"><!-- PaintColrLayers -->
+          <NumLayers value="4"/>
+          <FirstLayerIndex value="7"/>
+        </Paint>
       </BaseGlyphV1Record>
     </BaseGlyphV1List>
+    <LayerV1List>
+      <!-- LayerCount=11 -->
+      <Paint index="0" Format="4"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintLinearGradient -->
+          <ColorLine>
+            <Extend value="pad"/>
+            <!-- StopCount=2 -->
+            <ColorStop index="0">
+              <StopOffset value="0.3212"/>
+              <Color>
+                <PaletteIndex value="6"/>
+                <Alpha value="1.0"/>
+              </Color>
+            </ColorStop>
+            <ColorStop index="1">
+              <StopOffset value="1.0"/>
+              <Color>
+                <PaletteIndex value="5"/>
+                <Alpha value="1.0"/>
+              </Color>
+            </ColorStop>
+          </ColorLine>
+          <x0 value="50"/>
+          <y0 value="85"/>
+          <x1 value="50"/>
+          <y1 value="13"/>
+          <x2 value="50"/>
+          <y2 value="13"/>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.1"/>
+      </Paint>
+      <Paint index="2" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="1"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.2"/>
+      </Paint>
+      <Paint index="3" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.3"/>
+      </Paint>
+      <Paint index="4" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="8"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.4"/>
+      </Paint>
+      <Paint index="5" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.5"/>
+      </Paint>
+      <Paint index="6" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="0.2"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.6"/>
+      </Paint>
+      <Paint index="7" Format="4"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintLinearGradient -->
+          <ColorLine>
+            <Extend value="pad"/>
+            <!-- StopCount=2 -->
+            <ColorStop index="0">
+              <StopOffset value="0.3212"/>
+              <Color>
+                <PaletteIndex value="6"/>
+                <Alpha value="1.0"/>
+              </Color>
+            </ColorStop>
+            <ColorStop index="1">
+              <StopOffset value="1.0"/>
+              <Color>
+                <PaletteIndex value="5"/>
+                <Alpha value="1.0"/>
+              </Color>
+            </ColorStop>
+          </ColorLine>
+          <x0 value="50"/>
+          <y0 value="85"/>
+          <x1 value="50"/>
+          <y1 value="13"/>
+          <x2 value="50"/>
+          <y2 value="13"/>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="8" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="4"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.1"/>
+      </Paint>
+      <Paint index="9" Format="4"><!-- PaintGlyph -->
+        <Paint Format="1"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="7"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.0"/>
+      </Paint>
+      <Paint index="10" Format="8"><!-- PaintColrLayers -->
+        <NumLayers value="4"/>
+        <FirstLayerIndex value="3"/>
+      </Paint>
+    </LayerV1List>
   </COLR>
 
   <CPAL>
