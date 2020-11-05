@@ -37,3 +37,21 @@ import pytest
 )
 def test_color_fromstring(color_string, expected_color):
     assert expected_color == Color.fromstring(color_string)
+
+@pytest.mark.parametrize(
+    "color, expected_string",
+    [
+        # 3-hex digits
+        (Color(0xBB, 0xCC, 0xDD, 1.0), "#BBCCDD"),
+        # 6-hex digits
+        (Color(0xF1, 0xE2, 0xD3, 1.0), "#F1E2D3"),
+        # 8-hex digits
+        (Color(0xF1, 0xE2, 0xD3, 0.4), "#F1E2D366"),
+        # CSS named color
+        (Color(0xF5, 0xDE, 0xB3, 1.0), "wheat"),
+        # CSS named color skipped for alpha != 1
+        (Color(0xF5, 0xDE, 0xB3, 0.4), "#F5DEB366"),
+    ],
+)
+def test_color_to_string(color, expected_string):
+    assert expected_string == color.to_string()
