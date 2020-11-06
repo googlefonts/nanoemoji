@@ -335,7 +335,9 @@ def _colr_v1_paint_to_svg(
     elif paint.Format == PaintColrLayers.format:
         layerList = ttfont["COLR"].table.LayerV1List.Paint
         assert layerList, "Paint layers without a layer list :("
-        for child_paint in layerList[paint.FirstLayerIndex:paint.FirstLayerIndex+paint.NumLayers]:
+        for child_paint in layerList[
+            paint.FirstLayerIndex : paint.FirstLayerIndex + paint.NumLayers
+        ]:
             _colr_v1_paint_to_svg(
                 ttfont,
                 glyph_set,

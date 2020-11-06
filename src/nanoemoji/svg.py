@@ -117,7 +117,9 @@ def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
     return (view_box, painted_layer.paint, painted_layer.path, painted_layer.reuses)
 
 
-def _apply_paint(svg_defs: etree.Element, el: etree.Element, paint: Paint, reuse_cache: ReuseCache):
+def _apply_paint(
+    svg_defs: etree.Element, el: etree.Element, paint: Paint, reuse_cache: ReuseCache
+):
 
     if paint.format == PaintSolid.format:
         color = paint.color

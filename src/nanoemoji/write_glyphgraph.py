@@ -20,6 +20,8 @@ from absl import logging
 from collections import Counter
 from fontTools import ttLib
 from graphviz import Digraph
+from lxml import etree
+from nanoemoji.colors import Color
 from typing import Mapping, Set, Tuple
 
 
@@ -33,7 +35,9 @@ class DAG:
     count_of_type: Counter
 
     def __init__(self):
-        self.graph = Digraph("unix", directory="build", format="svg", graph_attr = {"rankdir": "LR"})
+        self.graph = Digraph(
+            "unix", directory="build", format="svg", graph_attr={"rankdir": "LR"}
+        )
         self.edges = set()
         self.nth_of_type = {}
         self.count_of_type = Counter()
@@ -43,11 +47,13 @@ class DAG:
 
     def edge(self, src, dest):
         if not self.visited(dest):
-            dest_type = dest[:dest.index("_")]
+            dest_type = dest
+            if "_" in dest:
+                dest_type = dest[: dest.index("_")]
             self.count_of_type[dest_type] += 1
             self.nth_of_type[dest] = self.count_of_type[dest_type]
 
-            #if len(dest) > 32:
+            # if len(dest) > 32:
             #    self.graph.node(dest, f"{dest_type}.{self.nth_of_type[dest]}")
         new_edge = (src, dest) not in self.edges
         if src is not None and new_edge:
@@ -73,19 +79,24 @@ def _indent(depth):
     return depth * "  "
 
 
+def _color_index_str(palette, color_index):
+    color = Color.fromstring(palette[color_index.PaletteIndex].hex())
+    ci_alpha = color_index.Alpha.value
+    return f"{ci_alpha:.2f}.{color.opaque().to_string()}.{color.alpha:.2f}"
+
+
 def _color_line_node_id(palette, color_line):
     id_parts = ["ColorLine", color_line.Extend.name]
     for stop in color_line.ColorStop:
-        cpal_color = palette[stop.Color.PaletteIndex]
-        cpal_color = cpal_color._replace(alpha=int(cpal_color.alpha * stop.Color.Alpha.value))
-        id_parts.append(f"{cpal_color.hex()}@{stop.StopOffset.value:.1f}")
+        id_parts.append(
+            f"{_color_index_str(palette, stop.Color)}@{stop.StopOffset.value:.1f}"
+        )
     return "_".join(id_parts)
+
 
 def _paint_node_id(palette, paint):
     if paint.Format == 1:
-        cpal_color = palette[paint.Color.PaletteIndex]
-        colr_alpha = paint.Color.Alpha.value
-        return f"Solid_{cpal_color}_{colr_alpha:.4f}"
+        return f"Solid_{_color_index_str(palette, paint.Color)}"
     if paint.Format == 2:
         id_parts = (
             "Linear",
@@ -93,7 +104,7 @@ def _paint_node_id(palette, paint):
             f"p1({paint.x1.value}, {paint.y1.value})",
             f"p2({paint.x2.value}, {paint.y2.value})",
             _color_line_node_id(palette, paint.ColorLine),
-            )
+        )
         return "_".join(id_parts)
     if paint.Format == 3:
         id_parts = (
@@ -103,7 +114,7 @@ def _paint_node_id(palette, paint):
             f"c1({paint.x1.value}, {paint.y1.value})",
             f"r1 {paint.r1.value}",
             _color_line_node_id(palette, paint.ColorLine),
-            )
+        )
         return "_".join(id_parts)
     if paint.Format == 4:
         return "Glyph_" + paint.Glyph
@@ -113,7 +124,7 @@ def _paint_node_id(palette, paint):
             "Base",
             paint.Glyph,
             "%d..%d" % (paint.FirstLayerIndex, paint.LastLayerIndex),
-            )
+        )
         return "_".join(id_parts)
     if paint.Format == 6:
         id_parts = (
@@ -123,7 +134,7 @@ def _paint_node_id(palette, paint):
             f"dx {paint.Transform.dx.value}",
             f"dy {paint.Transform.dy.value}",
             _paint_node_id(palette, paint.Paint),
-            )
+        )
         return "_".join(id_parts)
     if paint.Format == 7:
         id_parts = (
@@ -131,9 +142,15 @@ def _paint_node_id(palette, paint):
             _paint_node_id(palette, paint.SourcePaint),
             paint.CompositeMode.name,
             _paint_node_id(palette, paint.BackdropPaint),
-            )
+        )
         return "_".join(id_parts)
+    if paint.Format == 8:
+        return (
+            f"Layers_[{paint.FirstLayerIndex}..{paint.FirstLayerIndex+paint.NumLayers}]"
+        )
+
     raise NotImplementedError(f"id for format {paint.Format} ({dir(paint)})")
+
 
 def _paint(dag, parent, font, paint, depth):
     if depth > 256:
@@ -151,13 +168,19 @@ def _paint(dag, parent, font, paint, depth):
         elif paint.Format == 4:
             _paint(dag, node_id, font, paint.Paint, depth + 1)
         # adding format 5 edges makes the result a horrible mess
-        #elif paint.Format == 5:
+        # elif paint.Format == 5:
         #   _glyph(dag, node_id, font, _only(_base_glyphs(font, lambda g: g.BaseGlyph == paint.Glyph)), depth + 1)
         elif paint.Format == 6:
             _paint(dag, node_id, font, paint.Paint, depth + 1)
         elif paint.Format == 7:
             _paint(dag, node_id, font, paint.BackdropPaint, depth + 1)
             _paint(dag, node_id, font, paint.SourcePaint, depth + 1)
+        elif paint.Format == 8:
+            child_paints = font["COLR"].table.LayerV1List.Paint[
+                paint.FirstLayerIndex : paint.FirstLayerIndex + paint.NumLayers
+            ]
+            for child_paint in child_paints:
+                _paint(dag, node_id, font, child_paint, depth + 1)
 
 
 def _glyph(dag, parent, font, base_glyph, depth=0):
@@ -165,8 +188,7 @@ def _glyph(dag, parent, font, base_glyph, depth=0):
     dag.edge(parent, name)
 
     print(_indent(depth), name)
-    for paint in base_glyph.LayerV1List.Paint:
-        _paint(dag, name, font, paint, depth + 1)
+    _paint(dag, name, font, base_glyph.Paint, depth + 1)
 
 
 def main(argv):
@@ -179,10 +201,20 @@ def main(argv):
     for base_glyph in _base_glyphs(font, lambda _: True):
         _glyph(dag, None, font, base_glyph)
 
+    dag.edge(None, "LayerV1List")
+    print("LayerV1List")
+    for paint in font["COLR"].table.LayerV1List.Paint:
+        _paint(dag, "LayerV1List", font, paint, 1)
+
     print("Count by type")
     for node_type, count in sorted(dag.count_of_type.items()):
         print("  ", node_type, count)
-    print("wrote", dag.graph.render())
+    output_file = dag.graph.render()
+    tree = etree.parse(output_file)
+    del tree.getroot().attrib["width"]
+    del tree.getroot().attrib["height"]
+    tree.write(output_file, pretty_print=True)
+    print("wrote", output_file)
 
 
 if __name__ == "__main__":

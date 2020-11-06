@@ -88,6 +88,7 @@ def _bool_flag(name):
     flag += name
     return flag
 
+
 def write_preamble(nw):
     def module_rule(mod_name, arg_pattern, rspfile=None, rspfile_content=None):
         nw.rule(

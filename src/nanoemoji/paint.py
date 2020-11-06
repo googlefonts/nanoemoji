@@ -233,6 +233,7 @@ class PaintComposite(Paint):
         }
         return paint
 
+
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
     format: ClassVar[int] = 8

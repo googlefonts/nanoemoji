@@ -38,6 +38,7 @@ import pytest
 def test_color_fromstring(color_string, expected_color):
     assert expected_color == Color.fromstring(color_string)
 
+
 @pytest.mark.parametrize(
     "color, expected_string",
     [
