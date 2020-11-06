@@ -458,10 +458,6 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
 
-    # TEMPORARY
-    for k, v in ufo_color_layers.items():
-        print(k, v)
-
 
 def _svg_ttfont(_, color_glyphs, ttfont, picosvg=True, compressed=False):
     make_svg_table(ttfont, color_glyphs, picosvg, compressed)
