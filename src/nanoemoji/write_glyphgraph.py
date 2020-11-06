@@ -22,10 +22,20 @@ from fontTools import ttLib
 from graphviz import Digraph
 from lxml import etree
 from nanoemoji.colors import Color
-from typing import Mapping, Set, Tuple
+from typing import Mapping, NamedTuple, Set, Tuple
 
 
 FLAGS = flags.FLAGS
+
+
+class Node(NamedTuple):
+    node_id: str
+    node_label: str = None
+
+    def label(self):
+        if self.node_label:
+            return self.node_label
+        return self.node_id
 
 
 class DAG:
@@ -79,33 +89,39 @@ def _indent(depth):
     return depth * "  "
 
 
-def _color_index_str(palette, color_index):
+def _color_index_node(palette, color_index):
     color = Color.fromstring(palette[color_index.PaletteIndex].hex())
     ci_alpha = color_index.Alpha.value
-    return f"{ci_alpha:.2f}.{color.opaque().to_string()}.{color.alpha:.2f}"
+    node_id = f"{ci_alpha:.2f}.{color.opaque().to_string()}.{color.alpha:.2f}"
+    return Node(node_id=node_id, node_label=color._replace(alpha=color.alpha * ci_alpha).to_string())
 
 
-def _color_line_node_id(palette, color_line):
+def _color_line_node(palette, color_line):
     id_parts = ["ColorLine", color_line.Extend.name]
+    name_parts = id_parts[:]
     for stop in color_line.ColorStop:
+        color_node = _color_index_node(palette, stop.Color)
         id_parts.append(
-            f"{_color_index_str(palette, stop.Color)}@{stop.StopOffset.value:.1f}"
+            f"{color_node.node_id}@{stop.StopOffset.value:.1f}"
         )
-    return "_".join(id_parts)
+        name_parts.append(
+            f"{color_node.node_label}@{stop.StopOffset.value:.1f}"
+        )
+    return Node(node_id="_".join(id_parts), node_label=" ".join(name_parts))
 
 
-def _paint_node_id(palette, paint):
+def _paint_node(glyph_order, palette, paint) -> Node:
     if paint.Format == 1:
-        return f"Solid_{_color_index_str(palette, paint.Color)}"
+        return _color_index_node(palette, paint.Color)
     if paint.Format == 2:
         id_parts = (
             "Linear",
             f"p0({paint.x0.value}, {paint.y0.value})",
             f"p1({paint.x1.value}, {paint.y1.value})",
             f"p2({paint.x2.value}, {paint.y2.value})",
-            _color_line_node_id(palette, paint.ColorLine),
+            _color_line_node(palette, paint.ColorLine).node_id,
         )
-        return "_".join(id_parts)
+        return Node(node_id="_".join(id_parts), node_label=" ".join(id_parts[:-1]))
     if paint.Format == 3:
         id_parts = (
             "Radial",
@@ -113,11 +129,16 @@ def _paint_node_id(palette, paint):
             f"r0 {paint.r0.value}",
             f"c1({paint.x1.value}, {paint.y1.value})",
             f"r1 {paint.r1.value}",
-            _color_line_node_id(palette, paint.ColorLine),
+            _color_line_node(palette, paint.ColorLine).node_id,
         )
-        return "_".join(id_parts)
+        return Node(node_id="_".join(id_parts), node_label=" ".join(id_parts[:-1]))
     if paint.Format == 4:
-        return "Glyph_" + paint.Glyph
+        id_parts = (
+            "Glyph",
+            paint.Glyph,
+            _paint_node(glyph_order, palette, paint.Paint).node_id,
+        )
+        return Node(node_id="_".join(id_parts), node_label=f"gid {glyph_order.index(paint.Glyph)}")
     if paint.Format == 5:
         id_parts = (
             "Slice",
@@ -133,21 +154,21 @@ def _paint_node_id(palette, paint):
             f"ĵ {paint.Transform.yx.value},{paint.Transform.yy.value}",
             f"dx {paint.Transform.dx.value}",
             f"dy {paint.Transform.dy.value}",
-            _paint_node_id(palette, paint.Paint),
+            _paint_node(glyph_order, palette, paint.Paint).node_id,
         )
-        return "_".join(id_parts)
+        return Node(node_id="_".join(id_parts))
     if paint.Format == 7:
         id_parts = (
             "Composite",
-            _paint_node_id(palette, paint.SourcePaint),
+            _paint_node(glyph_order, palette, paint.SourcePaint).node_id,
             paint.CompositeMode.name,
-            _paint_node_id(palette, paint.BackdropPaint),
+            _paint_node(glyph_order, palette, paint.BackdropPaint).node_id,
         )
-        return "_".join(id_parts)
+        return Node(node_id="_".join(id_parts), node_label=paint.CompositeMode.name)
     if paint.Format == 8:
-        return (
+        return Node(node_id=(
             f"Layers_[{paint.FirstLayerIndex}..{paint.FirstLayerIndex+paint.NumLayers}]"
-        )
+        ))
 
     raise NotImplementedError(f"id for format {paint.Format} ({dir(paint)})")
 
@@ -156,15 +177,20 @@ def _paint(dag, parent, font, paint, depth):
     if depth > 256:
         raise NotImplementedError("Too deep, something wrong?")
     palette = font["CPAL"].palettes[0]
-    node_id = _paint_node_id(palette, paint)
-    print(_indent(depth), node_id)
+    node = _paint_node(font.getGlyphOrder(), palette, paint)
+    print(_indent(depth), node.label())
 
+    dag.graph.node(node.node_id, node.node_label)
+
+    node_id = node.node_id
     new_edge = dag.edge(parent, node_id)
 
     # Descend
     if new_edge:
         if paint.Format in (2, 3):
-            dag.edge(node_id, _color_line_node_id(palette, paint.ColorLine))
+            color_node = _color_line_node(palette, paint.ColorLine)
+            dag.graph.node(color_node.node_id, color_node.node_label)
+            dag.edge(node_id, color_node.node_id)
         elif paint.Format == 4:
             _paint(dag, node_id, font, paint.Paint, depth + 1)
         # adding format 5 edges makes the result a horrible mess
@@ -200,11 +226,6 @@ def main(argv):
 
     for base_glyph in _base_glyphs(font, lambda _: True):
         _glyph(dag, None, font, base_glyph)
-
-    dag.edge(None, "LayerV1List")
-    print("LayerV1List")
-    for paint in font["COLR"].table.LayerV1List.Paint:
-        _paint(dag, "LayerV1List", font, paint, 1)
 
     print("Count by type")
     for node_type, count in sorted(dag.count_of_type.items()):
