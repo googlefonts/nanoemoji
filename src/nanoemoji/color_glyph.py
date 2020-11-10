@@ -28,10 +28,11 @@ from nanoemoji.paint import (
     PaintTransform,
 )
 from picosvg.geometric_types import Point, Rect
+from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
-from picosvg.svg_types import SVGPath
+from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
 from typing import Generator, NamedTuple, Tuple
 import ufoLib2
 
@@ -39,7 +40,12 @@ import ufoLib2
 FLAGS = flags.FLAGS
 
 
-flags.DEFINE_integer("reuse_level", 1, "Level of optimization")
+flags.DEFINE_integer("normalize_digits", 3, "Rounding for normalized shapes")
+flags.DEFINE_float(
+    "reuse_tolerence",
+    0.1,
+    "Allowable difference in reused shape in input coordinates (e.g. svg)",
+)
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
@@ -74,23 +80,6 @@ def map_viewbox_to_otsvg_emsquare(view_box: Rect, upem: int) -> Affine2D:
     return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
 
 
-def _get_gradient_units_relative_scale(grad_el, view_box):
-    gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
-    if gradient_units == "userSpaceOnUse":
-        # For gradientUnits="userSpaceOnUse", percentages represent values relative to
-        # the current viewport. Here we use the width and height of the viewBox.
-        return view_box.w, view_box.h
-    elif gradient_units == "objectBoundingBox":
-        # For gradientUnits="objectBoundingBox", percentages represent values relative
-        # to the object bounding box. The latter defines an abstract coordinate system
-        # with origin at (0,0) and a nominal width and height = 1.
-        return 1, 1
-    else:
-        raise ValueError(
-            '<linearGradient gradientUnits="{gradient_units!r}"/> not supported'
-        )
-
-
 def _get_gradient_transform(grad_el, shape_bbox, view_box, upem) -> Affine2D:
     transform = map_viewbox_to_font_emsquare(view_box, upem)
 
@@ -107,20 +96,11 @@ def _get_gradient_transform(grad_el, shape_bbox, view_box, upem) -> Affine2D:
     return transform
 
 
-def _number_or_percentage(s: str, scale=1) -> float:
-    return float(s[:-1]) / 100 * scale if s.endswith("%") else float(s)
-
-
 def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.0):
-    width, height = _get_gradient_units_relative_scale(grad_el, view_box)
+    gradient = SVGLinearGradient.from_element(grad_el, view_box)
 
-    x1 = _number_or_percentage(grad_el.attrib.get("x1", "0%"), width)
-    y1 = _number_or_percentage(grad_el.attrib.get("y1", "0%"), height)
-    x2 = _number_or_percentage(grad_el.attrib.get("x2", "100%"), width)
-    y2 = _number_or_percentage(grad_el.attrib.get("y2", "0%"), height)
-
-    p0 = Point(x1, y1)
-    p1 = Point(x2, y2)
+    p0 = Point(gradient.x1, gradient.y1)
+    p1 = Point(gradient.x2, gradient.y2)
 
     # compute the vector n perpendicular to vector v from P1 to P0
     v = p0 - p1
@@ -148,22 +128,12 @@ def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
 
 
 def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.0):
-    width, height = _get_gradient_units_relative_scale(grad_el, view_box)
+    gradient = SVGRadialGradient.from_element(grad_el, view_box)
 
-    cx = _number_or_percentage(grad_el.attrib.get("cx", "50%"), width)
-    cy = _number_or_percentage(grad_el.attrib.get("cy", "50%"), height)
-    r = _number_or_percentage(grad_el.attrib.get("r", "50%"), width)
-
-    raw_fx = grad_el.attrib.get("fx")
-    fx = _number_or_percentage(raw_fx, width) if raw_fx is not None else cx
-    raw_fy = grad_el.attrib.get("fy")
-    fy = _number_or_percentage(raw_fy, height) if raw_fy is not None else cy
-    fr = _number_or_percentage(grad_el.attrib.get("fr", "0%"), width)
-
-    c0 = Point(fx, fy)
-    r0 = fr
-    c1 = Point(cx, cy)
-    r1 = r
+    c0 = Point(gradient.fx, gradient.fy)
+    r0 = gradient.fr
+    c1 = Point(gradient.cx, gradient.cy)
+    r1 = gradient.r
 
     transform = map_viewbox_to_font_emsquare(view_box, upem)
 
@@ -196,10 +166,7 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
     gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
     gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
 
-    if "gradientTransform" in grad_el.attrib:
-        gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
-    else:
-        gradient_transform = Affine2D.identity()
+    gradient_transform = gradient.gradientTransform
 
     # TODO handle degenerate cases, fallback to solid, w/e
 
@@ -234,9 +201,9 @@ _GRADIENT_INFO = {
 
 
 def _color_stop(stop_el, shape_opacity=1.0) -> ColorStop:
-    offset = _number_or_percentage(stop_el.attrib.get("offset", "0"))
+    offset = number_or_percentage(stop_el.attrib.get("offset", "0"))
     color = Color.fromstring(stop_el.attrib.get("stop-color", "black"))
-    opacity = _number_or_percentage(stop_el.attrib.get("stop-opacity", "1"))
+    opacity = number_or_percentage(stop_el.attrib.get("stop-opacity", "1"))
     color = color._replace(alpha=color.alpha * opacity * shape_opacity)
     return ColorStop(stopOffset=offset, color=color)
 
@@ -288,7 +255,7 @@ def _in_glyph_reuse_key(
     paint+normalized shape ensures this."""
     return (
         _paint(debug_hint, upem, picosvg, shape),
-        normalize(shape, level=FLAGS.reuse_level),
+        normalize(shape, FLAGS.reuse_tolerence, FLAGS.normalize_digits),
     )
 
 
@@ -305,7 +272,7 @@ def _painted_layers(
         transforms = ()
         if len(paths) > 1:
             transforms = tuple(
-                affine_between(paths[0], p, level=FLAGS.reuse_level) for p in paths[1:]
+                affine_between(paths[0], p, FLAGS.reuse_tolerence) for p in paths[1:]
             )
         for path, transform in zip(paths[1:], transforms):
             if transform is None:

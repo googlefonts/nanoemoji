@@ -102,13 +102,18 @@ def write_preamble(nw):
     nw.newline()
 
     nw.rule(f"picosvg", f"picosvg $in > $out")
+    nw.newline()
+
     module_rule(
         "write_codepoints",
         "@$out.rsp > $out",
         rspfile="$out.rsp",
         rspfile_content="$in",
     )
+    nw.newline()
+
     module_rule("write_fea", "$in > $out")
+    nw.newline()
 
     module_rule(
         "write_font",
@@ -117,13 +122,16 @@ def write_preamble(nw):
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
         + _bool_flag("keep_glyph_names")
-        + f" --reuse_level {FLAGS.reuse_level}"
+        + f" --normalize_digits {FLAGS.normalize_digits}"
+        + f" --reuse_tolerence {FLAGS.reuse_tolerence}"
         + " -v 1"
         + " --output_file $out"
         + " @$out.rsp",
         rspfile="$out.rsp",
         rspfile_content="$in",
     )
+    nw.newline()
+
     if FLAGS.gen_svg_font_diffs:
         nw.rule(
             "write_svg2png",

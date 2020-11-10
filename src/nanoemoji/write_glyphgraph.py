@@ -20,7 +20,7 @@ from absl import logging
 from collections import Counter
 from fontTools import ttLib
 from graphviz import Digraph
-from lxml import etree
+from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
 from typing import Mapping, NamedTuple, Set, Tuple
 
@@ -81,7 +81,7 @@ def _base_glyphs(font, filter_fn):
 def _only(seq):
     seq = tuple(seq)
     if len(seq) != 1:
-        raise ValueError("Need 1 entry, got " + len(seq))
+        raise ValueError(f"Need 1 entry, got {len(seq)}")
     return seq[0]
 
 
@@ -93,7 +93,10 @@ def _color_index_node(palette, color_index):
     color = Color.fromstring(palette[color_index.PaletteIndex].hex())
     ci_alpha = color_index.Alpha.value
     node_id = f"{ci_alpha:.2f}.{color.opaque().to_string()}.{color.alpha:.2f}"
-    return Node(node_id=node_id, node_label=color._replace(alpha=color.alpha * ci_alpha).to_string())
+    return Node(
+        node_id=node_id,
+        node_label=color._replace(alpha=color.alpha * ci_alpha).to_string(),
+    )
 
 
 def _color_line_node(palette, color_line):
@@ -101,12 +104,8 @@ def _color_line_node(palette, color_line):
     name_parts = id_parts[:]
     for stop in color_line.ColorStop:
         color_node = _color_index_node(palette, stop.Color)
-        id_parts.append(
-            f"{color_node.node_id}@{stop.StopOffset.value:.1f}"
-        )
-        name_parts.append(
-            f"{color_node.node_label}@{stop.StopOffset.value:.1f}"
-        )
+        id_parts.append(f"{color_node.node_id}@{stop.StopOffset.value:.1f}")
+        name_parts.append(f"{color_node.node_label}@{stop.StopOffset.value:.1f}")
     return Node(node_id="_".join(id_parts), node_label=" ".join(name_parts))
 
 
@@ -138,7 +137,10 @@ def _paint_node(glyph_order, palette, paint) -> Node:
             paint.Glyph,
             _paint_node(glyph_order, palette, paint.Paint).node_id,
         )
-        return Node(node_id="_".join(id_parts), node_label=f"gid {glyph_order.index(paint.Glyph)}")
+        return Node(
+            node_id="_".join(id_parts),
+            node_label=f"gid {glyph_order.index(paint.Glyph)}",
+        )
     if paint.Format == 5:
         id_parts = (
             "Slice",
@@ -146,7 +148,7 @@ def _paint_node(glyph_order, palette, paint) -> Node:
             paint.Glyph,
             "%d..%d" % (paint.FirstLayerIndex, paint.LastLayerIndex),
         )
-        return "_".join(id_parts)
+        return Node(node_id="_".join(id_parts))
     if paint.Format == 6:
         id_parts = (
             "Transform",
@@ -166,9 +168,11 @@ def _paint_node(glyph_order, palette, paint) -> Node:
         )
         return Node(node_id="_".join(id_parts), node_label=paint.CompositeMode.name)
     if paint.Format == 8:
-        return Node(node_id=(
-            f"Layers_[{paint.FirstLayerIndex}..{paint.FirstLayerIndex+paint.NumLayers}]"
-        ))
+        return Node(
+            node_id=(
+                f"Layers_[{paint.FirstLayerIndex}..{paint.FirstLayerIndex+paint.NumLayers}]"
+            )
+        )
 
     raise NotImplementedError(f"id for format {paint.Format} ({dir(paint)})")
 

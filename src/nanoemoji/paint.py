@@ -18,6 +18,7 @@ Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gra
 """
 import dataclasses
 from enum import Enum, IntEnum
+from fontTools.ttLib.tables import otTables as ot
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
 from typing import Any, ClassVar, Generator, Mapping, Optional, Sequence, Tuple
@@ -77,8 +78,13 @@ class Paint:
 
 
 @dataclasses.dataclass(frozen=True)
+class PaintColrLayers(Paint):
+    format: ClassVar[int] = int(ot.Paint.Format.PaintColrLayers)
+
+
+@dataclasses.dataclass(frozen=True)
 class PaintSolid(Paint):
-    format: ClassVar[int] = 1
+    format: ClassVar[int] = int(ot.Paint.Format.PaintSolid)
     color: Color = css_color("black")
 
     def colors(self):
@@ -108,7 +114,7 @@ def _ufoColorLine(gradient, colors):
 
 @dataclasses.dataclass(frozen=True)
 class PaintLinearGradient(Paint):
-    format: ClassVar[int] = 2
+    format: ClassVar[int] = int(ot.Paint.Format.PaintLinearGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
@@ -136,7 +142,7 @@ class PaintLinearGradient(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintRadialGradient(Paint):
-    format: ClassVar[int] = 3
+    format: ClassVar[int] = int(ot.Paint.Format.PaintRadialGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop] = tuple()
     c0: Point = Point()
@@ -162,7 +168,7 @@ class PaintRadialGradient(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintGlyph(Paint):
-    format: ClassVar[int] = 4
+    format: ClassVar[int] = int(ot.Paint.Format.PaintGlyph)
     glyph: str
     paint: Paint
 
@@ -180,7 +186,7 @@ class PaintGlyph(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrGlyph(Paint):
-    format: ClassVar[int] = 5
+    format: ClassVar[int] = int(ot.Paint.Format.PaintColrGlyph)
     glyph: str
     first_layer_index: int
     last_layer_index: int
@@ -197,7 +203,7 @@ class PaintColrGlyph(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintTransform(Paint):
-    format: ClassVar[int] = 6
+    format: ClassVar[int] = int(ot.Paint.Format.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
     paint: Paint
 
@@ -215,7 +221,7 @@ class PaintTransform(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintComposite(Paint):
-    format: ClassVar[int] = 7
+    format: ClassVar[int] = int(ot.Paint.Format.PaintComposite)
     mode: CompositeMode
     source: Paint
     backdrop: Paint
@@ -232,8 +238,3 @@ class PaintComposite(Paint):
             "backdrop": self.backdrop.to_ufo_paint(colors),
         }
         return paint
-
-
-@dataclasses.dataclass(frozen=True)
-class PaintColrLayers(Paint):
-    format: ClassVar[int] = 8

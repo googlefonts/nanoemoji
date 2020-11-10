@@ -396,7 +396,7 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
     return colr_layers
 
 
-def _build_composite_layer(layers: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
+def _build_composite_layer(layers: Sequence[Tuple[str, int]]) -> Mapping[str, Any]:
     """Construct PaintComposite binary tree from list of UFO color layers.
 
     Layers are in z-order, from bottom to top layer. We use SRC_OVER compositing
@@ -406,7 +406,7 @@ def _build_composite_layer(layers: Sequence[Mapping[str, Any]]) -> Mapping[str, 
     assert layers
 
     if len(layers) == 1:
-        return layers[0]
+        return layers[0]  # pytype: disable=bad-return-type
 
     mid = len(layers) // 2
     return dict(

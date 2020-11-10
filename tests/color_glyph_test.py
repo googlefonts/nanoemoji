@@ -219,14 +219,14 @@ def _round_gradient_coordinates(paint, prec=6):
             "radial_gradient_transform_2.svg",
             {
                 PaintTransform(
-                    transform=(0.0, -1.0, 0.9288, 0.0, -623.55, 1944.609375),
+                    transform=(0.0, -1.0, 0.9288, 0.0, -928.8, 1000.0),
                     paint=PaintRadialGradient(
                         stops=(
                             ColorStop(stopOffset=0.0, color=Color.fromstring("white")),
                             ColorStop(stopOffset=1.0, color=Color.fromstring("black")),
                         ),
-                        c0=Point(x=971.484375, y=973.120312),
-                        c1=Point(x=971.484375, y=973.120312),
+                        c0=Point(x=27.43725, y=1301.77018),
+                        c1=Point(x=27.43725, y=1301.77018),
                         r0=0.0,
                         r1=129.015625,
                     ),

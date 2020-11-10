@@ -121,14 +121,16 @@ def _apply_paint(
     svg_defs: etree.Element, el: etree.Element, paint: Paint, reuse_cache: ReuseCache
 ):
 
-    if paint.format == PaintSolid.format:
-        color = paint.color
+    if paint.format == PaintSolid.format:  # pytype: disable=attribute-error
+        color = paint.color  # pytype: disable=attribute-error
         el.attrib["fill"] = color.opaque().to_string()
         if color.alpha != 1.0:
             el.attrib["opacity"] = _ntos(color.alpha)
 
     else:
-        raise NotImplementedError(f"TODO svg for paint format {paint.format}")
+        raise NotImplementedError(
+            f"TODO svg for paint format {paint.format}"
+        )  # pytype: disable=attribute-error
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
