@@ -40,11 +40,12 @@ import ufoLib2
 FLAGS = flags.FLAGS
 
 
-flags.DEFINE_integer("normalize_digits", 3, "Rounding for normalized shapes")
 flags.DEFINE_float(
     "reuse_tolerence",
     0.1,
-    "Allowable difference in reused shape in input coordinates (e.g. svg)",
+    "Allowable difference in reused shape in input coordinates (e.g. svg)."
+    " Normalized shapes snap to whole multiples of tolerance;"
+    " choice of a value where 1/tolerance is an int recommended",
 )
 
 
@@ -255,7 +256,7 @@ def _in_glyph_reuse_key(
     paint+normalized shape ensures this."""
     return (
         _paint(debug_hint, upem, picosvg, shape),
-        normalize(shape, FLAGS.reuse_tolerence, FLAGS.normalize_digits),
+        normalize(shape, FLAGS.reuse_tolerence),
     )
 
 

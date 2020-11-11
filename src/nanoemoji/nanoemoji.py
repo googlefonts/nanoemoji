@@ -122,7 +122,6 @@ def write_preamble(nw):
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
         + _bool_flag("keep_glyph_names")
-        + f" --normalize_digits {FLAGS.normalize_digits}"
         + f" --reuse_tolerence {FLAGS.reuse_tolerence}"
         + " -v 1"
         + " --output_file $out"
