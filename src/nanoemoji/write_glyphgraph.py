@@ -19,7 +19,7 @@ from absl import flags
 from absl import logging
 from collections import Counter
 from fontTools import ttLib
-from graphviz import Digraph
+from graphviz import Digraph  # pytype: disable=import-error
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
 from typing import Mapping, NamedTuple, Set, Tuple
