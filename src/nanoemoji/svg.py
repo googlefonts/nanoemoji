@@ -14,7 +14,6 @@
 
 """Helps nanoemoji build svg fonts."""
 
-import copy
 import dataclasses
 from io import BytesIO
 from fontTools import ttLib
@@ -22,6 +21,7 @@ from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.paint import (
+    Extend,
     Paint,
     PaintSolid,
     PaintLinearGradient,
@@ -37,15 +37,32 @@ from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
-import regex
-from typing import MutableMapping, Sequence, Tuple
+from typing import MutableMapping, NamedTuple, Sequence, Tuple, Union
+
+
+class InterGlyphReuseKey(NamedTuple):
+    view_box: Rect
+    paint: Paint
+    path: str
+    reuses: Tuple[Affine2D]
+
+
+class GradientReuseKey(NamedTuple):
+    paint: Paint
+    transform: Affine2D = Affine2D.identity()
+
+
+_GradientPaint = Union[PaintLinearGradient, PaintRadialGradient]
 
 
 @dataclasses.dataclass
 class ReuseCache:
-    old_to_new_id: MutableMapping[str, str] = dataclasses.field(default_factory=dict)
-    gradient_to_id: MutableMapping[str, str] = dataclasses.field(default_factory=dict)
-    shapes: MutableMapping[str, etree.Element] = dataclasses.field(default_factory=dict)
+    shapes: MutableMapping[InterGlyphReuseKey, etree.Element] = dataclasses.field(
+        default_factory=dict
+    )
+    gradient_ids: MutableMapping[GradientReuseKey, str] = dataclasses.field(
+        default_factory=dict
+    )
 
 
 def _ensure_has_id(el: etree.Element):
@@ -78,59 +95,194 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
     return reuse_groups.sorted()
 
 
-def _add_unique_gradients(
-    svg_defs: etree.Element, color_glyph: ColorGlyph, reuse_cache: ReuseCache
-):
-    for gradient in color_glyph.picosvg.xpath("//svg:defs/*"):
-        gradient = copy.deepcopy(gradient)
-        curr_id: str = gradient.attrib["id"]
-        new_id = f"{color_glyph.glyph_name}::{curr_id}"
-        del gradient.attrib["id"]
-        gradient_xml: str = etree.tostring(gradient)
-        if gradient_xml in reuse_cache.gradient_to_id:
-            reuse_cache.old_to_new_id[curr_id] = reuse_cache.gradient_to_id[
-                gradient_xml
-            ]
-        else:
-            gradient.attrib["id"] = new_id
-            reuse_cache.old_to_new_id[curr_id] = new_id
-            reuse_cache.gradient_to_id[gradient_xml] = new_id
-            svg_defs.append(gradient)
-
-
 def _ntos(n: float) -> str:
     return svg_meta.ntos(round(n, 3))
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
-    # TODO handle rotation: Affine2D uses radiens, svg is in degrees
     return f'matrix({" ".join((_ntos(v) for v in transform))})'
 
 
-def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
+def _inter_glyph_reuse_key(
+    view_box: Rect, painted_layer: PaintedLayer
+) -> InterGlyphReuseKey:
     """Individual glyf entries, including composites, can be reused.
     SVG reuses w/paint so paint is part of key."""
 
     # TODO we could recycle shapes that differ only in paint, would just need to
     # transfer the paint attributes onto the use element if they differ
-    return (view_box, painted_layer.paint, painted_layer.path, painted_layer.reuses)
+    return InterGlyphReuseKey(
+        view_box, painted_layer.paint, painted_layer.path, painted_layer.reuses
+    )
+
+
+def _apply_solid_paint(svg_path: etree.Element, paint: PaintSolid):
+    svg_path.attrib["fill"] = paint.color.opaque().to_string()
+    if paint.color.alpha != 1.0:
+        svg_path.attrib["opacity"] = _ntos(paint.color.alpha)
+
+
+def _apply_gradient_paint(
+    svg_defs: etree.Element,
+    svg_path: etree.Element,
+    paint: _GradientPaint,
+    reuse_cache: ReuseCache,
+    transform: Affine2D = Affine2D.identity(),
+):
+    # Gradients can be reused by multiple glyphs in the same OT-SVG document,
+    # provided paints are the same and have the same transform.
+    reuse_key = GradientReuseKey(paint, transform)
+
+    grad_id = reuse_cache.gradient_ids.get(reuse_key)
+    if grad_id is None:
+        grad_id = _define_gradient(svg_defs, paint, transform)
+        reuse_cache.gradient_ids[reuse_key] = grad_id
+
+    svg_path.attrib["fill"] = f"url(#{grad_id})"
+
+
+def _define_gradient(
+    svg_defs: etree.Element,
+    paint: _GradientPaint,
+    transform: Affine2D = Affine2D.identity(),
+) -> str:
+    if isinstance(paint, PaintLinearGradient):
+        return _define_linear_gradient(svg_defs, paint, transform)
+    elif isinstance(paint, PaintRadialGradient):
+        return _define_radial_gradient(svg_defs, paint, transform)
+    else:
+        raise TypeError(type(paint))
+
+
+def _apply_gradient_common_parts(
+    gradient: etree.Element,
+    paint: _GradientPaint,
+    transform: Affine2D = Affine2D.identity(),
+):
+    gradient.attrib["gradientUnits"] = "userSpaceOnUse"
+    for stop in paint.stops:
+        stop_el = etree.SubElement(gradient, "stop")
+        stop_el.attrib["offset"] = _ntos(stop.stopOffset)
+        stop_el.attrib["stop-color"] = stop.color.opaque().to_string()
+        if stop.color.alpha != 1.0:
+            stop_el.attrib["stop-opacity"] = stop.color.alpha
+    if paint.extend != Extend.PAD:
+        gradient.attrib["spreadMethod"] = paint.extend.name.lower()
+    if transform != Affine2D.identity():
+        gradient.attrib["gradientTransform"] = _svg_matrix(transform)
+
+
+def _define_linear_gradient(
+    svg_defs: etree.Element,
+    paint: PaintLinearGradient,
+    transform: Affine2D = Affine2D.identity(),
+) -> str:
+    gradient = etree.SubElement(svg_defs, "linearGradient")
+    gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
+
+    p0, p1, p2 = paint.p0, paint.p1, paint.p2
+    # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
+    # Below we compute P3 which is the projection of P1 onto the line between P0 and P2
+    # (aka the "normal" line, perpendicular to the linear gradient "front"). The vector
+    # P3-P0 is the "effective" linear gradient vector after this rotation.
+    # When P2 is collinear with P0 and P1, then P3 (projection of P1 onto the normal) is
+    # == P1 itself thus there's no rotation. When P2 sits on a line passing by P0 and
+    # perpendicular to the P1-P0 gradient vector, then this projected P3 == P0 and the
+    # gradient degenerates to a solid paint (the last color stop).
+    # NOTE: in nanoemoji-built fonts, this point P3 is always == P2, so we could just
+    # use that here, but the spec does not mandate that P2 be on the "front" line
+    # that passes by P1, it can be anywhere, hence we compute P3.
+    p3 = p0 + (p1 - p0).projection(p2 - p0)
+
+    x1, y1 = p0
+    x2, y2 = p3
+    gradient.attrib["x1"] = _ntos(x1)
+    gradient.attrib["y1"] = _ntos(y1)
+    gradient.attrib["x2"] = _ntos(x2)
+    gradient.attrib["y2"] = _ntos(y2)
+
+    _apply_gradient_common_parts(gradient, paint, transform)
+
+    return gradient_id
+
+
+def _define_radial_gradient(
+    svg_defs: etree.Element,
+    paint: PaintRadialGradient,
+    transform: Affine2D = Affine2D.identity(),
+) -> str:
+    gradient = etree.SubElement(svg_defs, "radialGradient")
+    gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
+
+    fx, fy = paint.c0
+    cx, cy = paint.c1
+    if fx != cx or fy != cy:
+        gradient.attrib["fx"] = _ntos(fx)
+        gradient.attrib["fy"] = _ntos(fy)
+
+    if paint.r0 != 0:
+        gradient.attrib["fr"] = _ntos(paint.r0)
+    gradient.attrib["cx"] = _ntos(cx)
+    gradient.attrib["cy"] = _ntos(cy)
+    gradient.attrib["r"] = _ntos(paint.r1)
+
+    _apply_gradient_common_parts(gradient, paint, transform)
+
+    return gradient_id
+
+
+def _map_gradient_coordinates(paint: Paint, affine: Affine2D) -> Paint:
+    if isinstance(paint, PaintLinearGradient):
+        return dataclasses.replace(
+            paint,
+            p0=affine.map_point(paint.p0),
+            p1=affine.map_point(paint.p1),
+            p2=affine.map_point(paint.p2),
+        )
+    elif isinstance(paint, PaintRadialGradient):
+        scalex, scaley = affine.getscale()
+        if not scalex or abs(scalex) != abs(scaley):
+            raise ValueError(
+                f"Expected uniform scale and/or translate, found: {affine}"
+            )
+        return dataclasses.replace(
+            paint,
+            c0=affine.map_point(paint.c0),
+            c1=affine.map_point(paint.c1),
+            r0=affine.map_vector((paint.r0, 0)).x,
+            r1=affine.map_vector((paint.r1, 0)).x,
+        )
+    raise TypeError(type(paint))
 
 
 def _apply_paint(
-    svg_defs: etree.Element, el: etree.Element, paint: Paint, reuse_cache: ReuseCache
+    svg_defs: etree.Element,
+    svg_path: etree.Element,
+    paint: Paint,
+    upem_to_vbox: Affine2D,
+    reuse_cache: ReuseCache,
+    transform: Affine2D = Affine2D.identity(),
 ):
-
-    if paint.format == PaintSolid.format:  # pytype: disable=attribute-error
-        color = paint.color  # pytype: disable=attribute-error
-        el.attrib["fill"] = color.opaque().to_string()
-        if color.alpha != 1.0:
-            el.attrib["opacity"] = _ntos(color.alpha)
-
+    if isinstance(paint, PaintSolid):
+        _apply_solid_paint(svg_path, paint)
+    elif isinstance(paint, (PaintLinearGradient, PaintRadialGradient)):
+        # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
+        # so that they match the SVGPath.d coordinates (that we copy unmodified).
+        paint = _map_gradient_coordinates(paint, upem_to_vbox)
+        # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
+        if transform != Affine2D.identity():
+            transform = Affine2D.product(
+                upem_to_vbox.inverse(), Affine2D.product(transform, upem_to_vbox)
+            )
+        _apply_gradient_paint(svg_defs, svg_path, paint, reuse_cache, transform)
+    elif isinstance(paint, PaintTransform):
+        transform = Affine2D.product(paint.transform, transform)
+        _apply_paint(
+            svg_defs, svg_path, paint.paint, upem_to_vbox, reuse_cache, transform
+        )
     else:
-        raise NotImplementedError(
-            f"TODO svg for paint format {paint.format}"
-        )  # pytype: disable=attribute-error
+        raise NotImplementedError(type(paint))
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
@@ -139,24 +291,24 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
+
+    view_box = color_glyph.picosvg.view_box()
+    if view_box is None:
+        raise ValueError(f"{color_glyph.filename} must declare view box")
+
     # https://github.com/googlefonts/nanoemoji/issues/58: group needs transform
     svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_otsvg_space())
 
+    vbox_to_upem = color_glyph.transform_for_font_space()
+    upem_to_vbox = vbox_to_upem.inverse()
+
     # copy the shapes into our svg
     for painted_layer in color_glyph.painted_layers:
-        view_box = color_glyph.picosvg.view_box()
-        if view_box is None:
-            raise ValueError(f"{color_glyph.filename} must declare view box")
         reuse_key = _inter_glyph_reuse_key(view_box, painted_layer)
         if reuse_key not in reuse_cache.shapes:
             el = to_element(SVGPath(d=painted_layer.path))
-            match = regex.match(r"url\(#([^)]+)*\)", el.attrib.get("fill", ""))
-            if match:
-                el.attrib[
-                    "fill"
-                ] = f"url(#{reuse_cache.old_to_new_id.get(match.group(1), match.group(1))})"
-            else:
-                _apply_paint(svg_defs, el, painted_layer.paint, reuse_cache)
+
+            _apply_paint(svg_defs, el, painted_layer.paint, upem_to_vbox, reuse_cache)
 
             svg_g.append(el)
             reuse_cache.shapes[reuse_key] = el
@@ -250,7 +402,6 @@ def _picosvg_docs(
 
     doc_list = []
     reuse_cache = ReuseCache()
-    layers = {}  # reusable layers
     for group in reuse_groups:
         # establish base svg, defs
         svg = SVG.fromstring(
