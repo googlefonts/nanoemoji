@@ -25,6 +25,7 @@ from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
+from picosvg.svg_types import SVGPath
 import regex
 from typing import MutableMapping, Sequence, Tuple
 
@@ -54,8 +55,7 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
     reuse_groups = DisjointSet()
     for color_glyph in color_glyphs:
         reuse_groups.make_set(color_glyph.glyph_name)
-        for painted_layer in color_glyph.as_painted_layers():
-            # TODO what attributes should go into this key for SVG
+        for painted_layer in color_glyph.painted_layers:
             reuse_key = _inter_glyph_reuse_key(
                 color_glyph.picosvg.view_box(), painted_layer
             )
@@ -99,7 +99,6 @@ def _svg_matrix(transform: Affine2D) -> str:
 
 def _inter_glyph_reuse_key(view_box: Rect, painted_layer: PaintedLayer):
     """Individual glyf entries, including composites, can be reused.
-
     SVG reuses w/paint so paint is part of key."""
 
     # TODO we could recycle shapes that differ only in paint, would just need to
@@ -115,7 +114,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_otsvg_space())
 
     # copy the shapes into our svg
-    for painted_layer in color_glyph.as_painted_layers():
+    for painted_layer in color_glyph.painted_layers:
         view_box = color_glyph.picosvg.view_box()
         if view_box is None:
             raise ValueError(f"{color_glyph.filename} must declare view box")
