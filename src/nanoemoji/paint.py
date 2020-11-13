@@ -188,16 +188,9 @@ class PaintGlyph(Paint):
 class PaintColrGlyph(Paint):
     format: ClassVar[int] = int(ot.Paint.Format.PaintColrGlyph)
     glyph: str
-    first_layer_index: int
-    last_layer_index: int
 
     def to_ufo_paint(self, _):
-        paint = {
-            "format": self.format,
-            "glyph": self.glyph,
-            "firstLayerIndex": self.first_layer_index,
-            "lastLayerIndex": self.last_layer_index,
-        }
+        paint = {"format": self.format, "glyph": self.glyph}
         return paint
 
 
