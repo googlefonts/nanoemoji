@@ -169,7 +169,7 @@ def _apply_gradient_common_parts(
         stop_el.attrib["offset"] = _ntos(stop.stopOffset)
         stop_el.attrib["stop-color"] = stop.color.opaque().to_string()
         if stop.color.alpha != 1.0:
-            stop_el.attrib["stop-opacity"] = stop.color.alpha
+            stop_el.attrib["stop-opacity"] = _ntos(stop.color.alpha)
     if paint.extend != Extend.PAD:
         gradient.attrib["spreadMethod"] = paint.extend.name.lower()
     if transform != Affine2D.identity():
