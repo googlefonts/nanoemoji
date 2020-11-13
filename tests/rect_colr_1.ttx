@@ -81,29 +81,33 @@
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <LayerV1List>
-          <!-- LayerCount=2 -->
-          <LayerV1Record index="0">
-            <LayerGlyph value="e000.0"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Alpha value="1.0"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-          <LayerV1Record index="1">
-            <LayerGlyph value="e000.1"/>
-            <Paint Format="1">
-              <Color>
-                <PaletteIndex value="0"/>
-                <Alpha value="0.8"/>
-              </Color>
-            </Paint>
-          </LayerV1Record>
-        </LayerV1List>
+        <Paint Format="1"><!-- PaintColrLayers -->
+          <NumLayers value="2"/>
+          <FirstLayerIndex value="0"/>
+        </Paint>
       </BaseGlyphV1Record>
     </BaseGlyphV1List>
+    <LayerV1List>
+      <!-- LayerCount=2 -->
+      <Paint index="0" Format="5"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="5"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="0.8"/>
+          </Color>
+        </Paint>
+        <Glyph value="e000.1"/>
+      </Paint>
+    </LayerV1List>
   </COLR>
 
   <CPAL>

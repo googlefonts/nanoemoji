@@ -4,19 +4,21 @@
 #
 #    pip-compile setup.py
 #
-absl-py==0.11.0            # via nanoemoji (setup.py)
+absl-py==0.11.0           # via nanoemoji (setup.py)
 appdirs==1.4.4            # via fs
 attrs==20.3.0             # via ufolib2
 booleanoperations==0.9.0  # via ufo2ft
 cffsubr==0.2.7            # via ufo2ft
 compreffor==0.5.0         # via ufo2ft
 cu2qu==1.6.7              # via ufo2ft
+dataclasses==0.8; python_version < '3.7'  # via picosvg
 fonttools[ufo]==4.17.0    # via booleanoperations, cffsubr, compreffor, cu2qu, nanoemoji (setup.py), ufo2ft, ufolib2
 fs==2.4.11                # via fonttools
-pillow==8.0.1             # via nanoemoji (setup.py)
+importlib-resources==3.3.0  # via cffsubr
 lxml==4.6.1               # via nanoemoji (setup.py), picosvg
 ninja==1.10.0.post2       # via nanoemoji (setup.py)
 picosvg==0.7.1            # via nanoemoji (setup.py)
+pillow==8.0.1             # via nanoemoji (setup.py)
 pyclipper==1.2.0          # via booleanoperations
 pytz==2020.4              # via fs
 regex==2020.11.13          # via nanoemoji (setup.py)
@@ -25,6 +27,7 @@ skia-pathops==0.5.1.post1       # via picosvg
 typing-extensions==3.7.4.3  # via ufolib2
 ufo2ft[cffsubr]==2.16.0   # via nanoemoji (setup.py)
 ufolib2==0.8.0            # via nanoemoji (setup.py)
+zipp==3.4.0               # via importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

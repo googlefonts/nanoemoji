@@ -18,6 +18,7 @@
 from absl import app
 from absl import flags
 from absl import logging
+from collections import defaultdict
 import csv
 from fontTools import ttLib
 from itertools import chain
@@ -26,7 +27,14 @@ from nanoemoji import codepoints
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
-from nanoemoji.paint import Paint
+from nanoemoji.paint import (
+    CompositeMode,
+    Paint,
+    PaintComposite,
+    PaintColrGlyph,
+    PaintGlyph,
+    PaintSolid,
+)
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -37,7 +45,16 @@ from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 import regex
 import sys
-from typing import Callable, Generator, Iterable, Mapping, NamedTuple, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Sequence,
+    Tuple,
+)
 from ufoLib2.objects import Component, Glyph
 import ufo2ft
 
@@ -233,7 +250,9 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         )
         glyph_names.append(base_glyph.name)
 
-        draw_svg_path(painted_layer.path, base_glyph.getPen(), svg_units_to_font_units)
+        draw_svg_path(
+            SVGPath(d=painted_layer.path), base_glyph.getPen(), svg_units_to_font_units
+        )
 
         glyph.components.append(
             Component(baseGlyph=base_glyph.name, transformation=Affine2D.identity())
@@ -251,7 +270,9 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
             )
     else:
         # Not a composite, just draw directly on the glyph
-        draw_svg_path(painted_layer.path, glyph.getPen(), svg_units_to_font_units)
+        draw_svg_path(
+            SVGPath(d=painted_layer.path), glyph.getPen(), svg_units_to_font_units
+        )
 
     ufo.glyphOrder += glyph_names
 
@@ -310,21 +331,93 @@ def _glyf_ufo(ufo, color_glyphs):
             assert component.name == color_glyph.glyph_name
 
 
-def _colr_paint(colr_version: int, paint: Paint, palette: Sequence[Color]):
+def _colr_layer(
+    colr_version: int, layer_glyph_name: str, paint: Paint, palette: Sequence[Color]
+):
     # For COLRv0, paint is just the palette index
     # For COLRv1, it's a data structure describing paint
     if colr_version == 0:
         # COLRv0: draw using the first available color on the glyph_layer
         # Results for gradients will be suboptimal :)
         color = next(paint.colors())
-        return palette.index(color)
+        return (layer_glyph_name, palette.index(color))
 
     elif colr_version == 1:
-        # COLRv1: solid or gradient paint
-        return paint.to_ufo_paint(palette)
+        # COLRv1: layer is graph of (solid, gradients, etc.) paints.
+        # Root node is always a PaintGlyph (format 4) for now.
+        # TODO Support more paints (PaintTransform, PaintColorGlyph, PaintComposite)
+        return PaintGlyph(layer_glyph_name, paint).to_ufo_paint(palette)
 
     else:
         raise ValueError(f"Unsupported COLR version: {colr_version}")
+
+
+def _inter_glyph_reuse_key(painted_layer: PaintedLayer) -> PaintedLayer:
+    """Individual glyf entries, including composites, can be reused.
+
+    COLR lets us reuse the shape regardless of paint so paint is not part of key."""
+    return painted_layer._replace(paint=PaintSolid())
+
+
+def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
+    # The value for a COLOR_LAYERS_KEY entry per
+    # https://github.com/googlefonts/ufo2ft/pull/359
+    colr_layers = []
+
+    # accumulate layers in z-order
+    layer_idx = 0
+    while layer_idx < len(color_glyph.painted_layers):
+        painted_layer = color_glyph.painted_layers[layer_idx]
+        layer_idx += 1
+
+        # if we've seen this shape before reuse it
+        glyph_cache_key = _inter_glyph_reuse_key(painted_layer)
+        if glyph_cache_key not in glyph_cache:
+            glyph = _create_glyph(color_glyph, painted_layer)
+            glyph_cache[glyph_cache_key] = glyph
+        else:
+            glyph = glyph_cache[glyph_cache_key]
+
+        layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
+
+        colr_layers.append(layer)
+
+    if colr_version > 0 and len(colr_layers) > MAX_LAYER_V1_COUNT:
+        logging.info(
+            "%s contains > {MAX_LAYER_V1_COUNT} layers (%s); "
+            "merging last layers in PaintComposite tree",
+            color_glyph.glyph_name,
+            len(colr_layers),
+        )
+
+        i = MAX_LAYER_V1_COUNT - 1
+        colr_layers[i:] = [_build_composite_layer(colr_layers[i:])]
+
+    return colr_layers
+
+
+def _build_composite_layer(layers: Sequence[Tuple[str, int]]) -> Mapping[str, Any]:
+    """Construct PaintComposite binary tree from list of UFO color layers.
+
+    Layers are in z-order, from bottom to top layer. We use SRC_OVER compositing
+    mode to paint "source" over "backdrop". The binary tree is balanced to keep
+    its depth short and limit the risk of RecursionError.
+    """
+    assert layers
+
+    if len(layers) == 1:
+        return layers[0]  # pytype: disable=bad-return-type
+
+    mid = len(layers) // 2
+    return dict(
+        format=PaintComposite.format,
+        mode=CompositeMode.SRC_OVER.name.lower(),
+        backdrop=_build_composite_layer(layers[:mid]),
+        source=_build_composite_layer(layers[mid:]),
+    )
+
+
+MAX_LAYER_V1_COUNT = 255
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
@@ -343,10 +436,12 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
 
     # each base glyph maps to a list of (glyph name, paint info) in z-order
-    color_layers = {}
+    ufo_color_layers = {}
 
-    # glyphs by reuse_key
-    glyphs = {}
+    # potentially reusable glyphs
+    glyph_cache = {}
+
+    # write out the glyphs
     for color_glyph in color_glyphs:
         logging.debug(
             "%s %s %s",
@@ -355,29 +450,13 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             color_glyph.transform_for_font_space(),
         )
 
-        # The value for a COLOR_LAYERS_KEY entry per
-        # https://github.com/googlefonts/ufo2ft/pull/359
-        glyph_colr_layers = []
-
-        # accumulate layers in z-order
-        for painted_layer in color_glyph.painted_layers:
-            # if we've seen this shape before reuse it
-            # reset paint so same shape, different fill matches
-            reuse_key = painted_layer.shape_cache_key()
-            if reuse_key not in glyphs:
-                glyph = _create_glyph(color_glyph, painted_layer)
-                glyphs[reuse_key] = glyph
-            else:
-                glyph = glyphs[reuse_key]
-
-            paint = _colr_paint(colr_version, painted_layer.paint, colors)
-            glyph_colr_layers.append((glyph.name, paint))
-
+        ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
+            colr_version, colors, color_glyph, glyph_cache
+        )
         colr_glyph = ufo.get(color_glyph.glyph_name)
         _draw_glyph_extents(ufo, colr_glyph)
-        color_layers[colr_glyph.name] = glyph_colr_layers
 
-    ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = color_layers
+    ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
 
 
 def _svg_ttfont(_, color_glyphs, ttfont, picosvg=True, compressed=False):

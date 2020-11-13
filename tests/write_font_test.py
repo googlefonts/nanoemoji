@@ -25,6 +25,7 @@ import test_helper
     "color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"]
 )
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
+@pytest.mark.usefixtures("absl_flags")
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(
         color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
@@ -105,6 +106,7 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
         (("one_rect.svg", "one_rect.svg"), "reused_rect_glyf.ttx", "glyf", ".ttf"),
     ],
 )
+@pytest.mark.usefixtures("absl_flags")
 def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
     config, glyph_inputs = test_helper.color_font_config(
         color_format, svgs, output_format

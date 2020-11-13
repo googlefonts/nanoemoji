@@ -229,3 +229,15 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
 
     def opaque(self):
         return self._replace(alpha=1.0)
+
+    def to_string(self):
+        # A CSS or SVG friendly string
+        rgb = self[0:3]
+        string = None
+        if self.alpha == 1.0:
+            string = color_name(rgb)
+        if not string:
+            string = "#" + "".join(f"{v:02X}" for v in rgb)
+            if self.alpha != 1.0:
+                string += f"{int(self.alpha * 255):02X}"
+        return string
