@@ -144,8 +144,11 @@ def _parse_radial_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
         bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
         transform = Affine2D.product(bbox_transform, transform)
 
-    # can't have skew/rotation here: upem, view_box, shape_bbox are all rectangular
-    assert transform[1:3] == (0, 0)
+    assert transform[1:3] == (0, 0), (
+        f"{transform} contains unexpected skew/rotation:"
+        " upem, view_box, shape_bbox are all rectangles"
+    )
+
     # if viewBox is not square or if gradientUnits="objectBoundingBox" and the bbox
     # is not square, we may end up with scaleX != scaleY; CORLv1 PaintRadialGradient
     # by themselves can only define circles, not ellipses. We want to keep aspect ratio

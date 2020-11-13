@@ -218,14 +218,15 @@ def _define_radial_gradient(
     gradient = etree.SubElement(svg_defs, "radialGradient")
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
 
-    fx, fy = paint.c0
-    cx, cy = paint.c1
-    if fx != cx or fy != cy:
+    if paint.c0 != paint.c1:
+        fx, fy = paint.c0
         gradient.attrib["fx"] = _ntos(fx)
         gradient.attrib["fy"] = _ntos(fy)
 
     if paint.r0 != 0:
         gradient.attrib["fr"] = _ntos(paint.r0)
+
+    cx, cy = paint.c1
     gradient.attrib["cx"] = _ntos(cx)
     gradient.attrib["cy"] = _ntos(cy)
     gradient.attrib["r"] = _ntos(paint.r1)
