@@ -37,7 +37,7 @@ from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
-from typing import MutableMapping, NamedTuple, Sequence, Tuple, Union
+from typing import MutableMapping, NamedTuple, Optional, Sequence, Tuple, Union
 
 
 class InterGlyphReuseKey(NamedTuple):
@@ -127,17 +127,20 @@ def _apply_gradient_paint(
     svg_defs: etree.Element,
     svg_path: etree.Element,
     paint: _GradientPaint,
-    reuse_cache: ReuseCache,
+    reuse_cache: Optional[ReuseCache] = None,
     transform: Affine2D = Affine2D.identity(),
 ):
-    # Gradients can be reused by multiple glyphs in the same OT-SVG document,
-    # provided paints are the same and have the same transform.
-    reuse_key = GradientReuseKey(paint, transform)
-
-    grad_id = reuse_cache.gradient_ids.get(reuse_key)
-    if grad_id is None:
+    if reuse_cache is None:
         grad_id = _define_gradient(svg_defs, paint, transform)
-        reuse_cache.gradient_ids[reuse_key] = grad_id
+    else:
+        # Gradients can be reused by multiple glyphs in the same OT-SVG document,
+        # provided paints are the same and have the same transform.
+        reuse_key = GradientReuseKey(paint, transform)
+
+        grad_id = reuse_cache.gradient_ids.get(reuse_key)
+        if grad_id is None:
+            grad_id = _define_gradient(svg_defs, paint, transform)
+            reuse_cache.gradient_ids[reuse_key] = grad_id
 
     svg_path.attrib["fill"] = f"url(#{grad_id})"
 
