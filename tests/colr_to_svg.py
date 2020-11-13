@@ -15,6 +15,7 @@
 from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.paint import (
+    ColorStop,
     Extend,
     PaintSolid,
     PaintLinearGradient,
@@ -25,7 +26,13 @@ from nanoemoji.paint import (
     PaintComposite,
     PaintColrLayers,
 )
-from nanoemoji.svg import _svg_matrix, _ntos
+from nanoemoji.svg import (
+    _svg_matrix,
+    _apply_solid_paint,
+    _apply_gradient_paint,
+    _map_gradient_coordinates,
+    _GradientPaint,
+)
 from nanoemoji.svg_path import SVGPathPen
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
@@ -33,21 +40,16 @@ from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
 import test_helper
 from lxml import etree
-from typing import Any, Dict, Mapping, NamedTuple, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
 
-class _ColorStop(NamedTuple):
-    offset: float
-    palette_index: int
-    alpha: float
+_GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
 
 
-def _emsquare_to_viewbox(upem: int, view_box: Rect):
-    if view_box != Rect(0, 0, view_box.w, view_box.w):
-        raise ValueError("We simply must have a SQUARE from 0,0")
-    return color_glyph.map_viewbox_to_font_emsquare(Rect(0, 0, upem, upem), view_box.w)
+def _map_font_emsquare_to_viewbox(upem: int, view_box: Rect) -> Affine2D:
+    return color_glyph.map_viewbox_to_font_emsquare(view_box, upem).inverse()
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
@@ -59,15 +61,13 @@ def _svg_root(view_box: Rect) -> etree.Element:
 
 def _draw_svg_path(
     svg_path: etree.Element,
-    view_box: Rect,
-    ttfont: ttLib.TTFont,
-    glyph_name: str,
     glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_name: str,
+    upem_to_vbox: Affine2D,
 ):
     # use glyph set to resolve references in composite glyphs
     svg_pen = SVGPathPen(glyph_set)
     # wrap svg pen with "filter" pen mapping coordinates from UPEM to SVG space
-    upem_to_vbox = _emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
     transform_pen = transformPen.TransformPen(svg_pen, upem_to_vbox)
 
     glyph = glyph_set[glyph_name]
@@ -76,160 +76,91 @@ def _draw_svg_path(
     svg_path.attrib["d"] = svg_pen.path.d
 
 
-def _svg_color_and_opacity(color, alpha=1.0):
-    named_color = colors.color_name((color.red, color.green, color.blue))
-    if named_color:
-        svg_color = named_color
+def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
+    cpal_color = ttfont["CPAL"].palettes[0][palette_index]
+    return colors.Color(
+        red=cpal_color.red,
+        green=cpal_color.green,
+        blue=cpal_color.blue,
+        alpha=alpha * cpal_color.alpha / 255,
+    )
+
+
+def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _GradientPaint:
+    stops = [
+        ColorStop(
+            stop.StopOffset.value,
+            _color(ttfont, stop.Color.PaletteIndex, stop.Color.Alpha.value),
+        )
+        for stop in ot_paint.ColorLine.ColorStop
+    ]
+    extend = Extend((ot_paint.ColorLine.Extend.value,))
+    if ot_paint.Format == PaintLinearGradient.format:
+        return PaintLinearGradient(
+            stops=stops,
+            extend=extend,
+            p0=Point(ot_paint.x0.value, ot_paint.y0.value),
+            p1=Point(ot_paint.x1.value, ot_paint.y1.value),
+            p2=Point(ot_paint.x2.value, ot_paint.y2.value),
+        )
+    elif ot_paint.Format == PaintRadialGradient.format:
+        return PaintRadialGradient(
+            stops=stops,
+            extend=extend,
+            c0=Point(ot_paint.x0.value, ot_paint.y0.value),
+            c1=Point(ot_paint.x1.value, ot_paint.y1.value),
+            r0=ot_paint.r0.value,
+            r1=ot_paint.r1.value,
+        )
     else:
-        svg_color = f"#{color.red:02x}{color.green:02x}{color.blue:02x}"
-
-    alpha *= color.alpha / 255
-
-    if alpha != 1.0:
-        svg_opacity = _ntos(alpha)
-    else:
-        svg_opacity = None
-
-    return svg_color, svg_opacity
+        raise ValueError(
+            f"Expected one of Paint formats {_GRADIENT_PAINT_FORMATS}; "
+            f"found {ot_paint.Format}"
+        )
 
 
-def _solid_paint(
+def _apply_solid_ot_paint(
     svg_path: etree.Element,
     ttfont: ttLib.TTFont,
-    palette_index: int,
-    alpha: float = 1.0,
+    ot_paint: otTables.Paint,
 ):
-    color = ttfont["CPAL"].palettes[0][palette_index]
-    svg_color, svg_opacity = _svg_color_and_opacity(color, alpha)
-    svg_path.attrib["fill"] = svg_color
-    if svg_opacity:
-        svg_path.attrib["opacity"] = svg_opacity
+    color = _color(ttfont, ot_paint.Color.PaletteIndex, ot_paint.Color.Alpha.value)
+    _apply_solid_paint(svg_path, PaintSolid(color))
 
 
-def _linear_gradient_paint(
+def _apply_gradient_ot_paint(
     svg_defs: etree.Element,
     svg_path: etree.Element,
     ttfont: ttLib.TTFont,
-    view_box: Rect,
-    stops: Sequence[_ColorStop],
-    extend: Extend,
-    p0: Point,
-    p1: Point,
-    p2: Point,
-):
-    # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
-    # Below we compute P3 which is the projection of P1 onto the line between P0 and P2
-    # (aka the "normal" line, perpendicular to the linear gradient "front"). The vector
-    # P3-P0 is the "effective" linear gradient vector after this rotation.
-    # When P2 is collinear with P0 and P1, then P3 (projection of P1 onto the normal) is
-    # == P1 itself thus there's no rotation. When P2 sits on a line passing by P0 and
-    # perpendicular to the P1-P0 gradient vector, then this projected P3 == P0 and the
-    # gradient degenerates to a solid paint (the last color stop).
-    # NOTE: in nanoemoji-built fonts, this point P3 is always == P2, so we could just
-    # use that here, but the spec does not mandate that P2 be on the "front" line
-    # that passes by P1, it can be anywhere, hence we compute P3.
-    p3 = p0 + (p1 - p0).projection(p2 - p0)
-
-    upem_to_vbox = _emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
-    x1, y1 = upem_to_vbox.map_point(p0)
-    x2, y2 = upem_to_vbox.map_point(p3)
-
-    gradient = etree.SubElement(svg_defs, "linearGradient")
-    gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
-    gradient.attrib["gradientUnits"] = "userSpaceOnUse"
-    gradient.attrib["x1"] = _ntos(x1)
-    gradient.attrib["y1"] = _ntos(y1)
-    gradient.attrib["x2"] = _ntos(x2)
-    gradient.attrib["y2"] = _ntos(y2)
-    if extend != Extend.PAD:
-        gradient.attrib["spreadMethod"] = extend.name.lower()
-
-    palette = ttfont["CPAL"].palettes[0]
-    for stop in stops:
-        stop_el = etree.SubElement(gradient, "stop")
-        stop_el.attrib["offset"] = _ntos(stop.offset)
-        cpal_color = palette[stop.palette_index]
-        svg_color, svg_opacity = _svg_color_and_opacity(cpal_color, stop.alpha)
-        stop_el.attrib["stop-color"] = svg_color
-        if svg_opacity:
-            stop_el.attrib["stop-opacity"] = svg_opacity
-
-    svg_path.attrib["fill"] = f"url(#{gradient_id})"
-
-
-def _radial_gradient_paint(
-    svg_defs: etree.Element,
-    svg_path: etree.Element,
-    ttfont: ttLib.TTFont,
-    view_box: Rect,
-    stops: Sequence[_ColorStop],
-    extend: Extend,
-    c0: Point,
-    c1: Point,
-    r0: int,
-    r1: int,
+    upem_to_vbox: Affine2D,
+    ot_paint: otTables.Paint,
     transform: Affine2D = Affine2D.identity(),
 ):
-    # map centres and radii from UPEM to SVG space
-    upem_to_vbox = _emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
-    fx, fy = upem_to_vbox.map_point(c0)
-    cx, cy = upem_to_vbox.map_point(c1)
-    # _emsquare_to_viewbox guarantees view_box is square so scaling radii is ok
-    scalex, scaley = upem_to_vbox.getscale()
-    assert abs(scalex) == abs(scaley)
-    r0 *= abs(scalex)
-    r1 *= abs(scalex)
-
-    gradient = etree.SubElement(svg_defs, "radialGradient")
-    gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
-    gradient.attrib["gradientUnits"] = "userSpaceOnUse"
-    if fx != cx or fy != cy:
-        gradient.attrib["fx"] = _ntos(fx)
-        gradient.attrib["fy"] = _ntos(fy)
-    if r0 != 0:
-        gradient.attrib["fr"] = _ntos(r0)
-    gradient.attrib["cx"] = _ntos(cx)
-    gradient.attrib["cy"] = _ntos(cy)
-    gradient.attrib["r"] = _ntos(r1)
+    paint = _gradient_paint(ttfont, ot_paint)
+    # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
+    paint = _map_gradient_coordinates(paint, upem_to_vbox)
+    # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
     if transform != Affine2D.identity():
-        # If the PaintRadialGradient is wrapped by a PaintTransform, we want to encode
-        # it as SVG 'gradientTransform' attribute. But we have already applied the
-        # upem_to_vbox transform to the gradient circles, so the latter are now defined
-        # using the SVG coordinate system. However the parent PaintTransform is
-        # specified in font EM units and must be applied before converting to SVG
-        # viewBox units. Thus to compute the final gradientTransform, we first reverse
-        # upem_to_vbox, apply the PaintTransform and finally convert back to SVG space.
         transform = Affine2D.product(
             upem_to_vbox.inverse(), Affine2D.product(transform, upem_to_vbox)
         )
-        gradient.attrib["gradientTransform"] = _svg_matrix(transform)
-    if extend != Extend.PAD:
-        gradient.attrib["spreadMethod"] = extend.name.lower()
-
-    palette = ttfont["CPAL"].palettes[0]
-    for stop in stops:
-        stop_el = etree.SubElement(gradient, "stop")
-        stop_el.attrib["offset"] = _ntos(stop.offset)
-        cpal_color = palette[stop.palette_index]
-        svg_color, svg_opacity = _svg_color_and_opacity(cpal_color, stop.alpha)
-        stop_el.attrib["stop-color"] = svg_color
-        if svg_opacity:
-            stop_el.attrib["stop-opacity"] = svg_opacity
-
-    svg_path.attrib["fill"] = f"url(#{gradient_id})"
+    _apply_gradient_paint(svg_defs, svg_path, paint, transform=transform)
 
 
 def _colr_v0_glyph_to_svg(
-    ttfont: ttLib.TTFont, view_box: Rect, glyph_name: str
+    ttfont: ttLib.TTFont,
+    glyph_set: ttLib.ttFont._TTGlyphSet,
+    view_box: Rect,
+    glyph_name: str,
 ) -> etree.Element:
-
     svg_root = _svg_root(view_box)
+    upem_to_vbox = _map_font_emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
 
-    glyph_set = ttfont.getGlyphSet()
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
         svg_path = etree.SubElement(svg_root, "path")
-        _solid_paint(svg_path, ttfont, glyph_layer.colorID)
-        _draw_svg_path(svg_path, view_box, ttfont, glyph_layer.name, glyph_set)
+        paint = PaintSolid(_color(ttfont, glyph_layer.colorID))
+        _apply_solid_paint(svg_path, paint)
+        _draw_svg_path(svg_path, glyph_set, glyph_layer.name, upem_to_vbox)
 
     return svg_root
 
@@ -238,61 +169,23 @@ def _colr_v1_paint_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: Mapping[str, Any],
     svg_root: etree.Element,
-    view_box: Rect,
-    paint: otTables.Paint,
+    upem_to_vbox: Affine2D,
+    ot_paint: otTables.Paint,
     svg_path: Optional[etree.Element] = None,
     transform: Affine2D = Affine2D.identity(),
 ):
-    if paint.Format == PaintSolid.format:
+    if ot_paint.Format == PaintSolid.format:
         assert svg_path is not None
-        _solid_paint(
-            svg_path, ttfont, paint.Color.PaletteIndex, paint.Color.Alpha.value
-        )
-    elif paint.Format == PaintLinearGradient.format:
+        _apply_solid_ot_paint(svg_path, ttfont, ot_paint)
+    elif ot_paint.Format in _GRADIENT_PAINT_FORMATS:
         assert svg_path is not None
-        _linear_gradient_paint(
-            svg_root[0],
-            svg_path,
-            ttfont,
-            view_box,
-            stops=[
-                _ColorStop(
-                    stop.StopOffset.value,
-                    stop.Color.PaletteIndex,
-                    stop.Color.Alpha.value,
-                )
-                for stop in paint.ColorLine.ColorStop
-            ],
-            extend=Extend((paint.ColorLine.Extend.value,)),
-            p0=Point(paint.x0.value, paint.y0.value),
-            p1=Point(paint.x1.value, paint.y1.value),
-            p2=Point(paint.x2.value, paint.y2.value),
+        svg_defs = svg_root[0]
+        _apply_gradient_ot_paint(
+            svg_defs, svg_path, ttfont, upem_to_vbox, ot_paint, transform
         )
-    elif paint.Format == PaintRadialGradient.format:
-        assert svg_path is not None
-        _radial_gradient_paint(
-            svg_root[0],
-            svg_path,
-            ttfont,
-            view_box,
-            stops=[
-                _ColorStop(
-                    stop.StopOffset.value,
-                    stop.Color.PaletteIndex,
-                    stop.Color.Alpha.value,
-                )
-                for stop in paint.ColorLine.ColorStop
-            ],
-            extend=Extend((paint.ColorLine.Extend.value,)),
-            c0=Point(paint.x0.value, paint.y0.value),
-            c1=Point(paint.x1.value, paint.y1.value),
-            r0=paint.r0.value,
-            r1=paint.r1.value,
-            transform=transform,
-        )
-    elif paint.Format == PaintGlyph.format:
+    elif ot_paint.Format == PaintGlyph.format:
         assert svg_path is None, "recursive PaintGlyph is unsupported"
-        layer_glyph = paint.Glyph
+        layer_glyph = ot_paint.Glyph
         svg_path = etree.SubElement(svg_root, "path")
         if transform != Affine2D.identity():
             svg_path.attrib["transform"] = _svg_matrix(transform)
@@ -301,24 +194,24 @@ def _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,
             svg_root,
-            view_box,
-            paint.Paint,
+            upem_to_vbox,
+            ot_paint.Paint,
             svg_path,
         )
 
-        _draw_svg_path(svg_path, view_box, ttfont, layer_glyph, glyph_set)
-    elif paint.Format == PaintTransform.format:
+        _draw_svg_path(svg_path, glyph_set, layer_glyph, upem_to_vbox)
+    elif ot_paint.Format == PaintTransform.format:
         transform = Affine2D.product(
             (
                 Affine2D.identity()
-                if not paint.Transform
+                if not ot_paint.Transform
                 else Affine2D(
-                    paint.Transform.xx.value,
-                    paint.Transform.xy.value,
-                    paint.Transform.yx.value,
-                    paint.Transform.yy.value,
-                    paint.Transform.dx.value,
-                    paint.Transform.dy.value,
+                    ot_paint.Transform.xx.value,
+                    ot_paint.Transform.xy.value,
+                    ot_paint.Transform.yx.value,
+                    ot_paint.Transform.yy.value,
+                    ot_paint.Transform.dx.value,
+                    ot_paint.Transform.dy.value,
                 )
             ),
             transform,
@@ -327,49 +220,58 @@ def _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,
             svg_root,
-            view_box,
-            paint.Paint,
+            upem_to_vbox,
+            ot_paint.Paint,
             svg_path,
             transform=transform,
         )
-    elif paint.Format == PaintColrLayers.format:
+    elif ot_paint.Format == PaintColrLayers.format:
         layerList = ttfont["COLR"].table.LayerV1List.Paint
         assert layerList, "Paint layers without a layer list :("
         for child_paint in layerList[
-            paint.FirstLayerIndex : paint.FirstLayerIndex + paint.NumLayers
+            ot_paint.FirstLayerIndex : ot_paint.FirstLayerIndex + ot_paint.NumLayers
         ]:
             _colr_v1_paint_to_svg(
                 ttfont,
                 glyph_set,
                 svg_root,
-                view_box,
+                upem_to_vbox,
                 child_paint,
                 svg_path,
+                transform=transform,
             )
     else:
-        raise NotImplementedError(paint.Format)
+        raise NotImplementedError(ot_paint.Format)
 
 
 def _colr_v1_glyph_to_svg(
-    ttfont: ttLib.TTFont, view_box: Rect, glyph: otTables.BaseGlyphRecord
+    ttfont: ttLib.TTFont,
+    glyph_set: ttLib.ttFont._TTGlyphSet,
+    view_box: Rect,
+    glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
-    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, view_box, glyph.Paint)
+    upem_to_vbox = _map_font_emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
+    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, upem_to_vbox, glyph.Paint)
     return svg_root
 
 
 def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+    glyph_set = ttfont.getGlyphSet()
     return {
-        g: SVG.fromstring(etree.tostring(_colr_v0_glyph_to_svg(ttfont, view_box, g)))
+        g: SVG.fromstring(
+            etree.tostring(_colr_v0_glyph_to_svg(ttfont, glyph_set, view_box, g))
+        )
         for g in ttfont["COLR"].ColorLayers
     }
 
 
 def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+    glyph_set = ttfont.getGlyphSet()
     return {
         g.BaseGlyph: SVG.fromstring(
-            etree.tostring(_colr_v1_glyph_to_svg(ttfont, view_box, g))
+            etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
         )
         for g in ttfont["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record
     }
