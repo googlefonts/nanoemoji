@@ -181,7 +181,11 @@ def write_fea_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
 
 
 def write_font_build(nw: ninja_syntax.Writer, svg_files: Sequence[str]):
-    inputs = ["codepointmap.csv", "features.fea"] + [picosvg_dest(f) for f in svg_files]
+    if FLAGS.color_format.startswith("untouchedsvg"):
+        svg_files = [rel_build(f) for f in svg_files]
+    else:
+        svg_files = [picosvg_dest(f) for f in svg_files]
+    inputs = ["codepointmap.csv", "features.fea"] + svg_files
     nw.build(font_dest(), "write_font", inputs)
     nw.newline()
 
@@ -234,7 +238,8 @@ def _run(argv):
         with open(build_file, "w") as f:
             nw = ninja_syntax.Writer(f)
             write_preamble(nw)
-            write_picosvg_builds(nw, svg_files)
+            if not FLAGS.color_format.startswith("untouchedsvg"):
+                write_picosvg_builds(nw, svg_files)
             write_codepointmap_build(nw, svg_files)
             write_fea_build(nw, svg_files)
             write_font_build(nw, svg_files)
