@@ -18,7 +18,7 @@ ninja==1.10.0.post2       # via nanoemoji (setup.py)
 picosvg==0.7.1            # via nanoemoji (setup.py)
 pillow==7.2.0             # via nanoemoji (setup.py)
 pyclipper==1.2.0          # via booleanoperations
-pytz==2020.1              # via fs
+pytz==2020.4              # via fs
 regex==2020.11.13          # via nanoemoji (setup.py)
 six==1.15.0               # via absl-py, fs
 skia-pathops==0.5.1.post1       # via picosvg
