@@ -404,8 +404,8 @@ def _picosvg_docs(
     )
 
     doc_list = []
-    reuse_cache = ReuseCache()
     for group in reuse_groups:
+        reuse_cache = ReuseCache()
         # establish base svg, defs
         svg = SVG.fromstring(
             r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
