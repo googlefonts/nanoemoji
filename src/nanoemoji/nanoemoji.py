@@ -122,7 +122,7 @@ def write_preamble(nw):
         + f" --color_format {FLAGS.color_format}"
         + f" --output {FLAGS.output}"
         + _bool_flag("keep_glyph_names")
-        + f" --reuse_tolerence {FLAGS.reuse_tolerence}"
+        + f" --reuse_tolerance {FLAGS.reuse_tolerance}"
         + " -v 1"
         + " --output_file $out"
         + " @$out.rsp",

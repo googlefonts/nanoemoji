@@ -40,9 +40,10 @@ import ufoLib2
 FLAGS = flags.FLAGS
 
 
+# Bump to 0.2 per https://github.com/googlefonts/picosvg/issues/138
 flags.DEFINE_float(
-    "reuse_tolerence",
-    0.1,
+    "reuse_tolerance",
+    0.2,
     "Allowable difference in reused shape in input coordinates (e.g. svg)."
     " Normalized shapes snap to whole multiples of tolerance;"
     " choice of a value where 1/tolerance is an int recommended",
@@ -259,7 +260,7 @@ def _in_glyph_reuse_key(
     paint+normalized shape ensures this."""
     return (
         _paint(debug_hint, upem, picosvg, shape),
-        normalize(shape, FLAGS.reuse_tolerence),
+        normalize(shape, FLAGS.reuse_tolerance),
     )
 
 
@@ -276,7 +277,7 @@ def _painted_layers(
         transforms = ()
         if len(paths) > 1:
             transforms = tuple(
-                affine_between(paths[0], p, FLAGS.reuse_tolerence) for p in paths[1:]
+                affine_between(paths[0], p, FLAGS.reuse_tolerance) for p in paths[1:]
             )
         for path, transform in zip(paths[1:], transforms):
             if transform is None:
