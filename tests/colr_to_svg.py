@@ -207,8 +207,8 @@ def _colr_v1_paint_to_svg(
                 if not ot_paint.Transform
                 else Affine2D(
                     ot_paint.Transform.xx.value,
-                    ot_paint.Transform.xy.value,
                     ot_paint.Transform.yx.value,
+                    ot_paint.Transform.xy.value,
                     ot_paint.Transform.yy.value,
                     ot_paint.Transform.dx.value,
                     ot_paint.Transform.dy.value,
