@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.0"/>
+    <GlyphID id="4" name="e000.0.component.0"/>
+    <GlyphID id="5" name="e000.1"/>
+    <GlyphID id="6" name="e000.1.component.0"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="3"/>
+    <mtx name="e000.0" width="100" lsb="18"/>
+    <mtx name="e000.0.component.0" width="0" lsb="18"/>
+    <mtx name="e000.1" width="100" lsb="3"/>
+    <mtx name="e000.1.component.0" width="0" lsb="69"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000" xMin="3" yMin="3" xMax="97" yMax="97">
+      <component glyphName="e000.0" x="0" y="0" flags="0x204"/>
+      <component glyphName="e000.1" x="0" y="0" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="e000.0" xMin="18" yMin="3" xMax="82" yMax="97">
+      <component glyphName="e000.0.component.0" x="0" y="0" flags="0x4"/>
+      <component glyphName="e000.0.component.0" x="100" y="100" scale="-1.0" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="e000.0.component.0" xMin="18" yMin="69" xMax="82" yMax="97">
+      <contour>
+        <pt x="50" y="69" on="1"/>
+        <pt x="56" y="69" on="0"/>
+        <pt x="66" y="73" on="0"/>
+        <pt x="74" y="79" on="0"/>
+        <pt x="78" y="86" on="0"/>
+        <pt x="81" y="90" on="0"/>
+        <pt x="81" y="90" on="1"/>
+        <pt x="81" y="92" on="0"/>
+        <pt x="82" y="94" on="0"/>
+        <pt x="81" y="96" on="1"/>
+        <pt x="79" y="97" on="0"/>
+        <pt x="77" y="97" on="1"/>
+        <pt x="76" y="96" on="0"/>
+        <pt x="75" y="95" on="1"/>
+        <pt x="75" y="93" on="0"/>
+        <pt x="71" y="88" on="0"/>
+        <pt x="65" y="83" on="0"/>
+        <pt x="56" y="80" on="0"/>
+        <pt x="50" y="80" on="1"/>
+        <pt x="44" y="80" on="0"/>
+        <pt x="35" y="83" on="0"/>
+        <pt x="29" y="88" on="0"/>
+        <pt x="25" y="93" on="0"/>
+        <pt x="25" y="94" on="1"/>
+        <pt x="24" y="96" on="0"/>
+        <pt x="21" y="97" on="0"/>
+        <pt x="20" y="96" on="1"/>
+        <pt x="19" y="96" on="0"/>
+        <pt x="19" y="96" on="1"/>
+        <pt x="18" y="95" on="0"/>
+        <pt x="19" y="91" on="0"/>
+        <pt x="19" y="90" on="1"/>
+        <pt x="19" y="90" on="0"/>
+        <pt x="22" y="86" on="0"/>
+        <pt x="26" y="79" on="0"/>
+        <pt x="33" y="73" on="0"/>
+        <pt x="43" y="69" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e000.1" xMin="3" yMin="19" xMax="97" yMax="81">
+      <component glyphName="e000.1.component.0" x="0" y="0" flags="0x4"/>
+      <component glyphName="e000.1.component.0" x="100" y="100" scale="-1.0" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="e000.1.component.0" xMin="69" yMin="19" xMax="97" yMax="81">
+      <contour>
+        <pt x="69" y="50" on="1"/>
+        <pt x="69" y="44" on="0"/>
+        <pt x="73" y="34" on="0"/>
+        <pt x="79" y="27" on="0"/>
+        <pt x="86" y="22" on="0"/>
+        <pt x="90" y="20" on="0"/>
+        <pt x="90" y="20" on="1"/>
+        <pt x="92" y="19" on="0"/>
+        <pt x="94" y="19" on="0"/>
+        <pt x="96" y="20" on="1"/>
+        <pt x="97" y="21" on="0"/>
+        <pt x="97" y="24" on="1"/>
+        <pt x="96" y="25" on="0"/>
+        <pt x="95" y="25" on="1"/>
+        <pt x="93" y="26" on="0"/>
+        <pt x="88" y="29" on="0"/>
+        <pt x="83" y="35" on="0"/>
+        <pt x="80" y="44" on="0"/>
+        <pt x="80" y="50" on="1"/>
+        <pt x="80" y="56" on="0"/>
+        <pt x="83" y="65" on="0"/>
+        <pt x="88" y="71" on="0"/>
+        <pt x="93" y="74" on="0"/>
+        <pt x="94" y="75" on="1"/>
+        <pt x="96" y="76" on="0"/>
+        <pt x="97" y="79" on="0"/>
+        <pt x="96" y="80" on="1"/>
+        <pt x="96" y="80" on="0"/>
+        <pt x="96" y="80" on="1"/>
+        <pt x="95" y="81" on="0"/>
+        <pt x="91" y="81" on="0"/>
+        <pt x="90" y="80" on="1"/>
+        <pt x="90" y="80" on="0"/>
+        <pt x="86" y="78" on="0"/>
+        <pt x="79" y="74" on="0"/>
+        <pt x="73" y="67" on="0"/>
+        <pt x="69" y="57" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+  </glyf>
+
+</ttFont>
