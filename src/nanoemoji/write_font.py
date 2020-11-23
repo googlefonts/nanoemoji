@@ -259,11 +259,13 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         )
 
         for transform in painted_layer.reuses:
-            # We already redrew the component into font space, don't redo it
-            # scale x/y translation and flip y movement to match font space
-            transform = transform._replace(
-                e=transform.e * svg_units_to_font_units.a,
-                f=transform.f * svg_units_to_font_units.d,
+            # We already drew the component into font space; transform is in SVG space
+            transform = Affine2D.compose_ltr(
+                (
+                    svg_units_to_font_units.inverse(),
+                    transform,
+                    svg_units_to_font_units,
+                )
             )
             glyph.components.append(
                 Component(baseGlyph=base_glyph.name, transformation=transform)

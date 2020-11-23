@@ -84,7 +84,7 @@ def main(argv):
         """
             )
         )
-        for diff_file in diff_files[:FLAGS.report_max_entries]:
+        for diff_file in diff_files[: FLAGS.report_max_entries]:
             print(diff_file.name, _diff_value(diff_file))
             pink_diff = diff_file.parent / (diff_file.stem + ".pink" + diff_file.suffix)
             vars = {
