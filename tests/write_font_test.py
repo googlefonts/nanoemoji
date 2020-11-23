@@ -104,6 +104,8 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
         ),
         # keep single-component composites if component reused by more than one glyph
         (("one_rect.svg", "one_rect.svg"), "reused_rect_glyf.ttx", "glyf", ".ttf"),
+        # Confirm transforms are in the correct coordinate space
+        # https://github.com/googlefonts/nanoemoji/pull/187
         (("reused_shape.svg",), "reused_shape_glyf.ttx", "glyf", ".ttf"),
     ],
 )
