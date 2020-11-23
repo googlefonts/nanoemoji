@@ -50,7 +50,7 @@ flags.DEFINE_float(
 # https://github.com/googlefonts/picosvg/issues/138
 flags.DEFINE_bool(
     "ignore_reuse_error",
-    False,
+    True,
     "Whether to fail or continue with a warning when picosvg cannot compute "
     "affine between paths that normalize the same."
 )
