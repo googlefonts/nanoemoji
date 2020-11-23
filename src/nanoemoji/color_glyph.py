@@ -47,6 +47,13 @@ flags.DEFINE_float(
     " Normalized shapes snap to whole multiples of tolerance;"
     " choice of a value where 1/tolerance is an int recommended",
 )
+# https://github.com/googlefonts/picosvg/issues/138
+flags.DEFINE_bool(
+    "ignore_reuse_error",
+    True,
+    "Whether to fail or continue with a warning when picosvg cannot compute "
+    "affine between paths that normalize the same."
+)
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
@@ -226,7 +233,7 @@ def _common_gradient_parts(el, shape_opacity=1.0):
 class PaintedLayer(NamedTuple):
     paint: Paint
     path: str  # path.d
-    reuses: Tuple[Affine2D]
+    reuses: Tuple[Affine2D] = ()
 
     def shape_cache_key(self):
         # a hashable cache key ignoring paint
@@ -278,12 +285,25 @@ def _painted_layers(
             transforms = tuple(
                 affine_between(paths[0], p, FLAGS.reuse_tolerence) for p in paths[1:]
             )
+
+        success = True
         for path, transform in zip(paths[1:], transforms):
             if transform is None:
-                raise ValueError(
-                    f"{debug_hint} grouped {paths[0]} and {path} but no affine_between could be computed"
+                success = False
+                error_msg = (
+                    f"{debug_hint} grouped the following paths but no affine_between "
+                    f"could be computed:\n  {paths[0]}\n  {path}"
                 )
-        yield PaintedLayer(paint, paths[0].d, transforms)
+                if FLAGS.ignore_reuse_error:
+                    logging.warning(error_msg)
+                else:
+                    raise ValueError(error_msg)
+
+        if success:
+            yield PaintedLayer(paint, paths[0].d, transforms)
+        else:
+            for path in paths:
+                yield PaintedLayer(paint, path.d)
 
 
 class ColorGlyph(NamedTuple):
