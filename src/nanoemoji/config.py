@@ -26,16 +26,6 @@ flags.DEFINE_string(
 )
 
 
-_DEFAULT_FAMILY = "An Emoji Family"
-_DEFAULT_REUSE_TOLERANCE = 0.1
-_DEFAULT_COLOR_FORMAT = "glyf_colr_1"
-_DEFAULT_UPEM = 1024
-_DEFAULT_KEEP_GLYPH_NAMES = False
-_DEFAULT_OUTPUT = "font"
-_DEFAULT_FEA_FILE = "features.fea"
-_DEFAULT_CODEPOINT_FILE = "codepointmap.csv"
-
-
 class Axis(NamedTuple):
     axisTag: str
     name: str
@@ -51,33 +41,27 @@ class MasterConfig(NamedTuple):
     name: str
     style_name: str
     output_ufo: str
-    position: Tuple[AxisPosition]
-    sources: Tuple[Path]
+    position: Tuple[AxisPosition, ...]
+    sources: Tuple[Path, ...]
 
 
 class FontConfig(NamedTuple):
-    family: str
-    output_file: str
-    color_format: str
-    upem: int
-    reuse_tolerance: float
-    keep_glyph_names: bool
-    output: str
-    fea_file: str
-    codepointmap_file: str
-    axes: Tuple[Axis]
-    masters: Tuple[MasterConfig]
-    source_names: Tuple[str]
+    family: str = "An Emoji Family"
+    output_file: str = "AnEmojiFamily.ttf"
+    color_format: str = "glyf_colr_1"
+    upem: int = 1024
+    reuse_tolerance: float = 0.1
+    keep_glyph_names: bool = False
+    output: str = "font"
+    fea_file: str = "features.fea"
+    codepointmap_file: str = "codepointmap.csv"
+    axes: Tuple[Axis, ...] = ()
+    masters: Tuple[MasterConfig, ...] = ()
+    source_names: Tuple[str, ...] = ()
 
     @property
     def output_format(self):
         return Path(self.output_file).suffix
-
-
-def _consume(config, key, default=None):
-    if default is None or key in config:
-        return config.pop(key)
-    return default
 
 
 def write(dest: Path, config: FontConfig):
@@ -112,28 +96,28 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
     if config_file is None:
         config_file = Path(FLAGS.config).resolve()
 
+    default_config = FontConfig()
+
     config = toml.load(config_file)
     config_dir = config_file.parent
 
-    family = _consume(config, "family", default=_DEFAULT_FAMILY)
-    output_file = _consume(config, "output_file")
-    color_format = _consume(config, "color_format", default=_DEFAULT_COLOR_FORMAT)
-    upem = int(_consume(config, "upem", default=_DEFAULT_UPEM))
+    family = config.pop("family", default_config.family)
+    output_file = config.pop("output_file", default_config.output_file)
+    color_format = config.pop("color_format", default_config.color_format)
+    upem = int(config.pop("upem", default_config.upem))
     reuse_tolerance = float(
-        _consume(config, "reuse_tolerance", default=_DEFAULT_REUSE_TOLERANCE)
+        config.pop("reuse_tolerance", default_config.reuse_tolerance)
     )
-    keep_glyph_names = _consume(
-        config, "keep_glyph_names", default=_DEFAULT_KEEP_GLYPH_NAMES
-    )
-    output = _consume(config, "output", default=_DEFAULT_OUTPUT)
+    keep_glyph_names = config.pop("keep_glyph_names", default_config.keep_glyph_names)
+    output = config.pop("output", default_config.output)
 
     axes = []
-    for axis_tag, axis_config in _consume(config, "axis").items():
+    for axis_tag, axis_config in config.pop("axis").items():
         axes.append(
             Axis(
                 axis_tag,
-                _consume(axis_config, "name"),
-                _consume(axis_config, "default"),
+                axis_config.pop("name"),
+                axis_config.pop("default"),
             )
         )
         if axis_config:
@@ -141,16 +125,13 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
 
     masters = []
     source_names = set()
-    for master_name, master_config in _consume(config, "master").items():
+    for master_name, master_config in config.pop("master").items():
         positions = tuple(
-            sorted(
-                AxisPosition(k, v)
-                for k, v in _consume(master_config, "position").items()
-            )
+            sorted(AxisPosition(k, v) for k, v in master_config.pop("position").items())
         )
         srcs = set()
         if "srcs" in master_config:
-            for src in _consume(master_config, "srcs"):
+            for src in master_config.pop("srcs"):
                 if Path(src).is_file():
                     srcs.add(Path(src))
                 else:
@@ -161,7 +142,7 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
 
         master = MasterConfig(
             master_name,
-            _consume(master_config, "style_name"),
+            master_config.pop("style_name"),
             ".".join(
                 (
                     Path(output_file).stem,
@@ -198,8 +179,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         reuse_tolerance,
         keep_glyph_names,
         output,
-        _DEFAULT_FEA_FILE,
-        _DEFAULT_CODEPOINT_FILE,
+        default_config.fea_file,
+        default_config.codepointmap_file,
         tuple(axes),
         tuple(masters),
         tuple(sorted(source_names)),

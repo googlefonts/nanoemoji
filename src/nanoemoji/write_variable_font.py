@@ -69,7 +69,7 @@ def main(argv):
         )
 
     # build a variable TTFont from the designspace document
-    # TODO what if I wanted a variable CFF?!
+    # TODO: Use ufo2ft.compileVariableCFF2 for CFF
     vf = ufo2ft.compileVariableTTF(designspace)
     vf.save(font_config.output_file)
 
