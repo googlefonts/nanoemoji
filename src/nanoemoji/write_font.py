@@ -23,8 +23,9 @@ import csv
 from fontTools import ttLib
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
-from nanoemoji import codepoints
+from nanoemoji import codepoints, config
 from nanoemoji.colors import Color
+from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import (
@@ -39,6 +40,7 @@ from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
 import os
+from pathlib import Path
 import ufoLib2
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
@@ -62,17 +64,8 @@ import ufo2ft
 FLAGS = flags.FLAGS
 
 
-class ColorFontConfig(NamedTuple):
-    upem: int
-    family: str
-    color_format: str
-    fea_file: str
-    output_format: str
-    keep_glyph_names: bool = False
-
-
 class InputGlyph(NamedTuple):
-    filename: str
+    filename: Path
     codepoints: Tuple[int, ...]
     picosvg: SVG
 
@@ -141,25 +134,6 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
 }
-
-
-# TODO move to config file?
-# TODO flag on/off shape reuse
-flags.DEFINE_integer("upem", 1024, "Units per em.")
-flags.DEFINE_string("family", "An Emoji Family", "Family name.")
-flags.DEFINE_string("output_file", None, "Output filename.")
-flags.DEFINE_enum(
-    "color_format",
-    "glyf_colr_1",
-    sorted(_COLOR_FORMAT_GENERATORS.keys()),
-    "Type of font to generate.",
-)
-flags.DEFINE_enum(
-    "output", "font", ["ufo", "font"], "Whether to output a font binary or a UFO"
-)
-flags.DEFINE_bool(
-    "keep_glyph_names", False, "Whether or not to store glyph names in the font."
-)
 
 
 def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
@@ -491,7 +465,7 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
 
 
-def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
+def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
     ufo = _ufo(config.family, config.upem, config.keep_glyph_names)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
@@ -519,14 +493,14 @@ def _generate_color_font(config: ColorFontConfig, inputs: Iterable[InputGlyph]):
 
 
 def _inputs(
-    codepoints: Mapping[str, Tuple[int, ...]], svg_files: Iterable[str]
+    codepoints: Mapping[str, Tuple[int, ...]], svg_files: Iterable[Path]
 ) -> Generator[InputGlyph, None, None]:
     for svg_file in svg_files:
-        rgi = codepoints.get(os.path.basename(svg_file), None)
+        rgi = codepoints.get(svg_file.name, None)
         if not rgi:
             raise ValueError(f"No codepoint sequence for {svg_file}")
         try:
-            picosvg = SVG.parse(svg_file)
+            picosvg = SVG.parse(str(svg_file))
         except etree.ParseError as e:
             raise IOError(f"Unable to parse {svg_file}") from e
         yield InputGlyph(svg_file, rgi, picosvg)
@@ -536,36 +510,18 @@ def _codepoint_map(codepoint_csv):
     return {name: rgi for name, rgi in codepoints.parse_csv(codepoint_csv)}
 
 
-def output_file(family, output, color_format):
-    if FLAGS.output == "ufo":
-        output_format = ".ufo"
-    else:
-        output_format = _COLOR_FORMAT_GENERATORS[color_format].font_ext
-    return f"{family.replace(' ', '')}{output_format}"
-
-
 def main(argv):
-    argv = util.expand_ninja_response_files(argv)
+    font_config = config.load()
+    if len(font_config.masters) != 1:
+        raise ValueError("write_font expects only one master")
 
-    config = ColorFontConfig(
-        upem=FLAGS.upem,
-        family=FLAGS.family,
-        color_format=FLAGS.color_format,
-        fea_file=util.only(lambda a: os.path.splitext(a)[1] == ".fea", argv),
-        output_format=os.path.splitext(FLAGS.output_file)[1],
-        keep_glyph_names=FLAGS.keep_glyph_names,
-    )
-
-    codepoints = _codepoint_map(
-        util.only(lambda a: os.path.splitext(a)[1] == ".csv", argv)
-    )
-    svg_files = filter(lambda a: os.path.splitext(a)[1] == ".svg", argv)
-    inputs = list(_inputs(codepoints, svg_files))
+    codepoints = _codepoint_map(font_config.codepointmap_file)
+    inputs = list(_inputs(codepoints, font_config.masters[0].sources))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
-    ufo, ttfont = _generate_color_font(config, inputs)
-    _write(ufo, ttfont, FLAGS.output_file)
-    logging.info("Wrote %s" % FLAGS.output_file)
+    ufo, ttfont = _generate_color_font(font_config, inputs)
+    _write(ufo, ttfont, font_config.output_file)
+    logging.info("Wrote %s" % font_config.output_file)
 
 
 if __name__ == "__main__":

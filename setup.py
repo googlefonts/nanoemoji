@@ -21,9 +21,12 @@ setup(
     packages=find_packages(where="src"),
     entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
     setup_requires=["setuptools_scm"],
+    include_package_data=True,
     install_requires=[
         "absl-py>=0.9.0",
+        "dataclasses>=0.8; python_version < '3.7'",
         "fonttools[ufo]>=4.17.0",
+        "importlib_resources>=3.3.0; python_version < '3.9'",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
         "picosvg>=0.7.1",
@@ -31,11 +34,10 @@ setup(
         "regex>=2020.4.4",
         "ufo2ft[cffsubr]>=2.15.0",
         "ufoLib2>=0.6.2",
-        "dataclasses>=0.8; python_version < '3.7'",
     ],
     python_requires=">=3.6",
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",
-    description=("Exploratory compiler for color fonts"),
+    description=("Compiler for color fonts"),
 )

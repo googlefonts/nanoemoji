@@ -20,8 +20,13 @@ from nanoemoji import util
 
 
 def main(argv):
-    for svg_file in util.expand_ninja_response_files(argv[1:]):
-        print(codepoints.csv_line(svg_file))
+    for filename in util.expand_ninja_response_files(argv[1:]):
+        if filename.endswith(".txt"):
+            with open(filename) as f:
+                for l in f:
+                    print(codepoints.csv_line(l.strip()))
+        else:
+            print(codepoints.csv_line(filename))
 
 
 if __name__ == "__main__":

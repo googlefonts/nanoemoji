@@ -1,0 +1,20 @@
+output_file = "MinimalVF.ttf"
+
+[axis.wght]
+name = "Weight"
+# ufo2ft fails if default is not at a master.
+default = 300
+
+[master.thin]
+style_name = "Thin"
+srcs = ["thin/*.svg"]
+
+[master.thin.position]
+wght = 300
+
+[master.bold]
+style_name = "Bold"
+srcs = ["bold/*.svg"]
+
+[master.bold.position]
+wght = 700

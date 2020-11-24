@@ -20,8 +20,10 @@ import sys
 from lxml import etree
 from fontTools import ttLib
 from nanoemoji import codepoints
+from nanoemoji import config
 from nanoemoji import write_fea
 from nanoemoji import write_font
+from pathlib import Path
 from picosvg.svg import SVG
 import pytest
 import tempfile
@@ -45,13 +47,15 @@ def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
         f.write(write_fea._generate_fea(rgi_seqs))
 
     return (
-        write_font.ColorFontConfig(
-            upem=100,
+        config.load(
+            config_file=None, additional_srcs=tuple(Path(s) for s in svgs)
+        )._replace(
             family="UnitTest",
             color_format=color_format,
-            output_format=output_format,
-            fea_file=fea_file,
+            upem=100,
             keep_glyph_names=keep_glyph_names,
+            output=output_format,
+            fea_file=fea_file,
         ),
         [
             write_font.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
