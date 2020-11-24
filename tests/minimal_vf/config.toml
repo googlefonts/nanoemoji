@@ -1,5 +1,4 @@
 output_file = "MinimalVF.ttf"
-color_format = "glyf_colr_1"
 
 [axis.wght]
 name = "Weight"
@@ -8,14 +7,14 @@ default = 300
 
 [master.thin]
 style_name = "Thin"
-srcs = "thin/*.svg"
+srcs = ["thin/*.svg"]
 
 [master.thin.position]
 wght = 300
 
 [master.bold]
 style_name = "Bold"
-srcs = "bold/*.svg"
+srcs = ["bold/*.svg"]
 
 [master.bold.position]
 wght = 700

@@ -52,7 +52,7 @@ flags.DEFINE_bool(
     "ignore_reuse_error",
     True,
     "Whether to fail or continue with a warning when picosvg cannot compute "
-    "affine between paths that normalize the same."
+    "affine between paths that normalize the same.",
 )
 
 
@@ -233,7 +233,7 @@ def _common_gradient_parts(el, shape_opacity=1.0):
 class PaintedLayer(NamedTuple):
     paint: Paint
     path: str  # path.d
-    reuses: Tuple[Affine2D] = ()
+    reuses: Tuple[Affine2D, ...] = ()
 
     def shape_cache_key(self):
         # a hashable cache key ignoring paint
