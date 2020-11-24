@@ -19,8 +19,12 @@ setup(
     use_scm_version={"write_to": "src/nanoemoji/_version.py"},
     package_dir={"": "src"},
     packages=find_packages(where="src"),
+    package_data={
+        "nanoemoji": ["data/*"],
+    },
     entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
     setup_requires=["setuptools_scm"],
+    include_package_data=True,
     install_requires=[
         "absl-py>=0.9.0",
         "fonttools[ufo]>=4.17.0",
@@ -37,5 +41,5 @@ setup(
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",
-    description=("Exploratory compiler for color fonts"),
+    description=("Compiler for color fonts"),
 )

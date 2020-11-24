@@ -13,17 +13,19 @@
 # limitations under the License.
 
 from absl import flags
+import importlib_resources
 from pathlib import Path
 import toml
-from typing import NamedTuple, Tuple, Sequence
+from typing import Any, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
 
 FLAGS = flags.FLAGS
 
 
-flags.DEFINE_string(
-    "config", str(Path(__file__).parent / "default.toml"), "Config file"
-)
+_DEFAULT_CONFIG = "_default.toml"
+
+
+flags.DEFINE_string("config", _DEFAULT_CONFIG, "Config file")
 
 
 class Axis(NamedTuple):
@@ -92,14 +94,24 @@ def write(dest: Path, config: FontConfig):
     dest.write_text(toml.dumps(toml_cfg))
 
 
-def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontConfig:
+def _resolve_config(
+    config_file: Path = None,
+) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
-        config_file = Path(FLAGS.config).resolve()
+        if FLAGS.config == _DEFAULT_CONFIG:
+            with importlib_resources.path(
+                "nanoemoji.data", _DEFAULT_CONFIG
+            ) as config_file:
+                # no config_dir in this context; bad input if we need it
+                return None, toml.load(config_file)
+        else:
+            config_file = Path(FLAGS.config)
+    return config_file.parent, toml.load(config_file)
 
+
+def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontConfig:
+    config_dir, config = _resolve_config(config_file)
     default_config = FontConfig()
-
-    config = toml.load(config_file)
-    config_dir = config_file.parent
 
     family = config.pop("family", default_config.family)
     output_file = config.pop("output_file", default_config.output_file)
@@ -134,6 +146,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
             for src in master_config.pop("srcs"):
                 if Path(src).is_file():
                     srcs.add(Path(src))
+                elif config_dir is None:
+                    raise ValueError(f"No config dir, unable to resolve {src}")
                 else:
                     srcs |= set(config_dir.glob(src))
         if additional_srcs is not None:
