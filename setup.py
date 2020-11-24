@@ -19,9 +19,6 @@ setup(
     use_scm_version={"write_to": "src/nanoemoji/_version.py"},
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    package_data={
-        "nanoemoji": ["data/*"],
-    },
     entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
     setup_requires=["setuptools_scm"],
     include_package_data=True,

@@ -29,15 +29,15 @@ import tempfile
 )
 @pytest.mark.usefixtures("absl_flags")
 def test_read_write_config(config_file):
-    tmp_file = Path(tempfile.mkdtemp())
+    tmp_dir = Path(tempfile.mkdtemp())
     if config_file:
         config_file = Path(locate_test_file(config_file))
-        tmp_file = tmp_file / config_file.name
+        tmp_dir = tmp_dir / config_file.name
     else:
-        tmp_file = tmp_file / "the_default.toml"
+        tmp_dir = tmp_dir / "the_default.toml"
 
     original = config.load(config_file)
-    config.write(tmp_file, original)
-    reloaded = config.load(tmp_file)
+    config.write(tmp_dir, original)
+    reloaded = config.load(tmp_dir)
 
     assert original == reloaded
