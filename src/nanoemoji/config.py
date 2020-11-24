@@ -14,6 +14,11 @@
 
 from absl import flags
 import importlib_resources
+
+try:
+    import importlib.resources as resources
+except ImportError:
+    import importlib_resources as resources
 from pathlib import Path
 import toml
 from typing import Any, MutableMapping, NamedTuple, Optional, Tuple, Sequence
@@ -99,9 +104,7 @@ def _resolve_config(
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
         if FLAGS.config == _DEFAULT_CONFIG:
-            with importlib_resources.path(
-                "nanoemoji.data", _DEFAULT_CONFIG
-            ) as config_file:
+            with resources.path("nanoemoji.data", _DEFAULT_CONFIG) as config_file:
                 # no config_dir in this context; bad input if we need it
                 return None, toml.load(config_file)
         else:
