@@ -13,8 +13,6 @@
 # limitations under the License.
 
 from absl import flags
-import importlib_resources
-
 try:
     import importlib.resources as resources
 except ImportError:
