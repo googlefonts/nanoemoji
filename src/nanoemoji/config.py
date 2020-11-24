@@ -151,11 +151,11 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         if "srcs" in master_config:
             for src in master_config.pop("srcs"):
                 if Path(src).is_file():
-                    srcs.add(Path(src))
+                    srcs.add(Path(src).resolve())
                 elif config_dir is None:
                     raise ValueError(f"No config dir, unable to resolve {src}")
                 else:
-                    srcs |= set(config_dir.glob(src))
+                    srcs |= set(p.resolve() for p in config_dir.glob(src))
         if additional_srcs is not None:
             srcs |= set(additional_srcs)
         srcs = tuple(sorted(srcs))

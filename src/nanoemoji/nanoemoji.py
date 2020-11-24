@@ -33,6 +33,7 @@ from absl import logging
 import glob
 from nanoemoji import codepoints, config, write_font
 from nanoemoji.config import AxisPosition, FontConfig, MasterConfig
+from nanoemoji.util import fs_root, rel
 from ninja import ninja_syntax
 import os
 from pathlib import Path
@@ -60,15 +61,6 @@ def self_dir() -> Path:
 
 def build_dir() -> Path:
     return Path(FLAGS.build_dir).resolve()
-
-
-def fs_root() -> Path:
-    return Path("/").resolve()
-
-
-def rel(from_path: Path, to_path: Path) -> Path:
-    # relative_to(A,B) doesn't like it if B doesn't start with A
-    return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))
 
 
 def rel_self(path: Path) -> Path:
