@@ -33,13 +33,13 @@ from absl import logging
 import glob
 from nanoemoji import codepoints, config, write_font
 from nanoemoji.config import AxisPosition, FontConfig, MasterConfig
-from nanoemoji.util import fs_root, rel
+from nanoemoji.util import fs_root, rel, only
 from ninja import ninja_syntax
 import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import NamedTuple, Tuple, Sequence
+from typing import List, NamedTuple, Tuple, Sequence
 
 
 FLAGS = flags.FLAGS
@@ -237,26 +237,51 @@ def write_svg_font_diff_build(
     nw.build("diffs.html", "write_diffreport", [diff_png_dest(f) for f in svg_files])
 
 
+def _input_svgs(font_config: FontConfig, master: MasterConfig) -> List[str]:
+    if font_config.has_picosvgs:
+        svg_files = [picosvg_dest(master.name, f) for f in master.sources]
+    else:
+        svg_files = [str(f.resolve()) for f in master.sources]
+    return svg_files
+
+
+def _update_sources(font_config: FontConfig) -> FontConfig:
+    if not font_config.has_picosvgs:
+        return font_config
+    return font_config._replace(
+        masters=tuple(
+            master._replace(
+                sources=tuple(
+                    Path(picosvg_dest(master.name, s)) for s in master.sources
+                )
+            )
+            for master in font_config.masters
+        )
+    )
+
+
 def write_ufo_build(
     nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
 ):
     ufo_config = font_config._replace(
         output_file=master.output_ufo, output="ufo", masters=(master,)
     )
+    ufo_config = _update_sources(ufo_config)
     config.write(build_dir() / _ufo_config(master), ufo_config)
     nw.build(
         master.output_ufo,
         _ufo_rule(master),
-        [],
+        _input_svgs(font_config, master),
     )
     nw.newline()
 
 
 def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+    assert len(font_config.masters) == 1
     nw.build(
         font_config.output_file,
         "write_font",
-        ["config.toml"],
+        ["config.toml"] + _input_svgs(font_config, font_config.masters[0]),
     )
     nw.newline()
 
@@ -270,15 +295,25 @@ def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.newline()
 
 
+def _font_config_for_build(cli_srcs):
+    # Dump config with defaults, CLI args, etc resolved to build
+    # and sources updated to point to build picosvgs
+    original_config = config.load(additional_srcs=cli_srcs)
+    font_config = _update_sources(original_config)
+
+    # Save it so we can point write_font at it later
+    config_file = build_dir() / "config.toml"
+    config.write(config_file, font_config)
+    print("Wrote ", config_file)
+    return original_config
+
+
 def _run(argv):
     os.makedirs(build_dir(), exist_ok=True)
 
-    # Dump config with defaults, CLI args, etc resolved to build
-    cli_srcs = tuple(Path(f) for f in argv if f.endswith(".svg"))
-    font_config = config.load(additional_srcs=cli_srcs)
-    config_file = build_dir() / "config.toml"
-    config.write(config_file, font_config)
-    print("Wrote ", rel_build(config_file))
+    font_config = _font_config_for_build(
+        tuple(Path(f) for f in argv if f.endswith(".svg"))
+    )
 
     is_vf = len(font_config.masters) > 1
     is_svg = font_config.color_format.endswith(

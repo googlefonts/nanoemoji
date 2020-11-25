@@ -15,11 +15,20 @@
 # Integration tests for nanoemoji
 
 from fontTools.ttLib import TTFont
+from lxml import etree  # pytype: disable=import-error
 from pathlib import Path
+from picosvg.svg import SVG
 import pytest
 import subprocess
 import tempfile
 from test_helper import locate_test_file
+
+
+def _svg_element_names(xpath, svg_content):
+    return tuple(
+        etree.QName(e).localname
+        for e in SVG.fromstring(svg_content).xpath(xpath.replace("/", "/svg:"))
+    )
 
 
 def _run(cmd):
@@ -67,3 +76,38 @@ def test_build_variable_font():
 
     font = TTFont(tmp_dir / "MinimalVF.ttf")
     assert "fvar" in font
+
+
+def test_build_picosvg_font():
+    tmp_dir = _run(
+        (
+            "--config",
+            locate_test_file("minimal_static/config_picosvg.toml"),
+        )
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+    # fill=none ellipse dropped, rect became path, everything is under a group
+    svg_content = font["SVG "].docList[0][0]
+    assert _svg_element_names("/svg/g/*", svg_content) == ("path", "path"), svg_content
+
+
+def test_build_untouchedsvg_font():
+    tmp_dir = _run(
+        (
+            "--config",
+            locate_test_file("minimal_static/config_untouchedsvg.toml"),
+        )
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+    assert "SVG " in font
+
+    font = TTFont(tmp_dir / "Font.ttf")
+    # rect stayed rect, fill non ellipse still around, no group introduced
+    svg_content = font["SVG "].docList[0][0]
+    assert _svg_element_names("/svg/*", svg_content) == (
+        "path",
+        "rect",
+        "ellipse",
+    ), svg_content

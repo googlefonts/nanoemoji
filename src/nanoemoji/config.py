@@ -73,6 +73,10 @@ class FontConfig(NamedTuple):
     def output_format(self):
         return Path(self.output_file).suffix
 
+    @property
+    def has_picosvgs(self):
+        return not self.color_format.startswith("untouchedsvg")
+
 
 def write(dest: Path, config: FontConfig):
     toml_cfg = {
@@ -150,15 +154,18 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         srcs = set()
         if "srcs" in master_config:
             for src in master_config.pop("srcs"):
-                if Path(src).is_file():
-                    srcs.add(Path(src).resolve())
+                src_path = Path(src)
+                if "*" in src:
+                    srcs |= set(config_dir.glob(src))
+                elif src_path.is_absolute():
+                    srcs.add(src_path)
                 elif config_dir is None:
-                    raise ValueError(f"No config dir, unable to resolve {src}")
+                    raise ValueError(f"No config dir, unable to resolve {src_path}")
                 else:
-                    srcs |= set(p.resolve() for p in config_dir.glob(src))
+                    srcs.add(config_dir.joinpath(src_path))
         if additional_srcs is not None:
             srcs |= set(additional_srcs)
-        srcs = tuple(sorted(srcs))
+        srcs = tuple(sorted(p.resolve() for p in srcs))
 
         master = MasterConfig(
             master_name,

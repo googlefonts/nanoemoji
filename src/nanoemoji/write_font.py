@@ -67,7 +67,7 @@ FLAGS = flags.FLAGS
 class InputGlyph(NamedTuple):
     filename: Path
     codepoints: Tuple[int, ...]
-    picosvg: SVG
+    svg: SVG  # picosvg except for untouched formats
 
 
 # A color font generator.
@@ -472,8 +472,15 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
-        ColorGlyph.create(ufo, filename, base_gid + idx, codepoints, psvg)
-        for idx, (filename, codepoints, psvg) in enumerate(inputs)
+        ColorGlyph.create(
+            ufo,
+            filename,
+            base_gid + idx,
+            codepoints,
+            svg,
+            extract_layers=config.has_picosvgs,
+        )
+        for idx, (filename, codepoints, svg) in enumerate(inputs)
     ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
