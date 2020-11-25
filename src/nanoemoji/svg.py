@@ -327,8 +327,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     svg_use.attrib["y"] = _ntos(ty)
                 transform = reuse.translate(-tx, -ty)
                 if transform != Affine2D.identity():
-                    # TODO apply scale and rotation. Just slap a transform on the <use>?
-                    raise NotImplementedError("TODO apply scale & rotation to use")
+                    svg_use.attrib["transform"] = _svg_matrix(transform)
 
         else:
             el = reuse_cache.shapes[reuse_key]
