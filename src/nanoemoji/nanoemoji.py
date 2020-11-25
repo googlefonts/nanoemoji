@@ -295,25 +295,23 @@ def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.newline()
 
 
-def _font_config_for_build(cli_srcs):
+def _write_config_for_build(font_config: FontConfig):
     # Dump config with defaults, CLI args, etc resolved to build
     # and sources updated to point to build picosvgs
-    original_config = config.load(additional_srcs=cli_srcs)
-    font_config = _update_sources(original_config)
+    font_config = _update_sources(font_config)
 
-    # Save it so we can point write_font at it later
     config_file = build_dir() / "config.toml"
     config.write(config_file, font_config)
     print("Wrote ", config_file)
-    return original_config
 
 
 def _run(argv):
     os.makedirs(build_dir(), exist_ok=True)
 
-    font_config = _font_config_for_build(
-        tuple(Path(f) for f in argv if f.endswith(".svg"))
+    font_config = config.load(
+        additional_srcs=tuple(Path(f) for f in argv if f.endswith(".svg"))
     )
+    _write_config_for_build(font_config)
 
     is_vf = len(font_config.masters) > 1
     is_svg = font_config.color_format.endswith(
