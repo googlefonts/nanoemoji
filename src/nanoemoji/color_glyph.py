@@ -33,7 +33,7 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
-from typing import Generator, NamedTuple, Tuple
+from typing import Generator, NamedTuple, Optional, Tuple
 import ufoLib2
 
 
@@ -312,7 +312,7 @@ class ColorGlyph(NamedTuple):
     glyph_name: str
     glyph_id: int
     codepoints: Tuple[int, ...]
-    painted_layers: Tuple[PaintedLayer, ...]
+    painted_layers: Optional[Tuple[PaintedLayer, ...]]  # None for untouched formats
     svg: SVG  # picosvg except for untouched formats
 
     @staticmethod
@@ -327,7 +327,7 @@ class ColorGlyph(NamedTuple):
             base_glyph.unicode = next(iter(codepoints))
 
         # Grab the transform + (color, glyph) layers for COLR
-        painted_layers = ()
+        painted_layers = None
         if extract_layers:
             painted_layers = tuple(_painted_layers(filename, ufo.info.unitsPerEm, svg))
         return ColorGlyph(
