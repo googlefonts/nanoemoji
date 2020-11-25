@@ -29,8 +29,12 @@ import pytest
 import tempfile
 
 
-def locate_test_file(filename):
-    return os.path.join(os.path.dirname(__file__), filename)
+def test_data_dir() -> Path:
+    return Path(__file__).parent
+
+
+def locate_test_file(filename) -> Path:
+    return test_data_dir() / filename
 
 
 def picosvg(filename, locate=False):
@@ -40,16 +44,14 @@ def picosvg(filename, locate=False):
 
 
 def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
-    svgs = [locate_test_file(s) for s in svgs]
+    svgs = tuple(locate_test_file(s) for s in svgs)
     fea_file = os.path.join(tempfile.gettempdir(), "test.fea")
-    rgi_seqs = [codepoints.from_filename(f) for f in svgs]
+    rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
     with open(fea_file, "w") as f:
         f.write(write_fea._generate_fea(rgi_seqs))
 
     return (
-        config.load(
-            config_file=None, additional_srcs=tuple(Path(s) for s in svgs)
-        )._replace(
+        config.load(config_file=None, additional_srcs=svgs)._replace(
             family="UnitTest",
             color_format=color_format,
             upem=100,

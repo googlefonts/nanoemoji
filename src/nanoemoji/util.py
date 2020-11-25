@@ -14,7 +14,8 @@
 
 """Small helper functions."""
 
-import pathlib
+import os
+from pathlib import Path
 import shlex
 from typing import List
 
@@ -46,3 +47,12 @@ def expand_ninja_response_files(argv: List[str]) -> List[str]:
         else:
             result.append(arg)
     return result
+
+
+def fs_root() -> Path:
+    return Path("/").resolve()
+
+
+def rel(from_path: Path, to_path: Path) -> Path:
+    # relative_to(A,B) doesn't like it if B doesn't start with A
+    return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))

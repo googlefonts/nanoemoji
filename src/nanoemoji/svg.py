@@ -85,7 +85,7 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
         reuse_groups.make_set(color_glyph.glyph_name)
         for painted_layer in color_glyph.painted_layers:
             reuse_key = _inter_glyph_reuse_key(
-                color_glyph.picosvg.view_box(), painted_layer
+                color_glyph.svg.view_box(), painted_layer
             )
             if reuse_key not in glyphs:
                 glyphs[reuse_key] = color_glyph.glyph_name
@@ -296,7 +296,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
 
-    view_box = color_glyph.picosvg.view_box()
+    view_box = color_glyph.svg.view_box()
     if view_box is None:
         raise ValueError(f"{color_glyph.filename} must declare view box")
 
@@ -327,8 +327,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     svg_use.attrib["y"] = _ntos(ty)
                 transform = reuse.translate(-tx, -ty)
                 if transform != Affine2D.identity():
-                    # TODO apply scale and rotation. Just slap a transform on the <use>?
-                    raise NotImplementedError("TODO apply scale & rotation to use")
+                    svg_use.attrib["transform"] = _svg_matrix(transform)
 
         else:
             el = reuse_cache.shapes[reuse_key]
