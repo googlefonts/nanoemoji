@@ -17,7 +17,7 @@ fs==2.4.11                # via fonttools
 importlib-resources==3.3.0  # via cffsubr
 lxml==4.6.1               # via nanoemoji (setup.py), picosvg
 ninja==1.10.0.post2       # via nanoemoji (setup.py)
-picosvg==0.7.1            # via nanoemoji (setup.py)
+picosvg==0.7.2            # via nanoemoji (setup.py)
 pillow==8.0.1             # via nanoemoji (setup.py)
 pyclipper==1.2.0          # via booleanoperations
 pytz==2020.4              # via fs
