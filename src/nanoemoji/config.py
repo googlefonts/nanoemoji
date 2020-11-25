@@ -22,9 +22,10 @@ import importlib_resources as resources
 #     import importlib.resources as resources
 # except ImportError:
 #     import importlib_resources as resources
+
 from pathlib import Path
 import toml
-from typing import Any, MutableMapping, NamedTuple, Optional, Tuple, Sequence
+from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
 
 FLAGS = flags.FLAGS
@@ -119,6 +120,23 @@ def _resolve_config(
     return config_file.parent, toml.load(config_file)
 
 
+def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
+    src_path = Path(src)
+    if src_path.is_absolute():
+        if "*" in src:
+            root = Path(src_path.root)
+            stem = src[len(src_path.root) :]
+            return tuple(root.glob(stem))
+        return (src_path,)
+
+    if relative_base is None:
+        raise ValueError(f"No relative_base, unable to resolve {src_path}")
+
+    if "*" in src:
+        return tuple(relative_base.glob(src))
+    return (relative_base.joinpath(src_path),)
+
+
 def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontConfig:
     config_dir, config = _resolve_config(config_file)
     default_config = FontConfig()
@@ -154,17 +172,9 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         srcs = set()
         if "srcs" in master_config:
             for src in master_config.pop("srcs"):
-                src_path = Path(src)
-                if "*" in src:
-                    srcs |= set(config_dir.glob(src))
-                elif src_path.is_absolute():
-                    srcs.add(src_path)
-                elif config_dir is None:
-                    raise ValueError(f"No config dir, unable to resolve {src_path}")
-                else:
-                    srcs.add(config_dir.joinpath(src_path))
+                srcs.update(_resolve_src(config_dir, src))
         if additional_srcs is not None:
-            srcs |= set(additional_srcs)
+            srcs.update(additional_srcs)
         srcs = tuple(sorted(p.resolve() for p in srcs))
 
         master = MasterConfig(

@@ -15,8 +15,9 @@
 from nanoemoji import config
 from pathlib import Path
 import pytest
-from test_helper import locate_test_file
+from test_helper import test_data_dir, locate_test_file
 import tempfile
+from typing import Iterable
 
 
 @pytest.mark.parametrize(
@@ -31,7 +32,7 @@ import tempfile
 def test_read_write_config(config_file):
     tmp_dir = Path(tempfile.mkdtemp())
     if config_file:
-        config_file = Path(locate_test_file(config_file))
+        config_file = locate_test_file(config_file)
         tmp_dir = tmp_dir / config_file.name
     else:
         tmp_dir = tmp_dir / "the_default.toml"
@@ -41,3 +42,43 @@ def test_read_write_config(config_file):
     reloaded = config.load(tmp_dir)
 
     assert original == reloaded
+
+
+@pytest.mark.parametrize(
+    "relative_base, src, expected_files",
+    [
+        # relative single file
+        (
+            test_data_dir(),
+            "minimal_static/svg/61.svg",
+            {locate_test_file("minimal_static/svg/61.svg")},
+        ),
+        # relative pattern
+        (
+            test_data_dir(),
+            "linear_gradient_transform*.svg",
+            {
+                locate_test_file("linear_gradient_transform.svg"),
+                locate_test_file("linear_gradient_transform_2.svg"),
+                locate_test_file("linear_gradient_transform_3.svg"),
+            },
+        ),
+        # absolute single file
+        (
+            test_data_dir(),
+            locate_test_file("minimal_static/svg/61.svg").resolve(),
+            {locate_test_file("minimal_static/svg/61.svg")},
+        ),
+        # absolute pattern
+        (
+            None,
+            test_data_dir().resolve() / "**" / "linear_gradient_transform_*.svg",
+            {
+                locate_test_file("linear_gradient_transform_2.svg"),
+                locate_test_file("linear_gradient_transform_3.svg"),
+            },
+        ),
+    ],
+)
+def test_resolve_src(relative_base, src, expected_files):
+    assert set(config._resolve_src(relative_base, str(src))) == expected_files

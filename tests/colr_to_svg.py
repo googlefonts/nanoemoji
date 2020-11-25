@@ -53,7 +53,9 @@ def _map_font_emsquare_to_viewbox(upem: int, view_box: Rect) -> Affine2D:
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
-    svg_tree = etree.parse(test_helper.locate_test_file("colr_to_svg_template.svg"))
+    svg_tree = etree.parse(
+        str(test_helper.locate_test_file("colr_to_svg_template.svg"))
+    )
     svg_root = svg_tree.getroot()
     svg_root.attrib["viewBox"] = f"{view_box.x} {view_box.y} {view_box.w} {view_box.h}"
     return svg_root
