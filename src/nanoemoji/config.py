@@ -14,14 +14,10 @@
 
 from absl import flags
 
-# works even on py39
-import importlib_resources as resources
-
-# does NOT work on py39; resources.path (and .contents) don't admit our resources exist
-# try:
-#     import importlib.resources as resources
-# except ImportError:
-#     import importlib_resources as resources
+try:
+    import importlib.resources as resources
+except ImportError:
+    import importlib_resources as resources
 
 from pathlib import Path
 import toml
