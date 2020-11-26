@@ -14,6 +14,8 @@
 
 """Writes a graphviz of a COLRv1 font."""
 
+# TODO update to latest format #s; use consts to avoid this in future
+
 from absl import app
 from absl import flags
 from absl import logging

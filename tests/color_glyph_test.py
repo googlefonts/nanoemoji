@@ -14,6 +14,7 @@
 
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.config import FontConfig
 from nanoemoji.paint import *
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
@@ -63,8 +64,9 @@ def test_transform(view_box, upem, expected_transform):
         f' viewBox="{view_box}"'
         "/>"
     )
+    config = FontConfig(upem=upem)
     color_glyph = ColorGlyph.create(
-        _ufo(upem), "duck", 1, [0x0042], SVG.fromstring(svg_str)
+        config, _ufo(config.upem), "duck", 1, [0x0042], SVG.fromstring(svg_str)
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
@@ -275,7 +277,10 @@ def _round_gradient_coordinates(paint, prec=6):
 )
 @pytest.mark.usefixtures("absl_flags")
 def test_paint_from_shape(svg_in, expected_paints):
-    color_glyph = ColorGlyph.create(_ufo(1000), "duck", 1, [0x0042], _nsvg(svg_in))
+    config = FontConfig(upem=1000)
+    color_glyph = ColorGlyph.create(
+        config, _ufo(config.upem), "duck", 1, [0x0042], _nsvg(svg_in)
+    )
     assert {
         _round_gradient_coordinates(paint) for paint in color_glyph.paints()
     } == expected_paints

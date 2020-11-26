@@ -17,6 +17,7 @@ from absl import logging
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
 from nanoemoji.colors import Color
+from nanoemoji.config import FontConfig
 from nanoemoji import glyph
 from nanoemoji.paint import (
     Extend,
@@ -33,7 +34,7 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
-from typing import Generator, NamedTuple, Optional, Tuple
+from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
 
 
@@ -316,7 +317,14 @@ class ColorGlyph(NamedTuple):
     svg: SVG  # picosvg except for untouched formats
 
     @staticmethod
-    def create(ufo, filename, glyph_id, codepoints, svg, extract_layers=True):
+    def create(
+        font_config: FontConfig,
+        ufo: ufoLib2.Font,
+        filename: str,
+        glyph_id: int,
+        codepoints: Tuple[int],
+        svg: SVG,
+    ):
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
         glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
@@ -326,9 +334,11 @@ class ColorGlyph(NamedTuple):
         if len(codepoints) == 1:
             base_glyph.unicode = next(iter(codepoints))
 
-        # Grab the transform + (color, glyph) layers for COLR
+        # Grab the transform + (color, glyph) layers unless they aren't to be touched
         painted_layers = None
-        if extract_layers:
+        if font_config.has_picosvgs:
+            if font_config.clip_to_viewbox:
+                svg = svg.clip_to_viewbox()
             painted_layers = tuple(_painted_layers(filename, ufo.info.unitsPerEm, svg))
         return ColorGlyph(
             ufo, filename, glyph_name, glyph_id, codepoints, painted_layers, svg

@@ -28,7 +28,7 @@ import test_helper
 @pytest.mark.usefixtures("absl_flags")
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(
-        color_format, svgs, ".ttf", keep_glyph_names=keep_glyph_names
+        {"color_format": color_format, "keep_glyph_names": keep_glyph_names}, svgs
     )
     ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
@@ -49,71 +49,94 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
 
 
 @pytest.mark.parametrize(
-    "svgs, expected_ttx, color_format, output_format",
+    #  color_format, output_format
+    "svgs, expected_ttx, config_overrides",
     [
         # verify glyf removes component if there is only one shape
-        (("one_rect.svg",), "one_rect_glyf.ttx", "glyf", ".ttf"),
+        (("one_rect.svg",), "one_rect_glyf.ttx", {"color_format": "glyf"}),
         # simple fill on rect
-        (("rect.svg",), "rect_colr_0.ttx", "glyf_colr_0", ".ttf"),
-        (("rect.svg",), "rect_colr_1.ttx", "glyf_colr_1", ".ttf"),
-        (("rect.svg",), "rect_picosvg.ttx", "picosvg", ".ttf"),
-        (("rect.svg",), "rect_untouchedsvg.ttx", "untouchedsvg", ".ttf"),
+        (("rect.svg",), "rect_colr_0.ttx", {"color_format": "glyf_colr_0"}),
+        (("rect.svg",), "rect_colr_1.ttx", {"color_format": "glyf_colr_1"}),
+        (("rect.svg",), "rect_picosvg.ttx", {"color_format": "picosvg"}),
+        (("rect.svg",), "rect_untouchedsvg.ttx", {"color_format": "untouchedsvg"}),
         # linear gradient on rect
         (
             ("linear_gradient_rect.svg",),
             "linear_gradient_rect_colr_1.ttx",
-            "glyf_colr_1",
-            ".ttf",
+            {"color_format": "glyf_colr_1"},
         ),
         # radial gradient on rect
         (
             ("radial_gradient_rect.svg",),
             "radial_gradient_rect_colr_1.ttx",
-            "glyf_colr_1",
-            ".ttf",
+            {"color_format": "glyf_colr_1"},
         ),
         # reuse shape in different color
-        (("rect.svg", "rect2.svg"), "rects_colr_1.ttx", "glyf_colr_1", ".ttf"),
+        (
+            ("rect.svg", "rect2.svg"),
+            "rects_colr_1.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
         # clocks have composites, reuse of composite, and reuse of shape w/diff color
         (
             ("one-o-clock.svg", "two-o-clock.svg"),
             "clocks_colr_1.ttx",
-            "glyf_colr_1",
-            ".ttf",
+            {"color_format": "glyf_colr_1"},
         ),
-        (("one-o-clock.svg", "two-o-clock.svg"), "clocks_glyf.ttx", "glyf", ".ttf"),
+        (
+            ("one-o-clock.svg", "two-o-clock.svg"),
+            "clocks_glyf.ttx",
+            {"color_format": "glyf"},
+        ),
         (
             ("one-o-clock.svg", "two-o-clock.svg"),
             "clocks_picosvg.ttx",
-            "picosvg",
-            ".ttf",
+            {"color_format": "picosvg"},
         ),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
         # glyph order must reshuffle to group correctly
         (
             ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
             "clocks_rects_picosvg.ttx",
-            "picosvg",
-            ".ttf",
+            {"color_format": "picosvg"},
         ),
         (
             ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
             "clocks_rects_untouchedsvg.ttx",
-            "untouchedsvg",
-            ".ttf",
+            {"color_format": "untouchedsvg"},
         ),
         # keep single-component composites if component reused by more than one glyph
-        (("one_rect.svg", "one_rect.svg"), "reused_rect_glyf.ttx", "glyf", ".ttf"),
+        (
+            ("one_rect.svg", "one_rect.svg"),
+            "reused_rect_glyf.ttx",
+            {"color_format": "glyf"},
+        ),
         # Confirm transforms are in the correct coordinate space
         # https://github.com/googlefonts/nanoemoji/pull/187
-        (("reused_shape.svg",), "reused_shape_glyf.ttx", "glyf", ".ttf"),
+        (
+            ("reused_shape.svg",),
+            "reused_shape_glyf.ttx",
+            {"color_format": "glyf"},
+        ),
+        # Drop content outside viewbox
+        # https://github.com/googlefonts/nanoemoji/issues/200
+        (
+            ("outside_viewbox.svg",),
+            "outside_viewbox_clipped_colr_1.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
+        # Retain content outside viewbox
+        # https://github.com/googlefonts/nanoemoji/issues/200
+        (
+            ("outside_viewbox.svg",),
+            "outside_viewbox_not_clipped_colr_1.ttx",
+            {"color_format": "glyf_colr_1", "clip_to_viewbox": False},
+        ),
     ],
 )
 @pytest.mark.usefixtures("absl_flags")
-def test_write_font_binary(svgs, expected_ttx, color_format, output_format):
-    config, glyph_inputs = test_helper.color_font_config(
-        color_format, svgs, output_format
-    )
+def test_write_font_binary(svgs, expected_ttx, config_overrides):
+    config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
     # sanity check the font

@@ -43,7 +43,7 @@ def picosvg(filename, locate=False):
     return SVG.parse(filename).topicosvg()
 
 
-def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
+def color_font_config(config_overrides, svgs):
     svgs = tuple(locate_test_file(s) for s in svgs)
     fea_file = os.path.join(tempfile.gettempdir(), "test.fea")
     rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
@@ -51,14 +51,14 @@ def color_font_config(color_format, svgs, output_format, keep_glyph_names=True):
         f.write(write_fea._generate_fea(rgi_seqs))
 
     return (
-        config.load(config_file=None, additional_srcs=svgs)._replace(
+        config.load(config_file=None, additional_srcs=svgs)
+        ._replace(
             family="UnitTest",
-            color_format=color_format,
             upem=100,
-            keep_glyph_names=keep_glyph_names,
-            output=output_format,
+            keep_glyph_names=True,
             fea_file=fea_file,
-        ),
+        )
+        ._replace(**config_overrides),
         [
             write_font.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
             for idx, svg in enumerate(svgs)
