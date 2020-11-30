@@ -59,6 +59,7 @@ class FontConfig(NamedTuple):
     upem: int = 1024
     reuse_tolerance: float = 0.1
     keep_glyph_names: bool = False
+    clip_to_viewbox: bool = True
     output: str = "font"
     fea_file: str = "features.fea"
     codepointmap_file: str = "codepointmap.csv"
@@ -83,6 +84,7 @@ def write(dest: Path, config: FontConfig):
         "upem": config.upem,
         "reuse_tolerance": config.reuse_tolerance,
         "keep_glyph_names": config.keep_glyph_names,
+        "clip_to_viewbox": config.clip_to_viewbox,
         "output": config.output,
         "axis": {
             a.axisTag: {
@@ -145,6 +147,7 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         config.pop("reuse_tolerance", default_config.reuse_tolerance)
     )
     keep_glyph_names = config.pop("keep_glyph_names", default_config.keep_glyph_names)
+    clip_to_viewbox = config.pop("clip_to_viewbox", default_config.clip_to_viewbox)
     output = config.pop("output", default_config.output)
 
     axes = []
@@ -205,16 +208,17 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         raise ValueError(f"Unexpected config: {config}")
 
     return FontConfig(
-        family,
-        output_file,
-        color_format,
-        upem,
-        reuse_tolerance,
-        keep_glyph_names,
-        output,
-        default_config.fea_file,
-        default_config.codepointmap_file,
-        tuple(axes),
-        tuple(masters),
-        tuple(sorted(source_names)),
+        family=family,
+        output_file=output_file,
+        color_format=color_format,
+        upem=upem,
+        reuse_tolerance=reuse_tolerance,
+        keep_glyph_names=keep_glyph_names,
+        clip_to_viewbox=clip_to_viewbox,
+        output=output,
+        fea_file=default_config.fea_file,
+        codepointmap_file=default_config.codepointmap_file,
+        axes=tuple(axes),
+        masters=tuple(masters),
+        source_names=tuple(sorted(source_names)),
     )

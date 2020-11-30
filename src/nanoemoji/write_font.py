@@ -473,12 +473,12 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
         ColorGlyph.create(
+            config,
             ufo,
             filename,
             base_gid + idx,
             codepoints,
             svg,
-            extract_layers=config.has_picosvgs,
         )
         for idx, (filename, codepoints, svg) in enumerate(inputs)
     ]
