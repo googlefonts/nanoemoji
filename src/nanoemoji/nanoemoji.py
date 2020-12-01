@@ -212,14 +212,14 @@ def write_svg_font_diff_build(
 ):
     # render each svg => png
     for svg_file in svg_files:
-        nw.build(resvg_png_dest(svg_file), "write_svg2png", rel_build(svg_file))
+        nw.build(resvg_png_dest(svg_file), "write_svg2png", str(rel_build(svg_file)))
     nw.newline()
 
     # render each input from the font => png
     for svg_file in svg_files:
         inputs = [
             font_dest,
-            rel_build(svg_file),
+            str(rel_build(svg_file)),
         ]
         nw.build(skia_png_dest(svg_file), "write_font2png", inputs)
     nw.newline()
