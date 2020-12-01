@@ -142,6 +142,10 @@ def write_preamble(nw, font_config: FontConfig):
             f"resvg -h {FLAGS.svg_font_diff_resolution}  -w {FLAGS.svg_font_diff_resolution} $in $out",
         )
         module_rule(
+            "write_tidysvg",
+            "$in $out",
+        )
+        module_rule(
             "write_font2png",
             f"--height {FLAGS.svg_font_diff_resolution}  --width {FLAGS.svg_font_diff_resolution} --output_file $out $in",
         )
@@ -164,6 +168,10 @@ def picosvg_dir(master_name: str) -> Path:
 
 def picosvg_dest(master_name: str, input_svg: Path) -> str:
     return str(rel_build(picosvg_dir(master_name) / input_svg.name))
+
+
+def tidysvg_dest(input_svg: Path) -> str:
+    return os.path.join("tidy_svg", input_svg.name)
 
 
 def resvg_png_dest(input_svg: Path) -> str:
@@ -210,9 +218,12 @@ def write_fea_build(nw: ninja_syntax.Writer):
 def write_svg_font_diff_build(
     nw: ninja_syntax.Writer, font_dest: str, svg_files: Sequence[Path]
 ):
-    # render each svg => png
+    # tidy each svg
+    nw.newline()
+    # tidy each svg, render => png
     for svg_file in svg_files:
-        nw.build(resvg_png_dest(svg_file), "write_svg2png", str(rel_build(svg_file)))
+        nw.build(tidysvg_dest(svg_file), "write_tidysvg", str(rel_build(svg_file)))
+        nw.build(resvg_png_dest(svg_file), "write_svg2png", tidysvg_dest(svg_file))
     nw.newline()
 
     # render each input from the font => png
@@ -321,6 +332,7 @@ def _run(argv):
         raise ValueError("svg formats cannot have multiple masters")
 
     if FLAGS.gen_svg_font_diffs:
+        os.makedirs(os.path.join(build_dir(), "tidy_svg"), exist_ok=True)
         os.makedirs(os.path.join(build_dir(), "resvg_png"), exist_ok=True)
         os.makedirs(os.path.join(build_dir(), "skia_png"), exist_ok=True)
         os.makedirs(os.path.join(build_dir(), "diff_png"), exist_ok=True)
