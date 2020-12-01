@@ -78,8 +78,8 @@ def main(argv):
         <body>
             <div>
                 <span class="title">resvg</span>
-                <span class="title">Diff Pixels</span>
-                <span class="title">Bad Pixels</span>
+                <span class="title">Raw Diff</span>
+                <span class="title">Pink Diff</span>
                 <span class="title">Skia</span>
             </div>
         """
