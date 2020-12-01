@@ -21,31 +21,30 @@ from colr_to_svg import colr_to_svg
 
 # TODO otf test
 @pytest.mark.parametrize(
-    "svg_in, expected_svg_out, color_format, output_format",
+    "svg_in, expected_svg_out, config_overrides",
     [
         # simple fill on rect
-        ("rect.svg", "rect_from_colr_0.svg", "glyf_colr_0", ".ttf"),
-        ("rect.svg", "rect_from_colr_1.svg", "glyf_colr_1", ".ttf"),
+        ("rect.svg", "rect_from_colr_0.svg", {"color_format": "glyf_colr_0"}),
+        ("rect.svg", "rect_from_colr_1.svg", {"color_format": "glyf_colr_1"}),
         # linear gradient on rect
         (
             "linear_gradient_rect.svg",
             "linear_gradient_rect_from_colr_1.svg",
-            "glyf_colr_1",
-            ".ttf",
+            {"color_format": "glyf_colr_1"},
         ),
         # radial gradient on rect
         (
             "radial_gradient_rect.svg",
             "radial_gradient_rect_from_colr_1.svg",
-            "glyf_colr_1",
-            ".ttf",
+            {"color_format": "glyf_colr_1"},
         ),
     ],
 )
 @pytest.mark.usefixtures("absl_flags")
-def test_svg_to_colr_to_svg(svg_in, expected_svg_out, color_format, output_format):
+def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
     config, glyph_inputs = test_helper.color_font_config(
-        color_format, (svg_in,), output_format
+        config_overrides,
+        (svg_in,),
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = SVG.parse(str(test_helper.locate_test_file(svg_in)))

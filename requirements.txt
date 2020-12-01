@@ -14,16 +14,17 @@ cu2qu==1.6.7              # via ufo2ft
 dataclasses==0.8; python_version < '3.7'  # via picosvg
 fonttools[ufo]==4.17.1    # via booleanoperations, cffsubr, compreffor, cu2qu, nanoemoji (setup.py), ufo2ft, ufolib2
 fs==2.4.11                # via fonttools
-importlib-resources==3.3.0  # via cffsubr
+importlib-resources==3.3.0; python_version < '3.9'  # via nanoemoji (setup.py)
 lxml==4.6.2               # via nanoemoji (setup.py), picosvg
 ninja==1.10.0.post2       # via nanoemoji (setup.py)
-picosvg==0.7.2            # via nanoemoji (setup.py)
+picosvg==0.7.3            # via nanoemoji (setup.py)
 pillow==8.0.1             # via nanoemoji (setup.py)
 pyclipper==1.2.0          # via booleanoperations
 pytz==2020.4              # via fs
-regex==2020.11.13          # via nanoemoji (setup.py)
+regex==2020.11.13         # via nanoemoji (setup.py)
 six==1.15.0               # via absl-py, fs
-skia-pathops==0.5.1.post1       # via picosvg
+skia-pathops==0.5.1.post1  # via picosvg
+toml==0.10.2              # via nanoemoji (setup.py)
 typing-extensions==3.7.4.3  # via ufolib2
 ufo2ft[cffsubr]==2.18.1   # via nanoemoji (setup.py)
 ufolib2==0.8.0            # via nanoemoji (setup.py)
