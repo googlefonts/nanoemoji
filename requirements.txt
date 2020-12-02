@@ -15,7 +15,7 @@ dataclasses==0.8; python_version < '3.7'  # via picosvg
 fonttools[ufo]==4.17.1    # via booleanoperations, cffsubr, compreffor, cu2qu, nanoemoji (setup.py), ufo2ft, ufolib2
 fs==2.4.11                # via fonttools
 importlib-resources==3.3.0; python_version < '3.9'  # via nanoemoji (setup.py)
-lxml==4.6.1               # via nanoemoji (setup.py), picosvg
+lxml==4.6.2               # via nanoemoji (setup.py), picosvg
 ninja==1.10.0.post2       # via nanoemoji (setup.py)
 picosvg==0.7.3            # via nanoemoji (setup.py)
 pillow==8.0.1             # via nanoemoji (setup.py)
