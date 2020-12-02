@@ -13,6 +13,33 @@
 # limitations under the License.
 
 from setuptools import setup, find_packages
+import os.path
+
+
+def readlines(filename):
+    # Return a file's list of lines excluding # comments
+    lines = []
+    with open(filename, "r") as fp:
+        for line in fp:
+            line, _, _ = line.partition("#")
+            line = line.strip()
+            if not line:
+                continue
+            lines.append(line)
+    return lines
+
+
+# Store top-level depedencies in external requirements.in files, so that
+# pip-compile can use them to compile requirements.txt files with full
+# dependency graph exploded and all versions pinned (for reproducible tests).
+# pip-compile support for setup.py is quite limited: it ignores extras_require,
+# as well as environment markers from install_requires:
+# https://github.com/jazzband/pip-tools/issues/625
+# https://github.com/jazzband/pip-tools/issues/908
+# https://github.com/jazzband/pip-tools/issues/1139
+install_deps = readlines(os.path.join("requirements", "install-requirements.in"))
+develop_deps = readlines(os.path.join("requirements", "dev-requirements.in"))
+
 
 setup(
     name="nanoemoji",
@@ -22,21 +49,16 @@ setup(
     entry_points={"console_scripts": ["nanoemoji=nanoemoji.nanoemoji:main"]},
     setup_requires=["setuptools_scm"],
     include_package_data=True,
-    install_requires=[
-        "absl-py>=0.9.0",
-        "dataclasses>=0.8; python_version < '3.7'",
-        "fonttools[ufo]>=4.17.0",
-        "importlib_resources>=3.3.0; python_version < '3.9'",
-        "lxml>=4.0",
-        "ninja>=1.10.0.post1",
-        "picosvg>=0.7.3",
-        "pillow>=7.2.0",
-        "regex>=2020.4.4",
-        "toml>=0.10.1",
-        "ufo2ft[cffsubr]>=2.15.0",
-        "ufoLib2>=0.6.2",
-    ],
+    install_requires=install_deps,
+    extras_require={
+        "dev": develop_deps,
+    },
     python_requires=">=3.6",
+
+    # this is for type checker to use our inline type hints:
+    # https://www.python.org/dev/peps/pep-0561/#id18
+    package_data={"picosvg": ["py.typed"]},
+
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",
