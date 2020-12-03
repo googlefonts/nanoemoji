@@ -1,0 +1,16 @@
+
+# Only list here top-level runtime dependencies.
+# Run `pip-compile-all.sh` to generate the concrete py3*-requirements.txt
+# files that are used to set up the tox and CI environments.
+absl-py>=0.9.0
+dataclasses>=0.8; python_version < '3.7'
+fonttools[ufo]>=4.17.0
+importlib_resources>=3.3.0; python_version < '3.9'
+lxml>=4.0
+ninja>=1.10.0.post1
+picosvg>=0.7.3
+pillow>=7.2.0
+regex>=2020.4.4
+toml>=0.10.1
+ufo2ft[cffsubr]>=2.15.0
+ufoLib2>=0.6.2

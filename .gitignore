@@ -12,3 +12,4 @@ src/nanoemoji/_version.py
 ninja/.ninja_deps
 ninja/.ninja_log
 .DS_Store
+.tox/
