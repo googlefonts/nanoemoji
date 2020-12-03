@@ -131,8 +131,8 @@ def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
     p2 = p1 + v.projection(n)
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
-    return PaintLinearGradient(
-        p0=p0, p1=p1, p2=p2, **common_args  # pytype: disable=wrong-arg-types
+    return PaintLinearGradient(  # pytype: disable=wrong-arg-types
+        p0=p0, p1=p1, p2=p2, **common_args
     )
 
 
