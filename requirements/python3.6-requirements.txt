@@ -35,7 +35,7 @@ py==1.9.0                 # via pytest
 pyclipper==1.2.0          # via booleanoperations
 pyparsing==2.4.7          # via packaging
 pytest==6.1.2             # via -r requirements/dev-requirements.in
-pytype==2020.11.23 ; python_version < "3.9"  # via -r requirements/dev-requirements.in
+pytype==2020.12.2; python_version < "3.9"  # via -r requirements/dev-requirements.in
 pytz==2020.4              # via fs
 pyyaml==5.3.1             # via pytype
 regex==2020.11.13         # via -r requirements/install-requirements.in, black
