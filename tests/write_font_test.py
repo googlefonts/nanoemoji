@@ -118,20 +118,6 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
             "reused_shape_glyf.ttx",
             {"color_format": "glyf"},
         ),
-        # Drop content outside viewbox
-        # https://github.com/googlefonts/nanoemoji/issues/200
-        (
-            ("outside_viewbox.svg",),
-            "outside_viewbox_clipped_colr_1.ttx",
-            {"color_format": "glyf_colr_1"},
-        ),
-        # Retain content outside viewbox
-        # https://github.com/googlefonts/nanoemoji/issues/200
-        (
-            ("outside_viewbox.svg",),
-            "outside_viewbox_not_clipped_colr_1.ttx",
-            {"color_format": "glyf_colr_1", "clip_to_viewbox": False},
-        ),
     ],
 )
 @pytest.mark.usefixtures("absl_flags")
