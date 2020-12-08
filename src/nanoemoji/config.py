@@ -23,7 +23,7 @@ from pathlib import Path
 import toml
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
-from nanoemoji.write_font import _COLOR_FORMAT_GENERATORS
+from nanoemoji import write_font
 
 
 FLAGS = flags.FLAGS
@@ -40,7 +40,7 @@ flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
     "color_format",
     None,
-    sorted(_COLOR_FORMAT_GENERATORS.keys()),
+    sorted(write_font._COLOR_FORMAT_GENERATORS.keys()),
     "Type of font to generate.",
 )
 flags.DEFINE_enum(
