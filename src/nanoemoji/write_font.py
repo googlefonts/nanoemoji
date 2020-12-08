@@ -25,7 +25,6 @@ from itertools import chain
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import codepoints, config
 from nanoemoji.colors import Color
-from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import (
@@ -56,9 +55,14 @@ from typing import (
     NamedTuple,
     Sequence,
     Tuple,
+    TYPE_CHECKING,
 )
 from ufoLib2.objects import Component, Glyph
 import ufo2ft
+
+# avoid circular import
+if TYPE_CHECKING:
+    from nanoemoji.config import FontConfig
 
 
 FLAGS = flags.FLAGS
@@ -124,13 +128,13 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
     "cbdt": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args),
-        lambda *args: _not_impl("TTFont", *args),
+        lambda *args: _not_impl("apply_ufo", "cbdt", *args),
+        lambda *args: _not_impl("apply_ttfont", "cbdt", *args),
         ".ttf",
     ),
     "sbix": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args),
-        lambda *args: _not_impl("TTFont", *args),
+        lambda *args: _not_impl("apply_ufo", "sbix", *args),
+        lambda *args: _not_impl("apply_ttfont", "sbix", *args),
         ".ttf",
     ),
 }
@@ -197,8 +201,8 @@ def _write(ufo, ttfont, output_file):
         ttfont.save(output_file)
 
 
-def _not_impl(*_):
-    raise NotImplementedError("%s not implemented" % FLAGS.color_format)
+def _not_impl(func_name, color_format, *_):
+    raise NotImplementedError(f"{func_name} for {color_format} not implemented")
 
 
 def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
@@ -465,7 +469,7 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     ufo.glyphOrder = ufo.glyphOrder + sorted(glyph_names)
 
 
-def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
+def _generate_color_font(config: "FontConfig", inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
     ufo = _ufo(config.family, config.upem, config.keep_glyph_names)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
