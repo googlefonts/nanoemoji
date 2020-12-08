@@ -5,30 +5,30 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
-    <GlyphID id="4" name="e000.1"/>
-    <GlyphID id="5" name="e000.2"/>
+    <GlyphID id="2" name="g_25fd"/>
+    <GlyphID id="3" name="g_25fd.0"/>
+    <GlyphID id="4" name="g_25fd.1"/>
+    <GlyphID id="5" name="g_25fd.2"/>
   </GlyphOrder>
 
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="0"/>
-    <mtx name="e000.0" width="100" lsb="20"/>
-    <mtx name="e000.1" width="100" lsb="70"/>
-    <mtx name="e000.2" width="100" lsb="20"/>
+    <mtx name="g_25fd" width="100" lsb="0"/>
+    <mtx name="g_25fd.0" width="100" lsb="20"/>
+    <mtx name="g_25fd.1" width="100" lsb="70"/>
+    <mtx name="g_25fd.2" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
     <tableVersion version="0"/>
     <cmap_format_4 platformID="0" platEncID="3" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0x25fd" name="g_25fd"/><!-- WHITE MEDIUM SMALL SQUARE -->
     </cmap_format_4>
     <cmap_format_4 platformID="3" platEncID="1" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
-      <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0x25fd" name="g_25fd"/><!-- WHITE MEDIUM SMALL SQUARE -->
     </cmap_format_4>
   </cmap>
 
@@ -45,7 +45,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="0" yMin="0" xMax="100" yMax="100">
+    <TTGlyph name="g_25fd" xMin="0" yMin="0" xMax="100" yMax="100">
       <contour>
         <pt x="100" y="100" on="1"/>
         <pt x="0" y="0" on="1"/>
@@ -53,7 +53,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="g_25fd.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
         <pt x="20" y="80" on="1"/>
         <pt x="20" y="60" on="1"/>
@@ -63,7 +63,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.1" xMin="70" yMin="30" xMax="110" yMax="70">
+    <TTGlyph name="g_25fd.1" xMin="70" yMin="30" xMax="110" yMax="70">
       <contour>
         <pt x="70" y="50" on="1"/>
         <pt x="70" y="44" on="0"/>
@@ -85,7 +85,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.2" xMin="20" yMin="-60" xMax="80" yMax="0">
+    <TTGlyph name="g_25fd.2" xMin="20" yMin="-60" xMax="80" yMax="0">
       <contour>
         <pt x="20" y="-30" on="1"/>
         <pt x="20" y="-36" on="0"/>
@@ -120,7 +120,7 @@
     <BaseGlyphV1List>
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
-        <BaseGlyph value="e000"/>
+        <BaseGlyph value="g_25fd"/>
         <Paint Format="1"><!-- PaintColrLayers -->
           <NumLayers value="3"/>
           <FirstLayerIndex value="0"/>
@@ -136,7 +136,7 @@
             <Alpha value="1.0"/>
           </Color>
         </Paint>
-        <Glyph value="e000.0"/>
+        <Glyph value="g_25fd.0"/>
       </Paint>
       <Paint index="1" Format="5"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -145,7 +145,7 @@
             <Alpha value="1.0"/>
           </Color>
         </Paint>
-        <Glyph value="e000.1"/>
+        <Glyph value="g_25fd.1"/>
       </Paint>
       <Paint index="2" Format="5"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -154,7 +154,7 @@
             <Alpha value="1.0"/>
           </Color>
         </Paint>
-        <Glyph value="e000.2"/>
+        <Glyph value="g_25fd.2"/>
       </Paint>
     </LayerV1List>
   </COLR>

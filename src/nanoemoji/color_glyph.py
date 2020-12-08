@@ -337,8 +337,6 @@ class ColorGlyph(NamedTuple):
         # Grab the transform + (color, glyph) layers unless they aren't to be touched
         painted_layers = None
         if font_config.has_picosvgs:
-            if font_config.clip_to_viewbox:
-                svg = svg.clip_to_viewbox()
             painted_layers = tuple(_painted_layers(filename, ufo.info.unitsPerEm, svg))
         return ColorGlyph(
             ufo, filename, glyph_name, glyph_id, codepoints, painted_layers, svg

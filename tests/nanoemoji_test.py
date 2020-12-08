@@ -16,12 +16,13 @@
 
 from fontTools.ttLib import TTFont
 from lxml import etree  # pytype: disable=import-error
+from nanoemoji import config
 from pathlib import Path
 from picosvg.svg import SVG
 import pytest
 import subprocess
 import tempfile
-from test_helper import locate_test_file
+from test_helper import assert_expected_ttx, color_font_config, locate_test_file
 
 
 def _svg_element_names(xpath, svg_content):
@@ -31,15 +32,16 @@ def _svg_element_names(xpath, svg_content):
     )
 
 
-def _run(cmd):
-    tmp_dir = tempfile.mkdtemp()
+def _run(cmd, tmp_dir=None):
+    if not tmp_dir:
+        tmp_dir = tempfile.mkdtemp()
 
     cmd = (
         "nanoemoji",
         "--build_dir",
-        tmp_dir,
-    ) + cmd
-    print(cmd)  # very useful on failure
+        str(tmp_dir),
+    ) + tuple(str(c) for c in cmd)
+    print("subprocess:", " ".join(cmd))  # very useful on failure
     subprocess.run(cmd, check=True)
 
     tmp_dir = Path(tmp_dir)
@@ -55,15 +57,35 @@ def test_build_static_font_default_config_cli_svg_list():
     assert "fvar" not in font
 
 
-def test_build_static_font():
-    cmd = (
-        "--config",
-        locate_test_file("minimal_static/config.toml"),
+def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
+    config_file = Path(tempfile.mkdtemp()) / "config.toml"
+    font_config, _ = color_font_config(
+        config_overrides, svgs, tmp_dir=str(config_file.parent)
     )
-    tmp_dir = _run(cmd)
+    config.write(config_file, font_config)
+    print(config_file, font_config)
 
-    font = TTFont(tmp_dir / "Font.ttf")
-    assert "fvar" not in font
+    _run(("--config", str(config_file)), tmp_dir=config_file.parent)
+    font = TTFont(config_file.parent / "Font.ttf")
+    assert_expected_ttx(svgs, font, expected_ttx)
+
+
+# Drop content outside viewbox
+# https://github.com/googlefonts/nanoemoji/issues/200
+@pytest.mark.usefixtures("absl_flags")
+def test_build_static_font_clipped():
+    _build_and_check_ttx({}, ("emoji_u25fd.svg",), "outside_viewbox_clipped_colr_1.ttx")
+
+
+# Retain content outside viewbox
+# https://github.com/googlefonts/nanoemoji/issues/200
+@pytest.mark.usefixtures("absl_flags")
+def test_build_static_font_unclipped():
+    _build_and_check_ttx(
+        {"clip_to_viewbox": False},
+        ("emoji_u25fd.svg",),
+        "outside_viewbox_not_clipped_colr_1.ttx",
+    )
 
 
 def test_build_variable_font():

@@ -43,9 +43,11 @@ def picosvg(filename, locate=False):
     return SVG.parse(filename).topicosvg()
 
 
-def color_font_config(config_overrides, svgs):
+def color_font_config(config_overrides, svgs, tmp_dir=None):
+    if tmp_dir is None:
+        tmp_dir = tempfile.gettempdir()
     svgs = tuple(locate_test_file(s) for s in svgs)
-    fea_file = os.path.join(tempfile.gettempdir(), "test.fea")
+    fea_file = os.path.join(tmp_dir, "test.fea")
     rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
     with open(fea_file, "w") as f:
         f.write(write_fea._generate_fea(rgi_seqs))
