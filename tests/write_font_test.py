@@ -93,6 +93,12 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
             "clocks_picosvg.ttx",
             {"color_format": "picosvg"},
         ),
+        # passing a tiny --reuse_tolerance effectively disables shape reuse
+        (
+            ("one-o-clock.svg", "two-o-clock.svg"),
+            "clocks_colr_1_noreuse.ttx",
+            {"color_format": "glyf_colr_1", "reuse_tolerance": 1e-17},
+        ),
         # clocks share shapes, rects share shapes. Should be two distinct svgs in font.
         # glyph order must reshuffle to group correctly
         (
