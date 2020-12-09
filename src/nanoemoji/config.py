@@ -67,9 +67,9 @@ flags.DEFINE_bool("clip_to_viewbox", None, "Whether to clip content outside view
 flags.DEFINE_float(
     "reuse_tolerance",
     None,
-    "Allowable difference in reused shape in input coordinates (e.g. svg)."
+    "Allowable absolute difference in reused shape in input coordinates (e.g. svg)."
     " Normalized shapes snap to whole multiples of tolerance;"
-    " choice of a value where 1/tolerance is an int recommended",
+    " A negative value means that shape reuse is disabled.",
 )
 # https://github.com/googlefonts/picosvg/issues/138
 flags.DEFINE_bool(

@@ -261,6 +261,12 @@ def _painted_layers(
     reuse_tolerance: float,
     ignore_reuse_error: bool = True,
 ) -> Generator[PaintedLayer, None, None]:
+    if reuse_tolerance < 0:
+        # shape reuse disabled
+        for path in picosvg.shapes():
+            yield PaintedLayer(_paint(debug_hint, upem, picosvg, path), path.d)
+        return
+
     # Don't sort; we only want to find groups that are consecutive in the picosvg
     # to ensure we don't mess up layer order
     for (paint, normalized), paths in groupby(
