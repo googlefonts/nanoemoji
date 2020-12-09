@@ -16,6 +16,7 @@ from absl import logging
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
 from nanoemoji.colors import Color
+from nanoemoji.config import FontConfig
 from nanoemoji import glyph
 from nanoemoji.paint import (
     Extend,
@@ -32,12 +33,8 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
-from typing import Generator, NamedTuple, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
-
-# avoid circular import
-if TYPE_CHECKING:
-    from nanoemoji.config import FontConfig
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
@@ -313,7 +310,7 @@ class ColorGlyph(NamedTuple):
 
     @staticmethod
     def create(
-        font_config: "FontConfig",
+        font_config: FontConfig,
         ufo: ufoLib2.Font,
         filename: str,
         glyph_id: int,
