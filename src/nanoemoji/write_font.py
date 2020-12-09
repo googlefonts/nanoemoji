@@ -138,6 +138,7 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
 }
+assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 
 
 def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:

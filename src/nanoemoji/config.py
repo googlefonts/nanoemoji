@@ -23,13 +23,27 @@ from pathlib import Path
 import toml
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
-from nanoemoji import write_font
-
 
 FLAGS = flags.FLAGS
 
 
 _DEFAULT_CONFIG_FILE = "_default.toml"
+# NOTE: this must be kept in sync with nanoemoji.write_font._COLOR_FORMAT_GENERATORS
+_COLOR_FORMATS = [
+    "glyf",
+    "glyf_colr_0",
+    "glyf_colr_1",
+    "cff_colr_0",
+    "cff_colr_1",
+    "cff2_colr_0",
+    "cff2_colr_1",
+    "picosvg",
+    "picosvgz",
+    "untouchedsvg",
+    "untouchedsvgz",
+    "cbdt",
+    "sbix",
+]
 
 # we use None as a sentinel for flag not set; FontConfig class has the actual defaults.
 # CLI flags override config file (which overrides default FontConfig).
@@ -40,7 +54,7 @@ flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
     "color_format",
     None,
-    sorted(write_font._COLOR_FORMAT_GENERATORS.keys()),
+    sorted(_COLOR_FORMATS),
     "Type of font to generate.",
 )
 flags.DEFINE_enum(
