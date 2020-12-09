@@ -27,10 +27,57 @@ from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, S
 FLAGS = flags.FLAGS
 
 
-_DEFAULT_CONFIG = "_default.toml"
+_DEFAULT_CONFIG_FILE = "_default.toml"
+# NOTE: this must be kept in sync with nanoemoji.write_font._COLOR_FORMAT_GENERATORS
+_COLOR_FORMATS = [
+    "glyf",
+    "glyf_colr_0",
+    "glyf_colr_1",
+    "cff_colr_0",
+    "cff_colr_1",
+    "cff2_colr_0",
+    "cff2_colr_1",
+    "picosvg",
+    "picosvgz",
+    "untouchedsvg",
+    "untouchedsvgz",
+    "cbdt",
+    "sbix",
+]
 
-
-flags.DEFINE_string("config", _DEFAULT_CONFIG, "Config file")
+# we use None as a sentinel for flag not set; FontConfig class has the actual defaults.
+# CLI flags override config file (which overrides default FontConfig).
+flags.DEFINE_string("config", None, "Config file")
+flags.DEFINE_integer("upem", None, "Units per em.")
+flags.DEFINE_string("family", None, "Family name.")
+flags.DEFINE_string("output_file", None, "Output filename.")
+flags.DEFINE_enum(
+    "color_format",
+    None,
+    sorted(_COLOR_FORMATS),
+    "Type of font to generate.",
+)
+flags.DEFINE_enum(
+    "output", None, ["ufo", "font"], "Whether to output a font binary or a UFO"
+)
+flags.DEFINE_bool(
+    "keep_glyph_names", None, "Whether or not to store glyph names in the font."
+)
+flags.DEFINE_bool("clip_to_viewbox", None, "Whether to clip content outside viewbox")
+flags.DEFINE_float(
+    "reuse_tolerance",
+    None,
+    "Allowable absolute difference in reused shape in input coordinates (e.g. svg)."
+    " Normalized shapes snap to whole multiples of tolerance;"
+    " A negative value means that shape reuse is disabled.",
+)
+# https://github.com/googlefonts/picosvg/issues/138
+flags.DEFINE_bool(
+    "ignore_reuse_error",
+    None,
+    "Whether to fail or continue with a warning when picosvg cannot compute "
+    "affine between paths that normalize the same.",
+)
 
 
 class Axis(NamedTuple):
@@ -58,6 +105,7 @@ class FontConfig(NamedTuple):
     color_format: str = "glyf_colr_1"
     upem: int = 1024
     reuse_tolerance: float = 0.1
+    ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
     clip_to_viewbox: bool = True
     output: str = "font"
@@ -109,8 +157,8 @@ def _resolve_config(
     config_file: Path = None,
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
-        if FLAGS.config == _DEFAULT_CONFIG:
-            with resources.path("nanoemoji.data", _DEFAULT_CONFIG) as config_file:
+        if FLAGS.config is None:
+            with resources.path("nanoemoji.data", _DEFAULT_CONFIG_FILE) as config_file:
                 # no config_dir in this context; bad input if we need it
                 return None, toml.load(config_file)
         else:
@@ -135,20 +183,30 @@ def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
     return (relative_base.joinpath(src_path),)
 
 
+_DEFAULT_CONFIG = FontConfig()
+
+
+def _pop_flag(config: MutableMapping[str, Any], name: str) -> Any:
+    config_value = config.pop(name, None)
+    flag_value = getattr(FLAGS, name)
+    if config_value is None and flag_value is None:
+        return getattr(_DEFAULT_CONFIG, name)
+    return flag_value if flag_value is not None else config_value
+
+
 def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontConfig:
     config_dir, config = _resolve_config(config_file)
-    default_config = FontConfig()
 
-    family = config.pop("family", default_config.family)
-    output_file = config.pop("output_file", default_config.output_file)
-    color_format = config.pop("color_format", default_config.color_format)
-    upem = int(config.pop("upem", default_config.upem))
-    reuse_tolerance = float(
-        config.pop("reuse_tolerance", default_config.reuse_tolerance)
-    )
-    keep_glyph_names = config.pop("keep_glyph_names", default_config.keep_glyph_names)
-    clip_to_viewbox = config.pop("clip_to_viewbox", default_config.clip_to_viewbox)
-    output = config.pop("output", default_config.output)
+    # CLI flags will take precedence over the config file
+    family = _pop_flag(config, "family")
+    output_file = _pop_flag(config, "output_file")
+    color_format = _pop_flag(config, "color_format")
+    upem = int(_pop_flag(config, "upem"))
+    reuse_tolerance = float(_pop_flag(config, "reuse_tolerance"))
+    ignore_reuse_error = _pop_flag(config, "ignore_reuse_error")
+    keep_glyph_names = _pop_flag(config, "keep_glyph_names")
+    clip_to_viewbox = _pop_flag(config, "clip_to_viewbox")
+    output = _pop_flag(config, "output")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -213,11 +271,12 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         color_format=color_format,
         upem=upem,
         reuse_tolerance=reuse_tolerance,
+        ignore_reuse_error=ignore_reuse_error,
         keep_glyph_names=keep_glyph_names,
         clip_to_viewbox=clip_to_viewbox,
         output=output,
-        fea_file=default_config.fea_file,
-        codepointmap_file=default_config.codepointmap_file,
+        fea_file=_DEFAULT_CONFIG.fea_file,
+        codepointmap_file=_DEFAULT_CONFIG.codepointmap_file,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),

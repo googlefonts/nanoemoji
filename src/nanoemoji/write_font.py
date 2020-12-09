@@ -124,16 +124,17 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
     "cbdt": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args),
-        lambda *args: _not_impl("TTFont", *args),
+        lambda *args: _not_impl("apply_ufo", "cbdt", *args),
+        lambda *args: _not_impl("apply_ttfont", "cbdt", *args),
         ".ttf",
     ),
     "sbix": ColorGenerator(
-        lambda *args: _not_impl("ufo", *args),
-        lambda *args: _not_impl("TTFont", *args),
+        lambda *args: _not_impl("apply_ufo", "sbix", *args),
+        lambda *args: _not_impl("apply_ttfont", "sbix", *args),
         ".ttf",
     ),
 }
+assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 
 
 def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
@@ -197,8 +198,8 @@ def _write(ufo, ttfont, output_file):
         ttfont.save(output_file)
 
 
-def _not_impl(*_):
-    raise NotImplementedError("%s not implemented" % FLAGS.color_format)
+def _not_impl(func_name, color_format, *_):
+    raise NotImplementedError(f"{func_name} for {color_format} not implemented")
 
 
 def _next_name(ufo: ufoLib2.Font, name_fn) -> str:

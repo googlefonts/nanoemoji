@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl import flags
 from absl import logging
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
@@ -36,25 +35,6 @@ from picosvg.svg import SVG
 from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
 from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
-
-
-FLAGS = flags.FLAGS
-
-
-flags.DEFINE_float(
-    "reuse_tolerence",
-    0.1,
-    "Allowable difference in reused shape in input coordinates (e.g. svg)."
-    " Normalized shapes snap to whole multiples of tolerance;"
-    " choice of a value where 1/tolerance is an int recommended",
-)
-# https://github.com/googlefonts/picosvg/issues/138
-flags.DEFINE_bool(
-    "ignore_reuse_error",
-    True,
-    "Whether to fail or continue with a warning when picosvg cannot compute "
-    "affine between paths that normalize the same.",
-)
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
@@ -261,30 +241,42 @@ def _paint(debug_hint, upem, picosvg, shape):
 
 
 def _in_glyph_reuse_key(
-    debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath
+    debug_hint: str, upem: int, picosvg: SVG, shape: SVGPath, reuse_tolerance: float
 ) -> Tuple[Paint, SVGPath]:
     """Within a glyph reuse shapes only when painted consistently.
     paint+normalized shape ensures this."""
     return (
         _paint(debug_hint, upem, picosvg, shape),
-        normalize(shape, FLAGS.reuse_tolerence),
+        normalize(shape, reuse_tolerance),
     )
 
 
 def _painted_layers(
-    debug_hint: str, upem: int, picosvg: SVG
+    debug_hint: str,
+    upem: int,
+    picosvg: SVG,
+    reuse_tolerance: float,
+    ignore_reuse_error: bool = True,
 ) -> Generator[PaintedLayer, None, None]:
+    if reuse_tolerance < 0:
+        # shape reuse disabled
+        for path in picosvg.shapes():
+            yield PaintedLayer(_paint(debug_hint, upem, picosvg, path), path.d)
+        return
+
     # Don't sort; we only want to find groups that are consecutive in the picosvg
     # to ensure we don't mess up layer order
     for (paint, normalized), paths in groupby(
         picosvg.shapes(),
-        key=lambda s: _in_glyph_reuse_key(debug_hint, upem, picosvg, s),
+        key=lambda s: _in_glyph_reuse_key(
+            debug_hint, upem, picosvg, s, reuse_tolerance
+        ),
     ):
         paths = list(paths)
         transforms = ()
         if len(paths) > 1:
             transforms = tuple(
-                affine_between(paths[0], p, FLAGS.reuse_tolerence) for p in paths[1:]
+                affine_between(paths[0], p, reuse_tolerance) for p in paths[1:]
             )
 
         success = True
@@ -295,7 +287,7 @@ def _painted_layers(
                     f"{debug_hint} grouped the following paths but no affine_between "
                     f"could be computed:\n  {paths[0]}\n  {path}"
                 )
-                if FLAGS.ignore_reuse_error:
+                if ignore_reuse_error:
                     logging.warning(error_msg)
                 else:
                     raise ValueError(error_msg)
@@ -337,7 +329,15 @@ class ColorGlyph(NamedTuple):
         # Grab the transform + (color, glyph) layers unless they aren't to be touched
         painted_layers = None
         if font_config.has_picosvgs:
-            painted_layers = tuple(_painted_layers(filename, ufo.info.unitsPerEm, svg))
+            painted_layers = tuple(
+                _painted_layers(
+                    filename,
+                    ufo.info.unitsPerEm,
+                    svg,
+                    font_config.reuse_tolerance,
+                    font_config.ignore_reuse_error,
+                )
+            )
         return ColorGlyph(
             ufo, filename, glyph_name, glyph_id, codepoints, painted_layers, svg
         )
