@@ -56,3 +56,34 @@ def fs_root() -> Path:
 def rel(from_path: Path, to_path: Path) -> Path:
     # relative_to(A,B) doesn't like it if B doesn't start with A
     return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))
+
+
+def build_n_ary_tree(leaves, n):
+    """Build N-ary tree from sequence of leaf nodes.
+
+    Return a list of lists where each non-leaf node is a list containing
+    max n nodes.
+    """
+    assert len(leaves) > 0
+    assert n > 1
+
+    tree = list(leaves)
+    # group values into sub-lists until none contains > n items
+    while len(tree) > n:
+        tree = [tree[k : k + n] for k in range(0, len(tree), n)]
+
+    # try to compress the right-most branches to minimize the total number of nodes
+    stack = [tree]
+    while stack:
+        node = stack.pop()
+
+        while isinstance(node[-1], list) and len(node) - 1 + len(node[-1]) <= n:
+            # unpack and replace the last item with its children
+            node[-1:] = node[-1]
+
+        # only the last non-leaf node at each level can be incomplete, so we
+        # only need to traverse those
+        if isinstance(node[-1], list):
+            stack.append(node[-1])
+
+    return tree
