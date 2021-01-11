@@ -75,16 +75,6 @@
 
     <TTGlyph name="e000.0" xMin="3" yMin="3" xMax="97" yMax="97">
       <contour>
-        <pt x="3" y="50" on="1"/>
-        <pt x="3" y="40" on="0"/>
-        <pt x="10" y="23" on="0"/>
-        <pt x="23" y="10" on="0"/>
-        <pt x="40" y="3" on="0"/>
-        <pt x="50" y="3" on="1"/>
-        <pt x="60" y="3" on="0"/>
-        <pt x="77" y="10" on="0"/>
-        <pt x="90" y="23" on="0"/>
-        <pt x="97" y="40" on="0"/>
         <pt x="97" y="50" on="1"/>
         <pt x="97" y="60" on="0"/>
         <pt x="90" y="77" on="0"/>
@@ -95,6 +85,16 @@
         <pt x="23" y="90" on="0"/>
         <pt x="10" y="77" on="0"/>
         <pt x="3" y="60" on="0"/>
+        <pt x="3" y="50" on="1"/>
+        <pt x="3" y="40" on="0"/>
+        <pt x="10" y="23" on="0"/>
+        <pt x="23" y="10" on="0"/>
+        <pt x="40" y="3" on="0"/>
+        <pt x="50" y="3" on="1"/>
+        <pt x="60" y="3" on="0"/>
+        <pt x="77" y="10" on="0"/>
+        <pt x="90" y="23" on="0"/>
+        <pt x="97" y="40" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -145,108 +145,108 @@
 
     <TTGlyph name="e000.3" xMin="45" yMin="45" xMax="55" yMax="55">
       <contour>
-        <pt x="45" y="50" on="1"/>
-        <pt x="45" y="48" on="0"/>
-        <pt x="48" y="45" on="0"/>
-        <pt x="50" y="45" on="1"/>
-        <pt x="52" y="45" on="0"/>
-        <pt x="55" y="48" on="0"/>
         <pt x="55" y="50" on="1"/>
         <pt x="55" y="52" on="0"/>
         <pt x="52" y="55" on="0"/>
         <pt x="50" y="55" on="1"/>
         <pt x="48" y="55" on="0"/>
         <pt x="45" y="52" on="0"/>
+        <pt x="45" y="50" on="1"/>
+        <pt x="45" y="48" on="0"/>
+        <pt x="48" y="45" on="0"/>
+        <pt x="50" y="45" on="1"/>
+        <pt x="52" y="45" on="0"/>
+        <pt x="55" y="48" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="e000.4" xMin="48" yMin="48" xMax="52" yMax="52">
       <contour>
-        <pt x="48" y="50" on="1"/>
-        <pt x="48" y="49" on="0"/>
-        <pt x="49" y="48" on="0"/>
-        <pt x="50" y="48" on="1"/>
-        <pt x="51" y="48" on="0"/>
-        <pt x="52" y="49" on="0"/>
         <pt x="52" y="50" on="1"/>
         <pt x="52" y="51" on="0"/>
         <pt x="51" y="52" on="0"/>
         <pt x="50" y="52" on="1"/>
         <pt x="49" y="52" on="0"/>
         <pt x="48" y="51" on="0"/>
+        <pt x="48" y="50" on="1"/>
+        <pt x="48" y="49" on="0"/>
+        <pt x="49" y="48" on="0"/>
+        <pt x="50" y="48" on="1"/>
+        <pt x="51" y="48" on="0"/>
+        <pt x="52" y="49" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="e000.5" xMin="9" yMin="47" xMax="16" yMax="53">
       <contour>
-        <pt x="9" y="50" on="1"/>
-        <pt x="9" y="49" on="0"/>
-        <pt x="11" y="47" on="0"/>
-        <pt x="12" y="47" on="1"/>
-        <pt x="14" y="47" on="0"/>
-        <pt x="16" y="49" on="0"/>
         <pt x="16" y="50" on="1"/>
         <pt x="16" y="51" on="0"/>
         <pt x="14" y="53" on="0"/>
         <pt x="12" y="53" on="1"/>
         <pt x="11" y="53" on="0"/>
         <pt x="9" y="51" on="0"/>
+        <pt x="9" y="50" on="1"/>
+        <pt x="9" y="49" on="0"/>
+        <pt x="11" y="47" on="0"/>
+        <pt x="12" y="47" on="1"/>
+        <pt x="14" y="47" on="0"/>
+        <pt x="16" y="49" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="e000.6" xMin="47" yMin="84" xMax="53" yMax="91">
       <contour>
-        <pt x="47" y="87" on="1"/>
-        <pt x="47" y="86" on="0"/>
-        <pt x="49" y="84" on="0"/>
-        <pt x="50" y="84" on="1"/>
-        <pt x="51" y="84" on="0"/>
-        <pt x="53" y="86" on="0"/>
         <pt x="53" y="87" on="1"/>
         <pt x="53" y="89" on="0"/>
         <pt x="51" y="91" on="0"/>
         <pt x="50" y="91" on="1"/>
         <pt x="49" y="91" on="0"/>
         <pt x="47" y="89" on="0"/>
+        <pt x="47" y="87" on="1"/>
+        <pt x="47" y="86" on="0"/>
+        <pt x="49" y="84" on="0"/>
+        <pt x="50" y="84" on="1"/>
+        <pt x="51" y="84" on="0"/>
+        <pt x="53" y="86" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="e000.7" xMin="47" yMin="9" xMax="53" yMax="16">
       <contour>
-        <pt x="47" y="12" on="1"/>
-        <pt x="47" y="11" on="0"/>
-        <pt x="49" y="9" on="0"/>
-        <pt x="50" y="9" on="1"/>
-        <pt x="51" y="9" on="0"/>
-        <pt x="53" y="11" on="0"/>
         <pt x="53" y="12" on="1"/>
         <pt x="53" y="14" on="0"/>
         <pt x="51" y="16" on="0"/>
         <pt x="50" y="16" on="1"/>
         <pt x="49" y="16" on="0"/>
         <pt x="47" y="14" on="0"/>
+        <pt x="47" y="12" on="1"/>
+        <pt x="47" y="11" on="0"/>
+        <pt x="49" y="9" on="0"/>
+        <pt x="50" y="9" on="1"/>
+        <pt x="51" y="9" on="0"/>
+        <pt x="53" y="11" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="e000.8" xMin="84" yMin="47" xMax="91" yMax="53">
       <contour>
-        <pt x="84" y="50" on="1"/>
-        <pt x="84" y="49" on="0"/>
-        <pt x="86" y="47" on="0"/>
-        <pt x="87" y="47" on="1"/>
-        <pt x="89" y="47" on="0"/>
-        <pt x="91" y="49" on="0"/>
         <pt x="91" y="50" on="1"/>
         <pt x="91" y="51" on="0"/>
         <pt x="89" y="53" on="0"/>
         <pt x="87" y="53" on="1"/>
         <pt x="86" y="53" on="0"/>
         <pt x="84" y="51" on="0"/>
+        <pt x="84" y="50" on="1"/>
+        <pt x="84" y="49" on="0"/>
+        <pt x="86" y="47" on="0"/>
+        <pt x="87" y="47" on="1"/>
+        <pt x="89" y="47" on="0"/>
+        <pt x="91" y="49" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
