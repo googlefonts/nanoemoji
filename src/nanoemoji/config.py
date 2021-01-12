@@ -131,6 +131,7 @@ def write(dest: Path, config: FontConfig):
         "color_format": config.color_format,
         "upem": config.upem,
         "reuse_tolerance": config.reuse_tolerance,
+        "ignore_reuse_error": config.ignore_reuse_error,
         "keep_glyph_names": config.keep_glyph_names,
         "clip_to_viewbox": config.clip_to_viewbox,
         "output": config.output,
