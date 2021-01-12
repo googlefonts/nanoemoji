@@ -63,6 +63,12 @@
 
     <TTGlyph name="g_25fd.1" xMin="70" yMin="30" xMax="100" yMax="70">
       <contour>
+        <pt x="100" y="67" on="1"/>
+        <pt x="95" y="70" on="0"/>
+        <pt x="90" y="70" on="1"/>
+        <pt x="84" y="70" on="0"/>
+        <pt x="75" y="65" on="0"/>
+        <pt x="70" y="56" on="0"/>
         <pt x="70" y="50" on="1"/>
         <pt x="70" y="44" on="0"/>
         <pt x="75" y="35" on="0"/>
@@ -70,12 +76,6 @@
         <pt x="90" y="30" on="1"/>
         <pt x="95" y="30" on="0"/>
         <pt x="100" y="33" on="1"/>
-        <pt x="100" y="67" on="1"/>
-        <pt x="95" y="70" on="0"/>
-        <pt x="90" y="70" on="1"/>
-        <pt x="84" y="70" on="0"/>
-        <pt x="75" y="65" on="0"/>
-        <pt x="70" y="56" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
