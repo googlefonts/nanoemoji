@@ -108,7 +108,6 @@ def write_preamble(nw, font_config: FontConfig):
         module_rule(
             "write_font",
             f" --config {config}"
-            + _bool_flag("ignore_reuse_error", _get_bool_flag("ignore_reuse_error"))
             + " -v 1"
             + " @$out.rsp",
             rspfile="$out.rsp",
