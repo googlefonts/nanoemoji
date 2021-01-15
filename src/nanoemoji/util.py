@@ -64,7 +64,9 @@ def build_n_ary_tree(leaves, n):
     Return a list of lists where each non-leaf node is a list containing
     max n nodes.
     """
-    assert len(leaves) > 0
+    if not leaves:
+        return []
+
     assert n > 1
 
     tree = list(leaves)
