@@ -14,6 +14,7 @@
 
 """Small helper functions."""
 
+from math import ceil, log
 import os
 from pathlib import Path
 import shlex
@@ -69,23 +70,32 @@ def build_n_ary_tree(leaves, n):
 
     assert n > 1
 
-    tree = list(leaves)
-    # group values into sub-lists until none contains > n items
-    while len(tree) > n:
-        tree = [tree[k : k + n] for k in range(0, len(tree), n)]
+    depth = ceil(log(len(leaves), n))
 
-    # try to compress the right-most branches to minimize the total number of nodes
-    stack = [tree]
-    while stack:
-        node = stack.pop()
+    if depth <= 1:
+        return list(leaves)
 
-        while isinstance(node[-1], list) and len(node) - 1 + len(node[-1]) <= n:
-            # unpack and replace the last item with its children
-            node[-1:] = node[-1]
+    # Fully populate complete subtrees of root until we have enough leaves left
+    root = []
+    unassigned = None
+    full_step = n ** (depth - 1)
+    for i in range(0, len(leaves), full_step):
+        subtree = leaves[i : i + full_step]
+        if len(subtree) < full_step:
+            unassigned = subtree
+            break
+        while len(subtree) > n:
+            subtree = [subtree[k : k + n] for k in range(0, len(subtree), n)]
+        root.append(subtree)
 
-        # only the last non-leaf node at each level can be incomplete, so we
-        # only need to traverse those
-        if isinstance(node[-1], list):
-            stack.append(node[-1])
+    if unassigned:
+        # Recurse to fill the last subtree, which is the only partially populated one
+        subtree = build_n_ary_tree(unassigned, n)
+        if len(subtree) <= n - len(root):
+            # replace last subtree with its children if they can still fit
+            root.extend(subtree)
+        else:
+            root.append(subtree)
+        assert len(root) <= n
 
-    return tree
+    return root
