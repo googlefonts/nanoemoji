@@ -336,9 +336,6 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer) -> PaintedLayer:
     return painted_layer._replace(paint=PaintSolid())
 
 
-MAX_LAYER_V1_COUNT = 255
-
-
 def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
     # The value for a COLOR_LAYERS_KEY entry per
     # https://github.com/googlefonts/ufo2ft/pull/359
@@ -361,16 +358,6 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
         layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
 
         colr_layers.append(layer)
-
-    if colr_version > 0 and len(colr_layers) > MAX_LAYER_V1_COUNT:
-        logging.info(
-            "%s contains > {MAX_LAYER_V1_COUNT} layers (%s); "
-            "building PaintColrLayers tree",
-            color_glyph.glyph_name,
-            len(colr_layers),
-        )
-
-        colr_layers = util.build_n_ary_tree(colr_layers, n=MAX_LAYER_V1_COUNT)
 
     return colr_layers
 
