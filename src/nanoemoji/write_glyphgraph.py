@@ -20,11 +20,13 @@ from absl import app
 from absl import flags
 from absl import logging
 from collections import Counter
+from fontTools import colorLib
 from fontTools import ttLib
 from fontTools.ttLib.tables import otTables as ot
 from graphviz import Digraph  # pytype: disable=import-error
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
+from nanoemoji import colr_traverse
 from typing import Mapping, NamedTuple, Set, Tuple
 
 
@@ -73,19 +75,6 @@ class DAG:
             self.graph.edge(src, dest)
         self.edges.add((src, dest))
         return new_edge
-
-
-def _base_glyphs(font, filter_fn):
-    for base_glyph in font["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record:
-        if filter_fn(base_glyph):
-            yield base_glyph
-
-
-def _only(seq):
-    seq = tuple(seq)
-    if len(seq) != 1:
-        raise ValueError(f"Need 1 entry, got {len(seq)}")
-    return seq[0]
 
 
 def _indent(depth):
@@ -236,7 +225,7 @@ def main(argv):
 
     dag = DAG()
 
-    for base_glyph in _base_glyphs(font, lambda _: True):
+    for base_glyph in _base_glyphs(font["COLR"], lambda _: True):
         _glyph(dag, None, font, base_glyph)
 
     print("Count by type")
