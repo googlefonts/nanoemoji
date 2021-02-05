@@ -98,7 +98,7 @@
     </BaseGlyphV1List>
     <LayerV1List>
       <!-- LayerCount=2 -->
-      <Paint index="0" Format="5"><!-- PaintGlyph -->
+      <Paint index="0" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="0"/>
@@ -107,7 +107,7 @@
         </Paint>
         <Glyph value="g_25fd.0"/>
       </Paint>
-      <Paint index="1" Format="5"><!-- PaintGlyph -->
+      <Paint index="1" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="1"/>

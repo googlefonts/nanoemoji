@@ -355,7 +355,7 @@
     </BaseGlyphV1List>
     <LayerV1List>
       <!-- LayerCount=14 -->
-      <Paint index="0" Format="5"><!-- PaintGlyph -->
+      <Paint index="0" Format="6"><!-- PaintGlyph -->
         <Paint Format="3"><!-- PaintLinearGradient -->
           <ColorLine>
             <Extend value="pad"/>
@@ -384,7 +384,7 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="1" Format="5"><!-- PaintGlyph -->
+      <Paint index="1" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="0"/>
@@ -393,7 +393,7 @@
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
-      <Paint index="2" Format="5"><!-- PaintGlyph -->
+      <Paint index="2" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="1"/>
@@ -402,7 +402,7 @@
         </Paint>
         <Glyph value="e000.2"/>
       </Paint>
-      <Paint index="3" Format="5"><!-- PaintGlyph -->
+      <Paint index="3" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="2"/>
@@ -411,7 +411,7 @@
         </Paint>
         <Glyph value="e000.3"/>
       </Paint>
-      <Paint index="4" Format="5"><!-- PaintGlyph -->
+      <Paint index="4" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="8"/>
@@ -420,7 +420,7 @@
         </Paint>
         <Glyph value="e000.4"/>
       </Paint>
-      <Paint index="5" Format="5"><!-- PaintGlyph -->
+      <Paint index="5" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="3"/>
@@ -429,7 +429,7 @@
         </Paint>
         <Glyph value="e000.5"/>
       </Paint>
-      <Paint index="6" Format="5"><!-- PaintGlyph -->
+      <Paint index="6" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="3"/>
@@ -438,7 +438,7 @@
         </Paint>
         <Glyph value="e000.6"/>
       </Paint>
-      <Paint index="7" Format="5"><!-- PaintGlyph -->
+      <Paint index="7" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="3"/>
@@ -447,7 +447,7 @@
         </Paint>
         <Glyph value="e000.7"/>
       </Paint>
-      <Paint index="8" Format="5"><!-- PaintGlyph -->
+      <Paint index="8" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="3"/>
@@ -456,7 +456,7 @@
         </Paint>
         <Glyph value="e000.8"/>
       </Paint>
-      <Paint index="9" Format="5"><!-- PaintGlyph -->
+      <Paint index="9" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="2"/>
@@ -465,7 +465,7 @@
         </Paint>
         <Glyph value="e000.9"/>
       </Paint>
-      <Paint index="10" Format="5"><!-- PaintGlyph -->
+      <Paint index="10" Format="6"><!-- PaintGlyph -->
         <Paint Format="3"><!-- PaintLinearGradient -->
           <ColorLine>
             <Extend value="pad"/>
@@ -494,7 +494,7 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="11" Format="5"><!-- PaintGlyph -->
+      <Paint index="11" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="4"/>
@@ -503,7 +503,7 @@
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
-      <Paint index="12" Format="5"><!-- PaintGlyph -->
+      <Paint index="12" Format="6"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="7"/>
