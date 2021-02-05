@@ -79,12 +79,12 @@ class Paint:
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintColrLayers)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintColrLayers)
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintSolid(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintSolid)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintSolid)
     color: Color = css_color("black")
 
     def colors(self):
@@ -114,7 +114,7 @@ def _ufoColorLine(gradient, colors):
 
 @dataclasses.dataclass(frozen=True)
 class PaintLinearGradient(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintLinearGradient)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintLinearGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
@@ -143,7 +143,7 @@ class PaintLinearGradient(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintRadialGradient(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintRadialGradient)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintRadialGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop] = tuple()
     c0: Point = Point()
@@ -169,7 +169,7 @@ class PaintRadialGradient(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintGlyph(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintGlyph)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintGlyph)
     glyph: str
     paint: Paint
 
@@ -187,7 +187,7 @@ class PaintGlyph(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrGlyph(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintColrGlyph)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintColrGlyph)
     glyph: str
 
     def to_ufo_paint(self, _):
@@ -197,7 +197,7 @@ class PaintColrGlyph(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintTransform(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintTransform)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
     paint: Paint
 
@@ -215,7 +215,7 @@ class PaintTransform(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintComposite(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintComposite)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintComposite)
     mode: CompositeMode
     source: Paint
     backdrop: Paint
