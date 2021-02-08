@@ -186,17 +186,14 @@ def _define_linear_gradient(
 
     p0, p1, p2 = paint.p0, paint.p1, paint.p2
     # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
-    # Below we compute P3 which is the projection of P1 onto the line between P0 and P2
-    # (aka the "normal" line, perpendicular to the linear gradient "front"). The vector
-    # P3-P0 is the "effective" linear gradient vector after this rotation.
-    # When P2 is collinear with P0 and P1, then P3 (projection of P1 onto the normal) is
-    # == P1 itself thus there's no rotation. When P2 sits on a line passing by P0 and
-    # perpendicular to the P1-P0 gradient vector, then this projected P3 == P0 and the
-    # gradient degenerates to a solid paint (the last color stop).
-    # NOTE: in nanoemoji-built fonts, this point P3 is always == P2, so we could just
-    # use that here, but the spec does not mandate that P2 be on the "front" line
-    # that passes by P1, it can be anywhere, hence we compute P3.
-    p3 = p0 + (p1 - p0).projection(p2 - p0)
+    # Below we compute P3 which is the orthogonal projection of P1 onto a line passing
+    # through P0 and perpendicular to the "normal" or "rotation vector" from P0 and P2.
+    # The vector P3-P0 is the "effective" linear gradient vector after this rotation.
+    # When vector P2-P0 is perpendicular to the gradient vector P1-P0, then P3
+    # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
+    # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
+    # and the gradient degenerates to a solid paint (the last color stop).
+    p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
 
     x1, y1 = p0
     x2, y2 = p3
