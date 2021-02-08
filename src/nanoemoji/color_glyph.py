@@ -91,24 +91,14 @@ def _parse_linear_gradient(grad_el, shape_bbox, view_box, upem, shape_opacity=1.
     p0 = Point(gradient.x1, gradient.y1)
     p1 = Point(gradient.x2, gradient.y2)
 
-    # compute the vector n perpendicular to vector v from P1 to P0
-    v = p0 - p1
-    n = v.perpendicular()
+    # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
+    p2 = p0 + (p1 - p0).perpendicular()
 
     transform = _get_gradient_transform(grad_el, shape_bbox, view_box, upem)
 
-    # apply transformations to points and perpendicular vector
     p0 = transform.map_point(p0)
     p1 = transform.map_point(p1)
-    n = transform.map_vector(n)
-
-    # P2 is equal to P1 translated by the orthogonal projection of the transformed
-    # vector v' (from P1' to P0') onto the transformed vector n'; before the
-    # transform the vector n is perpendicular to v, so the projection of v onto n
-    # is zero and P2 == P1; if the transform has a skew or a scale that doesn't
-    # preserve aspect ratio, the projection of v' onto n' is non-zero and P2 != P1
-    v = p0 - p1
-    p2 = p1 + v.projection(n)
+    p2 = transform.map_point(p2)
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
     return PaintLinearGradient(  # pytype: disable=wrong-arg-types

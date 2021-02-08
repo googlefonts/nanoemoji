@@ -93,8 +93,8 @@
             <y0 value="80"/>
             <x1 value="80"/>
             <y1 value="80"/>
-            <x2 value="80"/>
-            <y2 value="80"/>
+            <x2 value="20"/>
+            <y2 value="60"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>

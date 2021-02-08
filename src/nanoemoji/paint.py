@@ -119,12 +119,13 @@ class PaintLinearGradient(Paint):
     stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
     p1: Point = Point()
-    p2: Point = None  # if undefined, default to p1
+    p2: Point = None  # if normal undefined, default to P1 rotated 90° cc'wise
 
     def __post_init__(self):
-        # use object.__setattr__ as the dataclass is frozen
         if self.p2 is None:
-            object.__setattr__(self, "p2", self.p1)
+            p0, p1 = Point(*self.p0), Point(*self.p1)
+            # use object.__setattr__ as the dataclass is frozen
+            object.__setattr__(self, "p2", p0 + (p1 - p0).perpendicular())
 
     def colors(self):
         for stop in self.stops:
