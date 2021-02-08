@@ -124,6 +124,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     ),
                     p0=Point(200, 800),
                     p1=Point(800, 800),
+                    p2=Point(200, 600),
                 )
             },
         ),
@@ -190,7 +191,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     ),
                     p0=Point(x=0, y=1000),
                     p1=Point(x=1000, y=1000),
-                    p2=Point(x=500, y=500),
+                    p2=Point(x=-1000, y=0),
                 )
             },
         ),
@@ -205,6 +206,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     ),
                     p0=Point(x=100, y=550),
                     p1=Point(x=900, y=550),
+                    p2=Point(x=100, y=450),
                 ),
                 PaintLinearGradient(
                     stops=(
@@ -213,6 +215,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     ),
                     p0=Point(x=450, y=900),
                     p1=Point(x=450, y=100),
+                    p2=Point(x=350, y=900),
                 ),
             },
         ),
@@ -252,6 +255,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     ),
                     p0=Point(200.0, 800.0),
                     p1=Point(800.0, 800.0),
+                    p2=Point(200.0, 600.0),
                 ),
                 PaintTransform(
                     transform=(1.0, 0.0, 0.0, 0.333333, 0, 333.333333),

@@ -379,8 +379,8 @@
           <y0 value="85"/>
           <x1 value="50"/>
           <y1 value="13"/>
-          <x2 value="50"/>
-          <y2 value="13"/>
+          <x2 value="-22"/>
+          <y2 value="85"/>
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
@@ -489,8 +489,8 @@
           <y0 value="85"/>
           <x1 value="50"/>
           <y1 value="13"/>
-          <x2 value="50"/>
-          <y2 value="13"/>
+          <x2 value="-22"/>
+          <y2 value="85"/>
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
