@@ -92,23 +92,27 @@ class PaintSolid(Paint):
 
     def to_ufo_paint(self, colors):
         return {
-            "format": self.format,
-            "paletteIndex": colors.index(self.color.opaque()),
-            "alpha": self.color.alpha,
+            "Format": self.format,
+            "Color": {
+                "PaletteIndex": colors.index(self.color.opaque()),
+                "Alpha": self.color.alpha,
+            },
         }
 
 
 def _ufoColorLine(gradient, colors):
     return {
-        "stops": [
+        "ColorStop": [
             {
-                "offset": stop.stopOffset,
-                "paletteIndex": colors.index(stop.color.opaque()),
-                "alpha": stop.color.alpha,
+                "StopOffset": stop.stopOffset,
+                "Color": {
+                    "PaletteIndex": colors.index(stop.color.opaque()),
+                    "Alpha": stop.color.alpha,
+                },
             }
             for stop in gradient.stops
         ],
-        "extend": gradient.extend.name.lower(),
+        "Extend": gradient.extend.name.lower(),
     }
 
 
@@ -133,11 +137,14 @@ class PaintLinearGradient(Paint):
 
     def to_ufo_paint(self, colors):
         return {
-            "format": self.format,
-            "colorLine": _ufoColorLine(self, colors),
-            "p0": self.p0,
-            "p1": self.p1,
-            "p2": self.p2,
+            "Format": self.format,
+            "ColorLine": _ufoColorLine(self, colors),
+            "x0": self.p0[0],
+            "y0": self.p0[1],
+            "x1": self.p1[0],
+            "y1": self.p1[1],
+            "x2": self.p2[0],
+            "y2": self.p2[1],
         }
 
 
@@ -157,11 +164,13 @@ class PaintRadialGradient(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "colorLine": _ufoColorLine(self, colors),
-            "c0": self.c0,
-            "c1": self.c1,
+            "Format": self.format,
+            "ColorLine": _ufoColorLine(self, colors),
+            "x0": self.c0[0],
+            "y0": self.c0[1],
             "r0": self.r0,
+            "x1": self.c1[0],
+            "y1": self.c1[1],
             "r1": self.r1,
         }
         return paint
@@ -178,9 +187,9 @@ class PaintGlyph(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "glyph": self.glyph,
-            "paint": self.paint.to_ufo_paint(colors),
+            "Format": self.format,
+            "Glyph": self.glyph,
+            "Paint": self.paint.to_ufo_paint(colors),
         }
         return paint
 
@@ -191,7 +200,7 @@ class PaintColrGlyph(Paint):
     glyph: str
 
     def to_ufo_paint(self, _):
-        paint = {"format": self.format, "glyph": self.glyph}
+        paint = {"Format": self.format, "Glyph": self.glyph}
         return paint
 
 
@@ -206,9 +215,9 @@ class PaintTransform(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "transform": self.transform,
-            "paint": self.paint.to_ufo_paint(colors),
+            "Format": self.format,
+            "Transform": self.transform,
+            "Paint": self.paint.to_ufo_paint(colors),
         }
         return paint
 
@@ -226,9 +235,9 @@ class PaintComposite(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "mode": self.mode.name.lower(),
-            "source": self.source.to_ufo_paint(colors),
-            "backdrop": self.backdrop.to_ufo_paint(colors),
+            "Format": self.format,
+            "CompositeMode": self.mode.name.lower(),
+            "SourcePaint": self.source.to_ufo_paint(colors),
+            "BackdropPaint": self.backdrop.to_ufo_paint(colors),
         }
         return paint
