@@ -69,8 +69,8 @@
       <!-- BaseGlyphCount=1 -->
       <BaseGlyphV1Record index="0">
         <BaseGlyph value="e000"/>
-        <Paint Format="6"><!-- PaintGlyph -->
-          <Paint Format="3"><!-- PaintLinearGradient -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="4"><!-- PaintLinearGradient -->
             <ColorLine>
               <Extend value="pad"/>
               <!-- StopCount=2 -->
