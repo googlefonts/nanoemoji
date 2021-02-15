@@ -21,6 +21,7 @@ from absl import logging
 from collections import defaultdict
 import csv
 from fontTools import ttLib
+from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import codepoints, config
@@ -358,6 +359,12 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
         layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
 
         colr_layers.append(layer)
+
+    if colr_version > 0:
+        colr_layers = {
+            "Format": int(ot.PaintFormat.PaintColrLayers),
+            "Layers": colr_layers,
+        }
 
     return colr_layers
 

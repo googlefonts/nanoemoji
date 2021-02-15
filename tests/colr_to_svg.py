@@ -91,28 +91,28 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
 def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _GradientPaint:
     stops = [
         ColorStop(
-            stop.StopOffset.value,
-            _color(ttfont, stop.Color.PaletteIndex, stop.Color.Alpha.value),
+            stop.StopOffset,
+            _color(ttfont, stop.Color.PaletteIndex, stop.Color.Alpha),
         )
         for stop in ot_paint.ColorLine.ColorStop
     ]
-    extend = Extend((ot_paint.ColorLine.Extend.value,))
+    extend = Extend((ot_paint.ColorLine.Extend,))
     if ot_paint.Format == PaintLinearGradient.format:
         return PaintLinearGradient(
             stops=stops,
             extend=extend,
-            p0=Point(ot_paint.x0.value, ot_paint.y0.value),
-            p1=Point(ot_paint.x1.value, ot_paint.y1.value),
-            p2=Point(ot_paint.x2.value, ot_paint.y2.value),
+            p0=Point(ot_paint.x0, ot_paint.y0),
+            p1=Point(ot_paint.x1, ot_paint.y1),
+            p2=Point(ot_paint.x2, ot_paint.y2),
         )
     elif ot_paint.Format == PaintRadialGradient.format:
         return PaintRadialGradient(
             stops=stops,
             extend=extend,
-            c0=Point(ot_paint.x0.value, ot_paint.y0.value),
-            c1=Point(ot_paint.x1.value, ot_paint.y1.value),
-            r0=ot_paint.r0.value,
-            r1=ot_paint.r1.value,
+            c0=Point(ot_paint.x0, ot_paint.y0),
+            c1=Point(ot_paint.x1, ot_paint.y1),
+            r0=ot_paint.r0,
+            r1=ot_paint.r1,
         )
     else:
         raise ValueError(
@@ -126,7 +126,7 @@ def _apply_solid_ot_paint(
     ttfont: ttLib.TTFont,
     ot_paint: otTables.Paint,
 ):
-    color = _color(ttfont, ot_paint.Color.PaletteIndex, ot_paint.Color.Alpha.value)
+    color = _color(ttfont, ot_paint.Color.PaletteIndex, ot_paint.Color.Alpha)
     _apply_solid_paint(svg_path, PaintSolid(color))
 
 
@@ -208,12 +208,12 @@ def _colr_v1_paint_to_svg(
                 Affine2D.identity()
                 if not ot_paint.Transform
                 else Affine2D(
-                    ot_paint.Transform.xx.value,
-                    ot_paint.Transform.yx.value,
-                    ot_paint.Transform.xy.value,
-                    ot_paint.Transform.yy.value,
-                    ot_paint.Transform.dx.value,
-                    ot_paint.Transform.dy.value,
+                    ot_paint.Transform.xx,
+                    ot_paint.Transform.yx,
+                    ot_paint.Transform.xy,
+                    ot_paint.Transform.yy,
+                    ot_paint.Transform.dx,
+                    ot_paint.Transform.dy,
                 )
             ),
             transform,

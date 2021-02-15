@@ -79,12 +79,12 @@ class Paint:
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintColrLayers)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintColrLayers)
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintSolid(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintSolid)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintSolid)
     color: Color = css_color("black")
 
     def colors(self):
@@ -92,29 +92,33 @@ class PaintSolid(Paint):
 
     def to_ufo_paint(self, colors):
         return {
-            "format": self.format,
-            "paletteIndex": colors.index(self.color.opaque()),
-            "alpha": self.color.alpha,
+            "Format": self.format,
+            "Color": {
+                "PaletteIndex": colors.index(self.color.opaque()),
+                "Alpha": self.color.alpha,
+            },
         }
 
 
 def _ufoColorLine(gradient, colors):
     return {
-        "stops": [
+        "ColorStop": [
             {
-                "offset": stop.stopOffset,
-                "paletteIndex": colors.index(stop.color.opaque()),
-                "alpha": stop.color.alpha,
+                "StopOffset": stop.stopOffset,
+                "Color": {
+                    "PaletteIndex": colors.index(stop.color.opaque()),
+                    "Alpha": stop.color.alpha,
+                },
             }
             for stop in gradient.stops
         ],
-        "extend": gradient.extend.name.lower(),
+        "Extend": gradient.extend.name.lower(),
     }
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintLinearGradient(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintLinearGradient)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintLinearGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
@@ -133,17 +137,20 @@ class PaintLinearGradient(Paint):
 
     def to_ufo_paint(self, colors):
         return {
-            "format": self.format,
-            "colorLine": _ufoColorLine(self, colors),
-            "p0": self.p0,
-            "p1": self.p1,
-            "p2": self.p2,
+            "Format": self.format,
+            "ColorLine": _ufoColorLine(self, colors),
+            "x0": self.p0[0],
+            "y0": self.p0[1],
+            "x1": self.p1[0],
+            "y1": self.p1[1],
+            "x2": self.p2[0],
+            "y2": self.p2[1],
         }
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintRadialGradient(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintRadialGradient)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintRadialGradient)
     extend: Extend = Extend.PAD
     stops: Tuple[ColorStop] = tuple()
     c0: Point = Point()
@@ -157,11 +164,13 @@ class PaintRadialGradient(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "colorLine": _ufoColorLine(self, colors),
-            "c0": self.c0,
-            "c1": self.c1,
+            "Format": self.format,
+            "ColorLine": _ufoColorLine(self, colors),
+            "x0": self.c0[0],
+            "y0": self.c0[1],
             "r0": self.r0,
+            "x1": self.c1[0],
+            "y1": self.c1[1],
             "r1": self.r1,
         }
         return paint
@@ -169,7 +178,7 @@ class PaintRadialGradient(Paint):
 
 @dataclasses.dataclass(frozen=True)
 class PaintGlyph(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintGlyph)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintGlyph)
     glyph: str
     paint: Paint
 
@@ -178,26 +187,26 @@ class PaintGlyph(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "glyph": self.glyph,
-            "paint": self.paint.to_ufo_paint(colors),
+            "Format": self.format,
+            "Glyph": self.glyph,
+            "Paint": self.paint.to_ufo_paint(colors),
         }
         return paint
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrGlyph(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintColrGlyph)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintColrGlyph)
     glyph: str
 
     def to_ufo_paint(self, _):
-        paint = {"format": self.format, "glyph": self.glyph}
+        paint = {"Format": self.format, "Glyph": self.glyph}
         return paint
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintTransform(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintTransform)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
     paint: Paint
 
@@ -206,16 +215,16 @@ class PaintTransform(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "transform": self.transform,
-            "paint": self.paint.to_ufo_paint(colors),
+            "Format": self.format,
+            "Transform": self.transform,
+            "Paint": self.paint.to_ufo_paint(colors),
         }
         return paint
 
 
 @dataclasses.dataclass(frozen=True)
 class PaintComposite(Paint):
-    format: ClassVar[int] = int(ot.Paint.Format.PaintComposite)
+    format: ClassVar[int] = int(ot.PaintFormat.PaintComposite)
     mode: CompositeMode
     source: Paint
     backdrop: Paint
@@ -226,9 +235,9 @@ class PaintComposite(Paint):
 
     def to_ufo_paint(self, colors):
         paint = {
-            "format": self.format,
-            "mode": self.mode.name.lower(),
-            "source": self.source.to_ufo_paint(colors),
-            "backdrop": self.backdrop.to_ufo_paint(colors),
+            "Format": self.format,
+            "CompositeMode": self.mode.name.lower(),
+            "SourcePaint": self.source.to_ufo_paint(colors),
+            "BackdropPaint": self.backdrop.to_ufo_paint(colors),
         }
         return paint
