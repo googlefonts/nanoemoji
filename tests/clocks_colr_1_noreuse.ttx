@@ -355,8 +355,8 @@
     </BaseGlyphV1List>
     <LayerV1List>
       <!-- LayerCount=14 -->
-      <Paint index="0" Format="6"><!-- PaintGlyph -->
-        <Paint Format="3"><!-- PaintLinearGradient -->
+      <Paint index="0" Format="10"><!-- PaintGlyph -->
+        <Paint Format="4"><!-- PaintLinearGradient -->
           <ColorLine>
             <Extend value="pad"/>
             <!-- StopCount=2 -->
