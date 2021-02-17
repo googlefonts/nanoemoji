@@ -14,7 +14,7 @@
 
 """Helpers for expressing paint.
 
-Based on https://github.com/googlefonts/colr-gradients-spec/blob/master/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
+Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
 import dataclasses
 from enum import Enum, IntEnum
