@@ -57,7 +57,14 @@ def fs_root() -> Path:
 
 def rel(from_path: Path, to_path: Path) -> Path:
     # relative_to(A,B) doesn't like it if B doesn't start with A
-    return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))
+    abs_from_path = from_path.resolve()
+    abs_to_path = to_path.resolve()
+    if abs_from_path.drive != abs_to_path.drive:
+        # On Windows, we can't resolve relative paths across drive mount points.
+        # We must return the absolute path in this case, or else we get:
+        #     ValueError: path is on mount 'D:', start on mount 'C:'
+        return abs_to_path
+    return Path(os.path.relpath(abs_to_path, abs_from_path))
 
 
 @contextlib.contextmanager
