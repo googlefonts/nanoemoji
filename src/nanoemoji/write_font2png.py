@@ -38,7 +38,7 @@ def main(argv):
     text = "".join(
         chr(cp) for cp in codepoints.from_filename(os.path.basename(src_svg))
     )
-    print(src_svg, text)
+    logging.info("%s %s", src_svg, text)
 
     colr_test_cmd = [
         "colr_test",
@@ -58,9 +58,9 @@ def main(argv):
         sys.exit(
             f"{colr_test_cmd[0]} binary (https://github.com/rsheeter/skia_colr/tree/colr_test) must be on PATH"
         )
-    print(" ".join(colr_test_cmd))
+    logging.info(" ".join(colr_test_cmd))
     subprocess.run(colr_test_cmd, check=True)
-    logging.info("Wrote %s" % FLAGS.output_file)
+    logging.info("Wrote %s", FLAGS.output_file)
 
 
 if __name__ == "__main__":

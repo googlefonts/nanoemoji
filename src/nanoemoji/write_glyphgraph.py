@@ -183,7 +183,7 @@ def _paint(dag, parent, font, paint, depth):
         raise NotImplementedError("Too deep, something wrong?")
     palette = font["CPAL"].palettes[0]
     node = _paint_node(font.getGlyphOrder(), palette, paint)
-    print(_indent(depth), node.label())
+    logging.info(_indent(depth) + node.label())
 
     dag.graph.node(node.node_id, node.node_label)
 
@@ -225,7 +225,7 @@ def _glyph(dag, parent, font, base_glyph, depth=0):
     name = "Base_" + base_glyph.BaseGlyph
     dag.edge(parent, name)
 
-    print(_indent(depth), name)
+    logging.info(_indent(depth) + name)
     _paint(dag, name, font, base_glyph.Paint, depth + 1)
 
 
@@ -239,15 +239,15 @@ def main(argv):
     for base_glyph in _base_glyphs(font, lambda _: True):
         _glyph(dag, None, font, base_glyph)
 
-    print("Count by type")
+    logging.info("Count by type")
     for node_type, count in sorted(dag.count_of_type.items()):
-        print("  ", node_type, count)
+        logging.info("  %s %s", node_type, count)
     output_file = dag.graph.render()
     tree = etree.parse(output_file)
     del tree.getroot().attrib["width"]
     del tree.getroot().attrib["height"]
     tree.write(output_file, pretty_print=True)
-    print("wrote", output_file)
+    logging.info("wrote %s", output_file)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@
 Based on https://gist.github.com/anthrotype/c11515065a4aa6549f9d5f2dfdcf8f23"""
 
 from absl import app
+from absl import logging
 from fontTools import designspaceLib
 from nanoemoji import config
 import ufo2ft
@@ -55,7 +56,7 @@ def main(argv):
         )
         for a in font_config.axes
     ]
-    pp.pprint(axis_defs)
+    logging.info(pp.pformat(axis_defs))
     for axis_def in axis_defs:
         designspace.addAxisDescriptor(**axis_def)
 

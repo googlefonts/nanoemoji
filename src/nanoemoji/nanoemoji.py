@@ -308,7 +308,7 @@ def _write_config_for_build(font_config: FontConfig):
 
     config_file = build_dir() / "config.toml"
     config.write(config_file, font_config)
-    print("Wrote ", config_file)
+    logging.info(f"Wrote {config_file}")
 
 
 def _run(argv):
@@ -334,7 +334,7 @@ def _run(argv):
     build_file = build_dir() / "build.ninja"
 
     if FLAGS.gen_ninja:
-        print(f"Generating {build_file.relative_to(build_dir())}")
+        logging.info(f"Generating {build_file.relative_to(build_dir())}")
         write_source_names(font_config.source_names)
         with open(build_file, "w") as f:
             nw = ninja_syntax.Writer(f)
@@ -362,10 +362,10 @@ def _run(argv):
 
     ninja_cmd = ["ninja", "-C", os.path.dirname(build_file)]
     if FLAGS.exec_ninja:
-        print(" ".join(ninja_cmd))
+        logging.info(" ".join(ninja_cmd))
         subprocess.run(ninja_cmd, check=True)
     else:
-        print("To run:", " ".join(ninja_cmd))
+        logging.info("To run: " + " ".join(ninja_cmd))
 
     return
 
