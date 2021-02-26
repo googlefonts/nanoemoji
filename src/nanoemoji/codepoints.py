@@ -16,6 +16,9 @@
 
 import os
 import regex
+import absl
+
+absl.logging.info("shit")
 
 
 def from_filename(filename):

@@ -99,7 +99,7 @@ def write_preamble(nw, font_config: FontConfig):
             rule_name = mod_name
         nw.rule(
             rule_name,
-            f"{sys.executable} -m nanoemoji.{mod_name} {arg_pattern}",
+            f"{sys.executable} -m nanoemoji.{mod_name} -v {FLAGS.verbosity} {arg_pattern}",
             rspfile=rspfile,
             rspfile_content=rspfile_content,
         )
@@ -107,7 +107,7 @@ def write_preamble(nw, font_config: FontConfig):
     def write_font_rule(rule_name, config):
         module_rule(
             "write_font",
-            f" --config {config} -v {FLAGS.verbosity} @$out.rsp",
+            f" --config {config} @$out.rsp",
             rspfile="$out.rsp",
             rspfile_content="$in",
             rule_name=rule_name,
