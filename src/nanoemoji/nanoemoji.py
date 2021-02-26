@@ -107,7 +107,7 @@ def write_preamble(nw, font_config: FontConfig):
     def write_font_rule(rule_name, config):
         module_rule(
             "write_font",
-            f" --config {config}" + " -v 1" + " @$out.rsp",
+            f" --config {config} -v {FLAGS.verbosity} @$out.rsp",
             rspfile="$out.rsp",
             rspfile_content="$in",
             rule_name=rule_name,
