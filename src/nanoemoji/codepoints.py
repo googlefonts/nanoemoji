@@ -18,8 +18,6 @@ import os
 import regex
 import absl
 
-absl.logging.info("shit")
-
 
 def from_filename(filename):
     match = regex.search(r"(?:^emoji_u)?(?:[-_]?([0-9a-fA-F]{1,}))+", filename)
