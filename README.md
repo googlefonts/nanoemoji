@@ -1,4 +1,4 @@
-[![CI Build Status](https://github.com/googlefonts/nanoemoji/workflows/Continuous%20Test%20+%20Deploy/badge.svg)](](https://github.com/googlefonts/nanoemoji/actions/workflows/ci.yml?query=workflow%3ATest))
+[![CI Build Status](https://github.com/googlefonts/nanoemoji/workflows/Continuous%20Test%20+%20Deploy/badge.svg)](https://github.com/googlefonts/nanoemoji/actions/workflows/ci.yml?query=workflow%3ATest)
 [![PyPI](https://img.shields.io/pypi/v/nanoemoji.svg)](https://pypi.org/project/nanoemoji/)
 [![pyup](https://pyup.io/repos/github/googlefonts/nanoemoji/shield.svg)](https://pyup.io/repos/github/googlefonts/nanoemoji)
 
