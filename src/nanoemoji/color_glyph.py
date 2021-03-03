@@ -36,11 +36,17 @@ from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
 from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
 
-
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
-    # scale to font upem
-    return (upem / view_box.w, upem / view_box.h)
+    x_scale = upem / view_box.w
+    y_scale = upem / view_box.h
+    aspect_ratio = view_box.w / view_box.h
 
+    # When the width and height are not equal, keep the aspect ratio.
+    # Allow the width to overflow upem.
+    if aspect_ratio > 1.0 or aspect_ratio < 1.0:
+        x_scale = y_scale
+
+    return (x_scale, y_scale)
 
 def _shift_origin_0_0(
     view_box: Rect, x_scale: float, y_scale: float
@@ -333,7 +339,26 @@ class ColorGlyph(NamedTuple):
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
         glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
-        base_glyph.width = font_config.width
+
+        # The SVG viewbox width and height
+        svg_width = svg.view_box().w
+        svg_height = svg.view_box().h
+
+        # The factor of the width scaling.
+        x_scale = font_config.width / svg_width
+
+        # Aspect ratio
+        aspect_ratio = svg_width / svg_height
+        scale_width = svg_width * x_scale * aspect_ratio
+
+        if svg_width > font_config.width:
+            base_glyph.width = int(svg_width)
+        elif svg_width < font_config.width:
+            base_glyph.width = int(scale_width)
+        else:
+            base_glyph.width = font_config.width
+
+        logging.info('base_glyph %s, svg_width %s', base_glyph.width, svg_width)
 
         # Setup direct access to the glyph if possible
         if len(codepoints) == 1:
