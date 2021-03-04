@@ -49,8 +49,12 @@ from fontTools.ttLib.tables import otTables
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
 
 
-def _map_font_emsquare_to_viewbox(upem: int, view_box: Rect) -> Affine2D:
-    return color_glyph.map_viewbox_to_font_emsquare(view_box, upem).inverse()
+def _map_font_emsquare_to_viewbox(
+    view_box: Rect, upem: int, user_transform: Affine2D
+) -> Affine2D:
+    return color_glyph.map_viewbox_to_font_emsquare(
+        view_box, upem, user_transform
+    ).inverse()
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
@@ -158,7 +162,9 @@ def _colr_v0_glyph_to_svg(
     glyph_name: str,
 ) -> etree.Element:
     svg_root = _svg_root(view_box)
-    upem_to_vbox = _map_font_emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
+    upem_to_vbox = _map_font_emsquare_to_viewbox(
+        view_box, ttfont["head"].unitsPerEm, Affine2D.identity()
+    )
 
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
         svg_path = etree.SubElement(svg_root, "path")
@@ -256,7 +262,9 @@ def _colr_v1_glyph_to_svg(
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
-    upem_to_vbox = _map_font_emsquare_to_viewbox(ttfont["head"].unitsPerEm, view_box)
+    upem_to_vbox = _map_font_emsquare_to_viewbox(
+        view_box, ttfont["head"].unitsPerEm, Affine2D.identity()
+    )
     _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, upem_to_vbox, glyph.Paint)
     return svg_root
 

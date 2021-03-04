@@ -14,6 +14,7 @@
 
 
 from nanoemoji import write_font
+from picosvg.svg_transform import Affine2D
 import pytest
 import test_helper
 
@@ -123,6 +124,18 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
             ("reused_shape.svg",),
             "reused_shape_glyf.ttx",
             {"color_format": "glyf"},
+        ),
+        # Confirm we can apply a user transform, override some basic metrics
+        (
+            ("one_rect.svg",),
+            "one_rect_transformed.ttx",
+            {
+                "color_format": "glyf_colr_1",
+                "transform": Affine2D.fromstring(
+                    "scale(0.5, 0.75) translate(50) rotate(45)"
+                ),
+                "width": 120,
+            },
         ),
     ],
 )
