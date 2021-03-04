@@ -35,6 +35,7 @@ from nanoemoji.svg import (
 )
 from nanoemoji.svg_path import SVGPathPen
 from picosvg.svg import SVG
+from picosvg.svg_meta import ntos
 from picosvg.svg_transform import Affine2D
 from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
@@ -57,7 +58,8 @@ def _svg_root(view_box: Rect) -> etree.Element:
         str(test_helper.locate_test_file("colr_to_svg_template.svg"))
     )
     svg_root = svg_tree.getroot()
-    svg_root.attrib["viewBox"] = f"{view_box.x} {view_box.y} {view_box.w} {view_box.h}"
+    vbox = (view_box.x, view_box.y, view_box.w, view_box.h)
+    svg_root.attrib["viewBox"] = " ".join(ntos(v) for v in vbox)
     return svg_root
 
 
