@@ -49,13 +49,14 @@ _COLOR_FORMATS = [
 
 # we use None as a sentinel for flag not set; FontConfig class has the actual defaults.
 # CLI flags override config file (which overrides default FontConfig).
-flags.DEFINE_string("config", None, "Config file")
+flags.DEFINE_string("config", None, "Config file.")
 flags.DEFINE_integer("upem", None, "Units per em.")
 flags.DEFINE_integer("width", None, "Width.")
 flags.DEFINE_integer("ascent", None, "Ascender")
 flags.DEFINE_integer("descent", None, "Descender.")
 flags.DEFINE_string("transform", None, "User transform, in font coordinates.")
-
+flags.DEFINE_integer("version_major", None, "Major version.")
+flags.DEFINE_integer("version_minor", None, "Minor version.")
 flags.DEFINE_string("family", None, "Family name.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
@@ -65,12 +66,12 @@ flags.DEFINE_enum(
     "Type of font to generate.",
 )
 flags.DEFINE_enum(
-    "output", None, ["ufo", "font"], "Whether to output a font binary or a UFO"
+    "output", None, ["ufo", "font"], "Whether to output a font binary or a UFO."
 )
 flags.DEFINE_bool(
     "keep_glyph_names", None, "Whether or not to store glyph names in the font."
 )
-flags.DEFINE_bool("clip_to_viewbox", None, "Whether to clip content outside viewbox")
+flags.DEFINE_bool("clip_to_viewbox", None, "Whether to clip content outside viewbox.")
 flags.DEFINE_float(
     "reuse_tolerance",
     None,
@@ -115,6 +116,8 @@ class FontConfig(NamedTuple):
     ascent: int = 950  # default based on Noto Emoji
     descent: int = -250  # default based on Noto Emoji
     transform: Affine2D = Affine2D.identity()
+    version_major: int = 1
+    version_minor: int = 0
     reuse_tolerance: float = 0.1
     ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
@@ -145,6 +148,8 @@ def write(dest: Path, config: FontConfig):
         "ascent": config.ascent,
         "descent": config.descent,
         "transform": config.transform.tostring(),
+        "version_major": config.version_major,
+        "version_minor": config.version_minor,
         "reuse_tolerance": config.reuse_tolerance,
         "ignore_reuse_error": config.ignore_reuse_error,
         "keep_glyph_names": config.keep_glyph_names,
@@ -225,6 +230,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
     if not isinstance(transform, Affine2D):
         assert isinstance(transform, str)
         transform = Affine2D.fromstring(transform)
+    version_major = int(_pop_flag(config, "version_major"))
+    version_minor = int(_pop_flag(config, "version_minor"))
     reuse_tolerance = float(_pop_flag(config, "reuse_tolerance"))
     ignore_reuse_error = _pop_flag(config, "ignore_reuse_error")
     keep_glyph_names = _pop_flag(config, "keep_glyph_names")
@@ -297,6 +304,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         ascent=ascent,
         descent=descent,
         transform=transform,
+        version_major=version_major,
+        version_minor=version_minor,
         reuse_tolerance=reuse_tolerance,
         ignore_reuse_error=ignore_reuse_error,
         keep_glyph_names=keep_glyph_names,
