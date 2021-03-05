@@ -13,7 +13,7 @@
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="20"/>
     <mtx name="e000.0" width="100" lsb="20"/>
     <mtx name="e000.1" width="100" lsb="40"/>
   </hmtx>
@@ -43,10 +43,10 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="0" yMin="0" xMax="100" yMax="100">
+    <TTGlyph name="e000" xMin="20" yMin="40" xMax="100" yMax="80">
       <contour>
-        <pt x="100" y="100" on="1"/>
-        <pt x="0" y="0" on="1"/>
+        <pt x="100" y="80" on="1"/>
+        <pt x="20" y="40" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>

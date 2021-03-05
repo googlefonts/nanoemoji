@@ -23,7 +23,7 @@
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="3"/>
     <mtx name="e000.0" width="100" lsb="3"/>
     <mtx name="e000.1" width="100" lsb="47"/>
     <mtx name="e000.2" width="100" lsb="48"/>
@@ -34,7 +34,7 @@
     <mtx name="e000.7" width="100" lsb="47"/>
     <mtx name="e000.8" width="100" lsb="84"/>
     <mtx name="e000.9" width="100" lsb="3"/>
-    <mtx name="e001" width="100" lsb="0"/>
+    <mtx name="e001" width="100" lsb="3"/>
     <mtx name="e001.0" width="100" lsb="49"/>
   </hmtx>
 
@@ -65,10 +65,10 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="0" yMin="0" xMax="100" yMax="100">
+    <TTGlyph name="e000" xMin="3" yMin="3" xMax="97" yMax="97">
       <contour>
-        <pt x="100" y="100" on="1"/>
-        <pt x="0" y="0" on="1"/>
+        <pt x="97" y="97" on="1"/>
+        <pt x="3" y="3" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -300,10 +300,10 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e001" xMin="0" yMin="0" xMax="100" yMax="100">
+    <TTGlyph name="e001" xMin="3" yMin="3" xMax="97" yMax="97">
       <contour>
-        <pt x="100" y="100" on="1"/>
-        <pt x="0" y="0" on="1"/>
+        <pt x="97" y="97" on="1"/>
+        <pt x="3" y="3" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
