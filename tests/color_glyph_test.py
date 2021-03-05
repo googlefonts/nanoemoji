@@ -49,11 +49,11 @@ def _nsvg(filename):
         ("0 0 128 128", 1024, Affine2D(8, 0, 0, -8, 0, 1024)),
         # noto emoji emoji_u26be.svg viewBox. Scale, flip y and translate
         ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, 3400)),
-        # made up example. Scale, translate, flip y
+        # made up example. Scale (preserve aspect), translate, flip y
         (
             "10 11 20 21",
             100,
-            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=152.380952),
+            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-45.238095, f=152.380952),
         ),
     ],
 )

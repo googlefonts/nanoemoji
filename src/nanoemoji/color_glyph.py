@@ -38,41 +38,54 @@ import ufoLib2
 
 
 def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
-    # scale to font upem
-    return (upem / view_box.w, upem / view_box.h)
+    # scale view_box to fit font upem square, preserving aspect ratio
+    x_scale = upem / view_box.w
+    y_scale = upem / view_box.h
 
+    dx, dy = 0, 0
+    aspect_ratio = view_box.w / view_box.h
+    # fit longest and keep non-square view_box centered
+    if aspect_ratio > 1.0:
+        # width > height
+        dy = (upem - x_scale * view_box.h) / 2
+        y_scale = x_scale
+    elif aspect_ratio < 1.0:
+        # height > width
+        dx = (upem - y_scale * view_box.w) / 2
+        x_scale = y_scale
+    assert x_scale == y_scale
 
-def _shift_origin_0_0(
-    view_box: Rect, x_scale: float, y_scale: float
-) -> Tuple[float, float]:
-    # shift so origin is 0,0
-    return (-view_box.x * x_scale, -view_box.y * y_scale)
+    dx -= view_box.x * x_scale
+    dy -= view_box.y * y_scale
+
+    return Affine2D(x_scale, 0, 0, y_scale, dx, dy)
 
 
 def map_viewbox_to_font_emsquare(
     view_box: Rect, upem: int, user_transform: Affine2D
 ) -> Affine2D:
-    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
-    # flip y axis
-    y_scale = -y_scale
-    # shift so things are in the right place
-    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
-    dy = dy + upem
-    affine = Affine2D(x_scale, 0, 0, y_scale, dx, dy)
-    return Affine2D.compose_ltr((affine, user_transform))
+    return Affine2D.compose_ltr(
+        [
+            _scale_viewbox_to_emsquare(view_box, upem),
+            # flip y axis and shift things so that origin is (0, +upem)
+            Affine2D(1, 0, 0, -1, 0, upem),
+            user_transform,
+        ]
+    )
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def map_viewbox_to_otsvg_emsquare(
     view_box: Rect, upem: int, user_transform: Affine2D
 ) -> Affine2D:
-    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
-    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
-
-    # shift so things are in the right place
-    dy = dy - upem
-    affine = Affine2D(x_scale, 0, 0, y_scale, dx, dy)
-    return Affine2D.compose_ltr((affine, user_transform))
+    return Affine2D.compose_ltr(
+        [
+            _scale_viewbox_to_emsquare(view_box, upem),
+            # shift things in the [+x,-y] quadrant where OT-SVG expects them
+            Affine2D(1, 0, 0, 1, 0, -upem),
+            user_transform,
+        ]
+    )
 
 
 def _get_gradient_transform(
