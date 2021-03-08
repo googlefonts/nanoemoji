@@ -42,60 +42,46 @@ def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
         assert ufo.glyphOrder != ttfont.getGlyphOrder()
 
 
-@pytest.mark.parametrize("svgs", [("rect.svg", "one-o-clock.svg")])
 @pytest.mark.parametrize(
     "color_format",
     [
+        "glyf",
         "cff_colr_0",
-        "cff_colr_1",
-        "glyf_colr_0",
         "glyf_colr_1",
         "picosvg",
     ],
 )
-# Default version is 1.000
-def test_default_version(svgs, color_format):
-    config, glyph_inputs = test_helper.color_font_config(
-        {
-            "color_format": color_format,
-        },
-        svgs,
-    )
-    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
-    ttfont = test_helper.reload_font(ttfont)
-
-    assert ufo.info.versionMajor == 1
-    assert ufo.info.versionMinor == 0
-
-
-@pytest.mark.parametrize("svgs", [("rect.svg", "one-o-clock.svg")])
 @pytest.mark.parametrize(
-    "color_format",
+    "version_major, version_minor, expected",
     [
-        "cff_colr_0",
-        "cff_colr_1",
-        "glyf_colr_0",
-        "glyf_colr_1",
-        "picosvg",
+        (None, None, "1.000"),  # default
+        (1, 2, "1.002"),
+        (None, 1, "1.001"),
+        (2, None, "2.000"),
+        (16, 28, "16.028"),
+        (16, 280, "16.280"),
     ],
 )
-@pytest.mark.parametrize("version_major", [16])
-@pytest.mark.parametrize("version_minor", [28])
-# Test version 16.28
-def test_version(svgs, color_format, version_major, version_minor):
+def test_version(color_format, version_major, version_minor, expected):
+    config_overrides = {"color_format": color_format}
+    if version_major is not None:
+        config_overrides["version_major"] = version_major
+    else:
+        version_major = 1
+    if version_minor is not None:
+        config_overrides["version_minor"] = version_minor
+    else:
+        version_minor = 0
+
     config, glyph_inputs = test_helper.color_font_config(
-        {
-            "color_format": color_format,
-            "version_major": version_major,
-            "version_minor": version_minor,
-        },
-        svgs,
+        config_overrides, ("rect.svg", "one-o-clock.svg")
     )
     ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
 
-    assert ufo.info.versionMajor == 16
-    assert ufo.info.versionMinor == 28
+    assert ufo.info.versionMajor == version_major
+    assert ufo.info.versionMinor == version_minor
+    assert ttfont["name"].getDebugName(nameID=5).startswith(f"Version {expected}")
 
 
 # TODO test that width, height are removed from svg
