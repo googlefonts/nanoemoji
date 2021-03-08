@@ -21,7 +21,7 @@ from absl import logging
 from collections import defaultdict
 import csv
 from fontTools import ttLib
-from fontTools.misc.arrayTools import unionRect
+from fontTools.misc.arrayTools import rectArea, unionRect
 from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
@@ -262,17 +262,16 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
 
 
 def _draw_glyph_extents(
-    ufo: ufoLib2.Font, glyph: Glyph, bounds: Optional[Tuple[float, float, float, float]]
+    ufo: ufoLib2.Font, glyph: Glyph, bounds: Tuple[float, float, float, float]
 ):
     # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
     # extents of the base layer to determine where the glyph might paint. If you
     # leave the base blank the COLR glyph never renders.
 
-    start = (0, 0)
-    end = (ufo.info.unitsPerEm, ufo.info.unitsPerEm)
-    if bounds is not None:
-        start = bounds[:2]
-        end = bounds[2:]
+    if rectArea(bounds) == 0:
+        return
+
+    start, end = bounds[:2], bounds[2:]
 
     pen = glyph.getPen()
     pen.moveTo(start)
@@ -416,8 +415,9 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
         ufo_color_layers[color_glyph.glyph_name], bounds = _ufo_colr_layers_and_bounds(
             colr_version, colors, color_glyph, glyph_cache
         )
-        colr_glyph = ufo.get(color_glyph.glyph_name)
-        _draw_glyph_extents(ufo, colr_glyph, bounds)
+        if bounds is not None:
+            colr_glyph = ufo.get(color_glyph.glyph_name)
+            _draw_glyph_extents(ufo, colr_glyph, bounds)
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
 
