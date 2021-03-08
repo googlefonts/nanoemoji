@@ -454,7 +454,6 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
 
 def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
-    print("_generate_color_font", config.transform)
     ufo = _ufo(config)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
     base_gid = len(ufo.glyphOrder)

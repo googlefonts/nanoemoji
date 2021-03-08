@@ -237,7 +237,7 @@ class PaintedLayer(NamedTuple):
         return (self.path, self.reuses)
 
 
-def _paint(debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath):
+def _paint(debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath) -> Paint:
     if shape.fill.startswith("url("):
         el = picosvg.resolve_url(shape.fill, "*")
         try:
