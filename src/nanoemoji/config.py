@@ -20,6 +20,7 @@ except ImportError:
     import importlib_resources as resources
 
 from pathlib import Path
+from picosvg.svg_transform import Affine2D
 import toml
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
@@ -45,10 +46,16 @@ _COLOR_FORMATS = [
     "sbix",
 ]
 
+
 # we use None as a sentinel for flag not set; FontConfig class has the actual defaults.
 # CLI flags override config file (which overrides default FontConfig).
 flags.DEFINE_string("config", None, "Config file")
 flags.DEFINE_integer("upem", None, "Units per em.")
+flags.DEFINE_integer("width", None, "Width.")
+flags.DEFINE_integer("ascent", None, "Ascender")
+flags.DEFINE_integer("descent", None, "Descender.")
+flags.DEFINE_string("transform", None, "User transform, in font coordinates.")
+
 flags.DEFINE_string("family", None, "Family name.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 flags.DEFINE_enum(
@@ -104,6 +111,10 @@ class FontConfig(NamedTuple):
     output_file: str = "AnEmojiFamily.ttf"
     color_format: str = "glyf_colr_1"
     upem: int = 1024
+    width: int = 1024
+    ascent: int = 950  # default based on Noto Emoji
+    descent: int = -250  # default based on Noto Emoji
+    transform: Affine2D = Affine2D.identity()
     reuse_tolerance: float = 0.1
     ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
@@ -130,6 +141,10 @@ def write(dest: Path, config: FontConfig):
         "output_file": config.output_file,
         "color_format": config.color_format,
         "upem": config.upem,
+        "width": config.width,
+        "ascent": config.ascent,
+        "descent": config.descent,
+        "transform": config.transform.tostring(),
         "reuse_tolerance": config.reuse_tolerance,
         "ignore_reuse_error": config.ignore_reuse_error,
         "keep_glyph_names": config.keep_glyph_names,
@@ -203,6 +218,13 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
     output_file = _pop_flag(config, "output_file")
     color_format = _pop_flag(config, "color_format")
     upem = int(_pop_flag(config, "upem"))
+    width = int(_pop_flag(config, "width"))
+    ascent = int(_pop_flag(config, "ascent"))
+    descent = int(_pop_flag(config, "descent"))
+    transform = _pop_flag(config, "transform")
+    if not isinstance(transform, Affine2D):
+        assert isinstance(transform, str)
+        transform = Affine2D.fromstring(transform)
     reuse_tolerance = float(_pop_flag(config, "reuse_tolerance"))
     ignore_reuse_error = _pop_flag(config, "ignore_reuse_error")
     keep_glyph_names = _pop_flag(config, "keep_glyph_names")
@@ -271,6 +293,10 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         output_file=output_file,
         color_format=color_format,
         upem=upem,
+        width=width,
+        ascent=ascent,
+        descent=descent,
+        transform=transform,
         reuse_tolerance=reuse_tolerance,
         ignore_reuse_error=ignore_reuse_error,
         keep_glyph_names=keep_glyph_names,

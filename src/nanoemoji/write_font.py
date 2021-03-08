@@ -138,22 +138,24 @@ _COLOR_FORMAT_GENERATORS = {
 assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 
 
-def _ufo(family: str, upem: int, keep_glyph_names: bool = False) -> ufoLib2.Font:
+def _ufo(config: FontConfig) -> ufoLib2.Font:
     ufo = ufoLib2.Font()
-    ufo.info.familyName = family
+    ufo.info.familyName = config.family
     # set various font metadata; see the full list of fontinfo attributes at
-    # http://unifiedfontobject.org/versions/ufo3/fontinfo.plist/
-    ufo.info.unitsPerEm = upem
+    # https://unifiedfontobject.org/versions/ufo3/fontinfo.plist/#generic-dimension-information
+    ufo.info.ascender = config.ascent
+    ufo.info.descender = config.descent
+    ufo.info.unitsPerEm = config.upem
 
     # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
     ufo.newGlyph(".notdef")
     space = ufo.newGlyph(".space")
     space.unicodes = [0x0020]
-    space.width = upem
+    space.width = config.width
     ufo.glyphOrder = [".notdef", ".space"]
 
     # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
-    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep_glyph_names
+    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = config.keep_glyph_names
 
     return ufo
 
@@ -215,7 +217,7 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
 
     glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{color_glyph.glyph_name}.{i}"))
     glyph_names = [glyph.name]
-    glyph.width = ufo.info.unitsPerEm
+    glyph.width = ufo.get(color_glyph.glyph_name).width
 
     svg_units_to_font_units = color_glyph.transform_for_font_space()
 
@@ -267,6 +269,11 @@ def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
     pen = glyph.getPen()
     pen.moveTo((0, 0))
     pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
+
+    # TEMPORARY; uncomment to draw outside basic extents. @anthrotype has a PR in flight to fix properly.
+    # pen.moveTo((-0.5 * ufo.info.unitsPerEm, -0.5 * ufo.info.unitsPerEm))
+    # pen.lineTo((2 * ufo.info.unitsPerEm, 2 * ufo.info.unitsPerEm))
+
     pen.endPath()
 
     return glyph
@@ -440,19 +447,12 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
 
 def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
-    ufo = _ufo(config.family, config.upem, config.keep_glyph_names)
+    print("_generate_color_font", config.transform)
+    ufo = _ufo(config)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
-
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
-        ColorGlyph.create(
-            config,
-            ufo,
-            filename,
-            base_gid + idx,
-            codepoints,
-            svg,
-        )
+        ColorGlyph.create(config, ufo, filename, base_gid + idx, codepoints, svg)
         for idx, (filename, codepoints, svg) in enumerate(inputs)
     ]
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
