@@ -279,7 +279,6 @@ def _round_gradient_coordinates(paint, prec=6):
         ),
     ],
 )
-@pytest.mark.usefixtures("absl_flags")
 def test_paint_from_shape(svg_in, expected_paints):
     config = FontConfig(upem=1000)
     color_glyph = ColorGlyph.create(

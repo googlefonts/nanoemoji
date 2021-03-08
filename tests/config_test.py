@@ -28,7 +28,6 @@ from typing import Iterable
         "minimal_static/config.toml",
     ],
 )
-@pytest.mark.usefixtures("absl_flags")
 def test_read_write_config(config_file):
     tmp_dir = Path(tempfile.mkdtemp())
     if config_file:

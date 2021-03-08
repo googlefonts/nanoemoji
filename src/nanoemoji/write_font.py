@@ -21,6 +21,7 @@ from absl import logging
 from collections import defaultdict
 import csv
 from fontTools import ttLib
+from fontTools.misc.arrayTools import rectArea, unionRect
 from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
@@ -55,6 +56,7 @@ from typing import (
     Iterable,
     Mapping,
     NamedTuple,
+    Optional,
     Sequence,
     Tuple,
 )
@@ -262,21 +264,21 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
     return glyph
 
 
-def _draw_glyph_extents(ufo: ufoLib2.Font, glyph: Glyph):
+def _draw_glyph_extents(
+    ufo: ufoLib2.Font, glyph: Glyph, bounds: Tuple[float, float, float, float]
+):
     # apparently on Mac (but not Linux) Chrome and Firefox end up relying on the
     # extents of the base layer to determine where the glyph might paint. If you
     # leave the base blank the COLR glyph never renders.
 
-    # TODO we could narrow this to bbox to cover all layers
+    if rectArea(bounds) == 0:
+        return
+
+    start, end = bounds[:2], bounds[2:]
 
     pen = glyph.getPen()
-    pen.moveTo((0, 0))
-    pen.lineTo((ufo.info.unitsPerEm, ufo.info.unitsPerEm))
-
-    # TEMPORARY; uncomment to draw outside basic extents. @anthrotype has a PR in flight to fix properly.
-    # pen.moveTo((-0.5 * ufo.info.unitsPerEm, -0.5 * ufo.info.unitsPerEm))
-    # pen.lineTo((2 * ufo.info.unitsPerEm, 2 * ufo.info.unitsPerEm))
-
+    pen.moveTo(start)
+    pen.lineTo(end)
     pen.endPath()
 
     return glyph
@@ -347,17 +349,14 @@ def _inter_glyph_reuse_key(painted_layer: PaintedLayer) -> PaintedLayer:
     return painted_layer._replace(paint=PaintSolid())
 
 
-def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
+def _ufo_colr_layers_and_bounds(colr_version, colors, color_glyph, glyph_cache):
     # The value for a COLOR_LAYERS_KEY entry per
     # https://github.com/googlefonts/ufo2ft/pull/359
     colr_layers = []
 
+    bounds = None
     # accumulate layers in z-order
-    layer_idx = 0
-    while layer_idx < len(color_glyph.painted_layers):
-        painted_layer = color_glyph.painted_layers[layer_idx]
-        layer_idx += 1
-
+    for painted_layer in color_glyph.painted_layers:
         # if we've seen this shape before reuse it
         glyph_cache_key = _inter_glyph_reuse_key(painted_layer)
         if glyph_cache_key not in glyph_cache:
@@ -365,6 +364,13 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
             glyph_cache[glyph_cache_key] = glyph
         else:
             glyph = glyph_cache[glyph_cache_key]
+
+        glyph_bbox = glyph.getControlBounds(color_glyph.ufo)
+        if glyph_bbox is not None:
+            if bounds is None:
+                bounds = glyph_bbox
+            else:
+                bounds = unionRect(bounds, glyph_bbox)
 
         layer = _colr_layer(colr_version, glyph.name, painted_layer.paint, colors)
 
@@ -376,7 +382,7 @@ def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
             "Layers": colr_layers,
         }
 
-    return colr_layers
+    return colr_layers, bounds
 
 
 def _colr_ufo(colr_version, ufo, color_glyphs):
@@ -409,11 +415,12 @@ def _colr_ufo(colr_version, ufo, color_glyphs):
             color_glyph.transform_for_font_space(),
         )
 
-        ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
+        ufo_color_layers[color_glyph.glyph_name], bounds = _ufo_colr_layers_and_bounds(
             colr_version, colors, color_glyph, glyph_cache
         )
-        colr_glyph = ufo.get(color_glyph.glyph_name)
-        _draw_glyph_extents(ufo, colr_glyph)
+        if bounds is not None:
+            colr_glyph = ufo.get(color_glyph.glyph_name)
+            _draw_glyph_extents(ufo, colr_glyph, bounds)
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
 
@@ -450,7 +457,6 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
 
 def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
-    print("_generate_color_font", config.transform)
     ufo = _ufo(config)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
     base_gid = len(ufo.glyphOrder)

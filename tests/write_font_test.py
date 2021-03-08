@@ -26,7 +26,6 @@ import test_helper
     "color_format", ["glyf_colr_0", "glyf_colr_1", "picosvg", "untouchedsvg"]
 )
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
-@pytest.mark.usefixtures("absl_flags")
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
     config, glyph_inputs = test_helper.color_font_config(
         {"color_format": color_format, "keep_glyph_names": keep_glyph_names}, svgs
@@ -195,7 +194,6 @@ def test_version(svgs, color_format, version_major, version_minor):
         ),
     ],
 )
-@pytest.mark.usefixtures("absl_flags")
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
     config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
@@ -205,3 +203,50 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
     # SVG should not have identical paths or gradients
     # in both cases this should be true when normalized to start from 0,0
     test_helper.assert_expected_ttx(svgs, ttfont, expected_ttx)
+
+
+@pytest.mark.parametrize(
+    "svgs, config_overrides, expected",
+    [
+        (
+            ("one_rect.svg",),
+            {},
+            # original rect's (xMin, yMin, xMax, yMax) with no user-transform
+            (20, 60, 80, 80),
+        ),
+        (
+            ("one_rect.svg",),
+            # rotate 90 degrees clockwise around (20, 60)
+            {"transform": Affine2D.fromstring("rotate(-90, 20, 60)")},
+            (20, 0, 40, 60),
+        ),
+        (
+            ("one_rect.svg",),
+            # flatten so that bounds area == 0
+            {"transform": Affine2D.fromstring("matrix(0 0 0 1 0 0)")},
+            None,
+        ),
+        (
+            # SVG contains no paths, UFO glyph empty: bounds are None
+            ("empty.svg",),
+            {},
+            None,
+        ),
+    ],
+)
+def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
+    config_overrides = {"output": "ufo", **config_overrides}
+    config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
+    ufo, _ = write_font._generate_color_font(config, glyph_inputs)
+
+    base_glyph = ufo["e000"]
+    bounds = base_glyph.getControlBounds(ufo)
+
+    if expected is not None:
+        assert bounds == pytest.approx(expected)
+        # 1 contour with 2 points
+        assert len(base_glyph) == 1
+        assert len(base_glyph[0]) == 2
+    else:
+        assert bounds is None
+        assert len(base_glyph) == 0

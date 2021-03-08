@@ -16,6 +16,6 @@ from absl import flags
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def absl_flags():
     flags.FLAGS(["unittest"])

@@ -72,14 +72,12 @@ def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
 
 # Drop content outside viewbox
 # https://github.com/googlefonts/nanoemoji/issues/200
-@pytest.mark.usefixtures("absl_flags")
 def test_build_static_font_clipped():
     _build_and_check_ttx({}, ("emoji_u25fd.svg",), "outside_viewbox_clipped_colr_1.ttx")
 
 
 # Retain content outside viewbox
 # https://github.com/googlefonts/nanoemoji/issues/200
-@pytest.mark.usefixtures("absl_flags")
 def test_build_static_font_unclipped():
     _build_and_check_ttx(
         {"clip_to_viewbox": False},
