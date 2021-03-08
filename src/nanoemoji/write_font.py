@@ -146,6 +146,9 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     ufo.info.ascender = config.ascent
     ufo.info.descender = config.descent
     ufo.info.unitsPerEm = config.upem
+    # version
+    ufo.info.versionMajor = config.version_major
+    ufo.info.versionMinor = config.version_minor
 
     # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
     ufo.newGlyph(".notdef")
