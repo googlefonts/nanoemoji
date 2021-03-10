@@ -43,14 +43,22 @@ def _nsvg(filename):
 
 
 @pytest.mark.parametrize(
-    "view_box, upem, width, ascender, descender, expected_transform",
+    "view_box, upem, width, ascender, descender, expected_transform, expected_width",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, 1024, 1024, 0, Affine2D(1, 0, 0, -1, 0, 1024)),
+        ("0 0 1024 1024", 1024, 1024, 1024, 0, Affine2D(1, 0, 0, -1, 0, 1024), 1024),
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 0, 1024)),
+        ("0 0 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 0, 1024), 1024),
         # noto emoji emoji_u26be.svg viewBox. Scale, flip y and translate
-        ("-151 297 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 1208, 3400)),
+        (
+            "-151 297 128 128",
+            1024,
+            1024,
+            1024,
+            0,
+            Affine2D(8, 0, 0, -8, 1208, 3400),
+            1024,
+        ),
         # made up example. Scale, translate, flip y
         (
             "10 11 20 21",
@@ -58,7 +66,8 @@ def _nsvg(filename):
             100,
             100,
             0,
-            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-45.238095, f=152.380952),
+            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-47.738095, f=152.380952),
+            95,
         ),
         # noto emoji width, ascender, descender
         (
@@ -68,10 +77,33 @@ def _nsvg(filename):
             950,
             -250,
             Affine2D(1.171875, 0, 0, -1.171875, 37.5, 950),
+            1275,
+        ),
+        # viewbox wider than tall
+        (
+            "0 0 20 10",
+            100,
+            100,
+            100,
+            0,
+            Affine2D(a=10, b=0, c=0, d=-10, e=0, f=100),
+            200,
+        ),
+        # viewbox taller than wide
+        (
+            "0 0 10 20",
+            100,
+            100,
+            100,
+            0,
+            Affine2D(a=5, b=0, c=0, d=-5, e=0, f=100),
+            50,
         ),
     ],
 )
-def test_transform(view_box, upem, width, ascender, descender, expected_transform):
+def test_transform_and_width(
+    view_box, upem, width, ascender, descender, expected_transform, expected_width
+):
     svg_str = (
         '<svg version="1.1"'
         ' xmlns="http://www.w3.org/2000/svg"'
@@ -79,11 +111,13 @@ def test_transform(view_box, upem, width, ascender, descender, expected_transfor
         "/>"
     )
     config = FontConfig(upem=upem, width=width, ascent=ascender, descent=descender)
+    ufo = _ufo(config)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config), "duck", 1, [0x0042], SVG.fromstring(svg_str)
+        config, ufo, "duck", 1, [0x0042], SVG.fromstring(svg_str)
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
+    assert ufo[color_glyph.glyph_name].width == expected_width
 
 
 def _round_gradient_coordinates(paint, prec=6):

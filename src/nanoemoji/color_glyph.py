@@ -339,7 +339,13 @@ class ColorGlyph(NamedTuple):
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
         glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
-        base_glyph.width = font_config.width
+
+        # non-square aspect ratio == proportional width; square == monospace
+        view_box = svg.view_box()
+        if view_box is not None:
+            base_glyph.width = round(font_config.width * view_box.w / view_box.h)
+        else:
+            base_glyph.width = font_config.width
 
         # Setup direct access to the glyph if possible
         if len(codepoints) == 1:
