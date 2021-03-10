@@ -47,11 +47,9 @@ setup(
         ],
     },
     python_requires=">=3.6",
-
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18
     package_data={"picosvg": ["py.typed"]},
-
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",

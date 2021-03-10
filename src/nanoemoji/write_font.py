@@ -152,6 +152,11 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     ufo.info.versionMajor = config.version_major
     ufo.info.versionMinor = config.version_minor
 
+    # Set OS/2 sTypoLineGap, make it equal to hhea lineGap
+    # https://docs.microsoft.com/en-us/typography/opentype/spec/os2#stypolinegap
+    # The default line gap is OS/2.sTypoAscender - OS/2.sTypoDescender + OS/2.sTypoLineGap
+    ufo.info.openTypeOS2TypoLineGap = 0
+
     # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
     ufo.newGlyph(".notdef")
     space = ufo.newGlyph(".space")
