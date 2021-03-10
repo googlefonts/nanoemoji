@@ -112,7 +112,7 @@ class FontConfig(NamedTuple):
     output_file: str = "AnEmojiFamily.ttf"
     color_format: str = "glyf_colr_1"
     upem: int = 1024
-    width: int = 1024
+    width: int = 1275  # default based on Noto Emoji
     ascent: int = 950  # default based on Noto Emoji
     descent: int = -250  # default based on Noto Emoji
     transform: Affine2D = Affine2D.identity()
