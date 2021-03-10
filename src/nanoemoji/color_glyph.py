@@ -37,52 +37,58 @@ from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
 
 
-def _scale_viewbox_to_emsquare(view_box: Rect, upem: int) -> Tuple[float, float]:
-    # scale to font upem
-    return (upem / view_box.w, upem / view_box.h)
+def _scale_viewbox_to_font_metrics(
+    view_box: Rect, ascender: int, descender: int, width: int
+):
+    # scale height to (ascender - descender)
+    scale = (ascender - descender) / view_box.h
+    # shift so width is centered
+    dx = (width - scale * view_box.w) / 2
+    return Affine2D.compose_ltr(
+        (
+            # first normalize viewbox origin
+            Affine2D(1, 0, 0, 1, -view_box.x, -view_box.y),
+            Affine2D(scale, 0, 0, scale, dx, 0),
+        )
+    )
 
 
-def _shift_origin_0_0(
-    view_box: Rect, x_scale: float, y_scale: float
-) -> Tuple[float, float]:
-    # shift so origin is 0,0
-    return (-view_box.x * x_scale, -view_box.y * y_scale)
-
-
-def map_viewbox_to_font_emsquare(
-    view_box: Rect, upem: int, user_transform: Affine2D
+def map_viewbox_to_font_space(
+    view_box: Rect, ascender: int, descender: int, width: int, user_transform: Affine2D
 ) -> Affine2D:
-    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
-    # flip y axis
-    y_scale = -y_scale
-    # shift so things are in the right place
-    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
-    dy = dy + upem
-    affine = Affine2D(x_scale, 0, 0, y_scale, dx, dy)
-    return Affine2D.compose_ltr((affine, user_transform))
+    return Affine2D.compose_ltr(
+        [
+            _scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
+            # flip y axis and shift so things are in the right place
+            Affine2D(1, 0, 0, -1, 0, ascender),
+            user_transform,
+        ]
+    )
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
-def map_viewbox_to_otsvg_emsquare(
-    view_box: Rect, upem: int, user_transform: Affine2D
+def map_viewbox_to_otsvg_space(
+    view_box: Rect, ascender: int, descender: int, width: int, user_transform: Affine2D
 ) -> Affine2D:
-    x_scale, y_scale = _scale_viewbox_to_emsquare(view_box, upem)
-    dx, dy = _shift_origin_0_0(view_box, x_scale, y_scale)
-
-    # shift so things are in the right place
-    dy = dy - upem
-    affine = Affine2D(x_scale, 0, 0, y_scale, dx, dy)
-    return Affine2D.compose_ltr((affine, user_transform))
+    return Affine2D.compose_ltr(
+        [
+            _scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
+            # shift things in the [+x,-y] quadrant where OT-SVG expects them
+            Affine2D(1, 0, 0, 1, 0, -ascender),
+            user_transform,
+        ]
+    )
 
 
 def _get_gradient_transform(
-    upem: int,
-    user_transform: Affine2D,
+    config: FontConfig,
     grad_el: etree.Element,
     shape_bbox: Rect,
     view_box: Rect,
 ) -> Affine2D:
-    transform = map_viewbox_to_font_emsquare(view_box, upem, user_transform)
+    transform = map_viewbox_to_font_space(
+        view_box, config.ascent, config.descent, config.width, config.transform
+    )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
     if gradient_units == "objectBoundingBox":
@@ -112,9 +118,7 @@ def _parse_linear_gradient(
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
     p2 = p0 + (p1 - p0).perpendicular()
 
-    transform = _get_gradient_transform(
-        config.upem, config.transform, grad_el, shape_bbox, view_box
-    )
+    transform = _get_gradient_transform(config, grad_el, shape_bbox, view_box)
 
     p0 = transform.map_point(p0)
     p1 = transform.map_point(p1)
@@ -140,7 +144,9 @@ def _parse_radial_gradient(
     c1 = Point(gradient.cx, gradient.cy)
     r1 = gradient.r
 
-    transform = map_viewbox_to_font_emsquare(view_box, config.upem, config.transform)
+    transform = map_viewbox_to_font_space(
+        view_box, config.ascent, config.descent, config.width, config.transform
+    )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
     if gradient_units == "objectBoundingBox":
@@ -150,7 +156,7 @@ def _parse_radial_gradient(
 
     assert transform[1:3] == (0, 0), (
         f"{transform} contains unexpected skew/rotation:"
-        " upem, view_box, shape_bbox are all rectangles"
+        " (ascender-descender), view_box, shape_bbox are all rectangles"
     )
 
     # if viewBox is not square or if gradientUnits="objectBoundingBox" and the bbox
@@ -373,16 +379,24 @@ class ColorGlyph(NamedTuple):
         """Creates a Transform to map SVG coords to font coords"""
         if not self._has_viewbox_for_transform():
             return Affine2D.identity()
-        return map_viewbox_to_font_emsquare(
-            self.svg.view_box(), self.ufo.info.unitsPerEm, self.user_transform
+        return map_viewbox_to_font_space(
+            self.svg.view_box(),
+            self.ufo.info.ascender,
+            self.ufo.info.descender,
+            self.ufo[self.glyph_name].width,
+            self.user_transform,
         )
 
     def transform_for_otsvg_space(self):
         """Creates a Transform to map SVG coords OT-SVG coords"""
         if not self._has_viewbox_for_transform():
             return Affine2D.identity()
-        return map_viewbox_to_otsvg_emsquare(
-            self.svg.view_box(), self.ufo.info.unitsPerEm, self.user_transform
+        return map_viewbox_to_otsvg_space(
+            self.svg.view_box(),
+            self.ufo.info.ascender,
+            self.ufo.info.descender,
+            self.ufo[self.glyph_name].width,
+            self.user_transform,
         )
 
     def paints(self):

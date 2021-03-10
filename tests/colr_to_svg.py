@@ -49,11 +49,11 @@ from fontTools.ttLib.tables import otTables
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
 
 
-def _map_font_emsquare_to_viewbox(
-    view_box: Rect, upem: int, user_transform: Affine2D
+def _map_font_space_to_viewbox(
+    view_box: Rect, ascender: int, descender: int, width: int
 ) -> Affine2D:
-    return color_glyph.map_viewbox_to_font_emsquare(
-        view_box, upem, user_transform
+    return color_glyph.map_viewbox_to_font_space(
+        view_box, ascender, descender, width, Affine2D.identity()
     ).inverse()
 
 
@@ -71,12 +71,12 @@ def _draw_svg_path(
     svg_path: etree.Element,
     glyph_set: ttLib.ttFont._TTGlyphSet,
     glyph_name: str,
-    upem_to_vbox: Affine2D,
+    font_to_vbox: Affine2D,
 ):
     # use glyph set to resolve references in composite glyphs
     svg_pen = SVGPathPen(glyph_set)
     # wrap svg pen with "filter" pen mapping coordinates from UPEM to SVG space
-    transform_pen = transformPen.TransformPen(svg_pen, upem_to_vbox)
+    transform_pen = transformPen.TransformPen(svg_pen, font_to_vbox)
 
     glyph = glyph_set[glyph_name]
     glyph.draw(transform_pen)
@@ -140,17 +140,17 @@ def _apply_gradient_ot_paint(
     svg_defs: etree.Element,
     svg_path: etree.Element,
     ttfont: ttLib.TTFont,
-    upem_to_vbox: Affine2D,
+    font_to_vbox: Affine2D,
     ot_paint: otTables.Paint,
     transform: Affine2D = Affine2D.identity(),
 ):
     paint = _gradient_paint(ttfont, ot_paint)
     # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
-    paint = _map_gradient_coordinates(paint, upem_to_vbox)
+    paint = _map_gradient_coordinates(paint, font_to_vbox)
     # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
     if transform != Affine2D.identity():
         transform = Affine2D.product(
-            upem_to_vbox.inverse(), Affine2D.product(transform, upem_to_vbox)
+            font_to_vbox.inverse(), Affine2D.product(transform, font_to_vbox)
         )
     _apply_gradient_paint(svg_defs, svg_path, paint, transform=transform)
 
@@ -162,15 +162,16 @@ def _colr_v0_glyph_to_svg(
     glyph_name: str,
 ) -> etree.Element:
     svg_root = _svg_root(view_box)
-    upem_to_vbox = _map_font_emsquare_to_viewbox(
-        view_box, ttfont["head"].unitsPerEm, Affine2D.identity()
-    )
+    ascender = ttfont["OS/2"].sTypoAscender
+    descender = ttfont["OS/2"].sTypoDescender
+    width = ttfont["hmtx"][glyph_name][0]
+    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
 
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
         svg_path = etree.SubElement(svg_root, "path")
         paint = PaintSolid(_color(ttfont, glyph_layer.colorID))
         _apply_solid_paint(svg_path, paint)
-        _draw_svg_path(svg_path, glyph_set, glyph_layer.name, upem_to_vbox)
+        _draw_svg_path(svg_path, glyph_set, glyph_layer.name, font_to_vbox)
 
     return svg_root
 
@@ -179,7 +180,7 @@ def _colr_v1_paint_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: Mapping[str, Any],
     svg_root: etree.Element,
-    upem_to_vbox: Affine2D,
+    font_to_vbox: Affine2D,
     ot_paint: otTables.Paint,
     svg_path: Optional[etree.Element] = None,
     transform: Affine2D = Affine2D.identity(),
@@ -191,7 +192,7 @@ def _colr_v1_paint_to_svg(
         assert svg_path is not None
         svg_defs = svg_root[0]
         _apply_gradient_ot_paint(
-            svg_defs, svg_path, ttfont, upem_to_vbox, ot_paint, transform
+            svg_defs, svg_path, ttfont, font_to_vbox, ot_paint, transform
         )
     elif ot_paint.Format == PaintGlyph.format:
         assert svg_path is None, "recursive PaintGlyph is unsupported"
@@ -204,12 +205,12 @@ def _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,
             svg_root,
-            upem_to_vbox,
+            font_to_vbox,
             ot_paint.Paint,
             svg_path,
         )
 
-        _draw_svg_path(svg_path, glyph_set, layer_glyph, upem_to_vbox)
+        _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
     elif ot_paint.Format == PaintTransform.format:
         transform = Affine2D.product(
             (
@@ -230,7 +231,7 @@ def _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,
             svg_root,
-            upem_to_vbox,
+            font_to_vbox,
             ot_paint.Paint,
             svg_path,
             transform=transform,
@@ -245,7 +246,7 @@ def _colr_v1_paint_to_svg(
                 ttfont,
                 glyph_set,
                 svg_root,
-                upem_to_vbox,
+                font_to_vbox,
                 child_paint,
                 svg_path,
                 transform=transform,
@@ -262,10 +263,11 @@ def _colr_v1_glyph_to_svg(
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
-    upem_to_vbox = _map_font_emsquare_to_viewbox(
-        view_box, ttfont["head"].unitsPerEm, Affine2D.identity()
-    )
-    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, upem_to_vbox, glyph.Paint)
+    ascender = ttfont["OS/2"].sTypoAscender
+    descender = ttfont["OS/2"].sTypoDescender
+    width = ttfont["hmtx"][glyph.BaseGlyph][0]
+    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, font_to_vbox, glyph.Paint)
     return svg_root
 
 

@@ -26,9 +26,11 @@ import ufoLib2
 # TODO test _glyph_name obeys codepoint order
 
 
-def _ufo(upem):
+def _ufo(config):
     ufo = ufoLib2.Font()
-    ufo.info.unitsPerEm = upem
+    ufo.info.unitsPerEm = config.upem
+    ufo.info.ascender = config.ascent
+    ufo.info.descender = config.descent
     return ufo
 
 
@@ -41,32 +43,44 @@ def _nsvg(filename):
 
 
 @pytest.mark.parametrize(
-    "view_box, upem, expected_transform",
+    "view_box, upem, width, ascender, descender, expected_transform",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, Affine2D(1, 0, 0, -1, 0, 1024)),
+        ("0 0 1024 1024", 1024, 1024, 1024, 0, Affine2D(1, 0, 0, -1, 0, 1024)),
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, Affine2D(8, 0, 0, -8, 0, 1024)),
+        ("0 0 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 0, 1024)),
         # noto emoji emoji_u26be.svg viewBox. Scale, flip y and translate
-        ("-151 297 128 128", 1024, Affine2D(8, 0, 0, -8, 1208, 3400)),
+        ("-151 297 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 1208, 3400)),
         # made up example. Scale, translate, flip y
         (
             "10 11 20 21",
             100,
-            Affine2D(a=5.0, b=0, c=0, d=-4.761905, e=-50.0, f=152.380952),
+            100,
+            100,
+            0,
+            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-45.238095, f=152.380952),
+        ),
+        # noto emoji width, ascender, descender
+        (
+            "0 0 1024 1024",
+            1024,
+            1275,
+            950,
+            -250,
+            Affine2D(1.171875, 0, 0, -1.171875, 37.5, 950),
         ),
     ],
 )
-def test_transform(view_box, upem, expected_transform):
+def test_transform(view_box, upem, width, ascender, descender, expected_transform):
     svg_str = (
         '<svg version="1.1"'
         ' xmlns="http://www.w3.org/2000/svg"'
         f' viewBox="{view_box}"'
         "/>"
     )
-    config = FontConfig(upem=upem)
+    config = FontConfig(upem=upem, width=width, ascent=ascender, descent=descender)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config.upem), "duck", 1, [0x0042], SVG.fromstring(svg_str)
+        config, _ufo(config), "duck", 1, [0x0042], SVG.fromstring(svg_str)
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
@@ -280,9 +294,9 @@ def _round_gradient_coordinates(paint, prec=6):
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
-    config = FontConfig(upem=1000)
+    config = FontConfig(upem=1000, ascent=1000, descent=0, width=1000)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config.upem), "duck", 1, [0x0042], _nsvg(svg_in)
+        config, _ufo(config), "duck", 1, [0x0042], _nsvg(svg_in)
     )
     assert {
         _round_gradient_coordinates(paint) for paint in color_glyph.paints()

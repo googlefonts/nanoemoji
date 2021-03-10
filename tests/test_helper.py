@@ -57,6 +57,8 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
         ._replace(
             family="UnitTest",
             upem=100,
+            ascent=100,
+            descent=0,
             width=100,
             keep_glyph_names=True,
             fea_file=fea_file,
