@@ -86,9 +86,10 @@ def _get_gradient_transform(
     grad_el: etree.Element,
     shape_bbox: Rect,
     view_box: Rect,
+    glyph_width: int,
 ) -> Affine2D:
     transform = map_viewbox_to_font_space(
-        view_box, config.ascent, config.descent, config.width, config.transform
+        view_box, config.ascent, config.descent, glyph_width, config.transform
     )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
@@ -109,6 +110,7 @@ def _parse_linear_gradient(
     grad_el: etree.Element,
     shape_bbox: Rect,
     view_box: Rect,
+    glyph_width: int,
     shape_opacity: float = 1.0,
 ):
     gradient = SVGLinearGradient.from_element(grad_el, view_box)
@@ -119,7 +121,9 @@ def _parse_linear_gradient(
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
     p2 = p0 + (p1 - p0).perpendicular()
 
-    transform = _get_gradient_transform(config, grad_el, shape_bbox, view_box)
+    transform = _get_gradient_transform(
+        config, grad_el, shape_bbox, view_box, glyph_width
+    )
 
     p0 = transform.map_point(p0)
     p1 = transform.map_point(p1)
@@ -136,6 +140,7 @@ def _parse_radial_gradient(
     grad_el: etree.Element,
     shape_bbox: Rect,
     view_box: Rect,
+    glyph_width: int,
     shape_opacity: float = 1.0,
 ):
     gradient = SVGRadialGradient.from_element(grad_el, view_box)
@@ -146,7 +151,7 @@ def _parse_radial_gradient(
     r1 = gradient.r
 
     transform = map_viewbox_to_font_space(
-        view_box, config.ascent, config.descent, config.width, config.transform
+        view_box, config.ascent, config.descent, glyph_width, config.transform
     )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
@@ -244,7 +249,9 @@ class PaintedLayer(NamedTuple):
         return (self.path, self.reuses)
 
 
-def _paint(debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath) -> Paint:
+def _paint(
+    debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath, glyph_width: int
+) -> Paint:
     if shape.fill.startswith("url("):
         el = picosvg.resolve_url(shape.fill, "*")
         try:
@@ -253,6 +260,7 @@ def _paint(debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath) ->
                 el,
                 shape.bounding_box(),
                 picosvg.view_box(),
+                glyph_width,
                 shape.opacity,
             )
         except ValueError as e:
@@ -264,12 +272,12 @@ def _paint(debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath) ->
 
 
 def _in_glyph_reuse_key(
-    debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath
+    debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath, glyph_width: int
 ) -> Tuple[Paint, SVGPath]:
     """Within a glyph reuse shapes only when painted consistently.
     paint+normalized shape ensures this."""
     return (
-        _paint(debug_hint, config, picosvg, shape),
+        _paint(debug_hint, config, picosvg, shape, glyph_width),
         normalize(shape, config.reuse_tolerance),
     )
 
@@ -278,18 +286,21 @@ def _painted_layers(
     debug_hint: str,
     config: FontConfig,
     picosvg: SVG,
+    glyph_width: int,
 ) -> Generator[PaintedLayer, None, None]:
     if config.reuse_tolerance < 0:
         # shape reuse disabled
         for path in picosvg.shapes():
-            yield PaintedLayer(_paint(debug_hint, config, picosvg, path), path.d)
+            yield PaintedLayer(
+                _paint(debug_hint, config, picosvg, path, glyph_width), path.d
+            )
         return
 
     # Don't sort; we only want to find groups that are consecutive in the picosvg
     # to ensure we don't mess up layer order
     for (paint, normalized), paths in groupby(
         picosvg.shapes(),
-        key=lambda s: _in_glyph_reuse_key(debug_hint, config, picosvg, s),
+        key=lambda s: _in_glyph_reuse_key(debug_hint, config, picosvg, s, glyph_width),
     ):
         paths = list(paths)
         transforms = ()
@@ -360,6 +371,7 @@ class ColorGlyph(NamedTuple):
                     filename,
                     font_config,
                     svg,
+                    base_glyph.width,
                 )
             )
 
