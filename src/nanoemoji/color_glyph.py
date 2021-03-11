@@ -40,6 +40,7 @@ import ufoLib2
 def _scale_viewbox_to_font_metrics(
     view_box: Rect, ascender: int, descender: int, width: int
 ):
+    assert descender <= 0
     # scale height to (ascender - descender)
     scale = (ascender - descender) / view_box.h
     # shift so width is centered
@@ -381,11 +382,10 @@ class ColorGlyph(NamedTuple):
             )
         return view_box is not None
 
-    def transform_for_font_space(self):
-        """Creates a Transform to map SVG coords to font coords"""
+    def _transform(self, map_fn):
         if not self._has_viewbox_for_transform():
             return Affine2D.identity()
-        return map_viewbox_to_font_space(
+        return map_fn(
             self.svg.view_box(),
             self.ufo.info.ascender,
             self.ufo.info.descender,
@@ -394,16 +394,10 @@ class ColorGlyph(NamedTuple):
         )
 
     def transform_for_otsvg_space(self):
-        """Creates a Transform to map SVG coords OT-SVG coords"""
-        if not self._has_viewbox_for_transform():
-            return Affine2D.identity()
-        return map_viewbox_to_otsvg_space(
-            self.svg.view_box(),
-            self.ufo.info.ascender,
-            self.ufo.info.descender,
-            self.ufo[self.glyph_name].width,
-            self.user_transform,
-        )
+        return self._transform(map_viewbox_to_otsvg_space)
+
+    def transform_for_font_space(self):
+        return self._transform(map_viewbox_to_font_space)
 
     def paints(self):
         """Set of Paint used by this glyph."""

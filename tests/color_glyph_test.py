@@ -79,7 +79,7 @@ def _nsvg(filename):
             Affine2D(1.171875, 0, 0, -1.171875, 37.5, 950),
             1275,
         ),
-        # viewbox wider than tall
+        # wider than tall: uniformly scale by height and stretch advance width to fit
         (
             "0 0 20 10",
             100,
@@ -89,7 +89,7 @@ def _nsvg(filename):
             Affine2D(a=10, b=0, c=0, d=-10, e=0, f=100),
             200,
         ),
-        # viewbox taller than wide
+        # taller than wide: uniformly scale by height and shrink advance width to fit
         (
             "0 0 10 20",
             100,
