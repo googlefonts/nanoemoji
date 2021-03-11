@@ -52,8 +52,8 @@ _COLOR_FORMATS = [
 flags.DEFINE_string("config", None, "Config file.")
 flags.DEFINE_integer("upem", None, "Units per em.")
 flags.DEFINE_integer("width", None, "Width.")
-flags.DEFINE_integer("ascent", None, "Ascender")
-flags.DEFINE_integer("descent", None, "Descender.")
+flags.DEFINE_integer("ascender", None, "Ascender")
+flags.DEFINE_integer("descender", None, "Descender.")
 flags.DEFINE_string("transform", None, "User transform, in font coordinates.")
 flags.DEFINE_integer("version_major", None, "Major version.")
 flags.DEFINE_integer("version_minor", None, "Minor version.")
@@ -112,9 +112,9 @@ class FontConfig(NamedTuple):
     output_file: str = "AnEmojiFamily.ttf"
     color_format: str = "glyf_colr_1"
     upem: int = 1024
-    width: int = 1024
-    ascent: int = 950  # default based on Noto Emoji
-    descent: int = -250  # default based on Noto Emoji
+    width: int = 1275  # default based on Noto Emoji
+    ascender: int = 950  # default based on Noto Emoji
+    descender: int = -250  # default based on Noto Emoji
     transform: Affine2D = Affine2D.identity()
     version_major: int = 1
     version_minor: int = 0
@@ -137,6 +137,23 @@ class FontConfig(NamedTuple):
     def has_picosvgs(self):
         return not self.color_format.startswith("untouchedsvg")
 
+    def validate(self):
+        for attr_name in (
+            "upem",
+            "width",
+            "ascender",
+            "version_major",
+            "version_minor",
+        ):
+            value = getattr(self, attr_name)
+            if value < 0:
+                raise ValueError(f"'{attr_name}' must be zero or positive")
+
+        if self.descender > 0:
+            raise ValueError("'descender' must be zero or negative")
+
+        return self
+
 
 def write(dest: Path, config: FontConfig):
     toml_cfg = {
@@ -145,8 +162,8 @@ def write(dest: Path, config: FontConfig):
         "color_format": config.color_format,
         "upem": config.upem,
         "width": config.width,
-        "ascent": config.ascent,
-        "descent": config.descent,
+        "ascender": config.ascender,
+        "descender": config.descender,
         "transform": config.transform.tostring(),
         "version_major": config.version_major,
         "version_minor": config.version_minor,
@@ -224,8 +241,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
     color_format = _pop_flag(config, "color_format")
     upem = int(_pop_flag(config, "upem"))
     width = int(_pop_flag(config, "width"))
-    ascent = int(_pop_flag(config, "ascent"))
-    descent = int(_pop_flag(config, "descent"))
+    ascender = int(_pop_flag(config, "ascender"))
+    descender = int(_pop_flag(config, "descender"))
     transform = _pop_flag(config, "transform")
     if not isinstance(transform, Affine2D):
         assert isinstance(transform, str)
@@ -301,8 +318,8 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         color_format=color_format,
         upem=upem,
         width=width,
-        ascent=ascent,
-        descent=descent,
+        ascender=ascender,
+        descender=descender,
         transform=transform,
         version_major=version_major,
         version_minor=version_minor,
@@ -316,4 +333,4 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),
-    )
+    ).validate()
