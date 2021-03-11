@@ -84,6 +84,28 @@ def test_version(color_format, version_major, version_minor, expected):
     assert ttfont["name"].getDebugName(nameID=5).startswith(f"Version {expected}")
 
 
+@pytest.mark.parametrize(
+    "color_format",
+    [
+        "glyf",
+        "cff_colr_0",
+        "glyf_colr_1",
+        "picosvg",
+    ],
+)
+def test_default_line_gap(color_format):
+    config_overrides = {"color_format": color_format}
+    config, glyph_inputs = test_helper.color_font_config(
+        config_overrides, ("rect.svg", "one-o-clock.svg")
+    )
+    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
+
+    assert ufo.info.openTypeOS2TypoLineGap == 0
+    assert ttfont["OS/2"].sTypoLineGap == 0
+    assert ttfont["hhea"].lineGap == 0
+
+
 # TODO test that width, height are removed from svg
 # TODO test that enable-background is removed from svg
 # TODO test that id=glyph# is added to svg
