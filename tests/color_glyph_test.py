@@ -325,6 +325,24 @@ def _round_gradient_coordinates(paint, prec=6):
                 ),
             },
         ),
+        (
+            # viewBox="0 0 10 8" (w > h), with a linearGradient from (1, 1) to (9, 1).
+            # The default advance width gets scaled by aspect ratio 1000 * 10/8 == 1250.
+            # Test that linearGradient p0 and p1 are centered horizontally relative to
+            # the scaled advance width (and not relative to the default advance width).
+            "gradient_non_square_viewbox.svg",
+            {
+                PaintLinearGradient(
+                    stops=(
+                        ColorStop(stopOffset=0.1, color=Color.fromstring("blue")),
+                        ColorStop(stopOffset=0.9, color=Color.fromstring("cyan")),
+                    ),
+                    p0=Point(125.0, 875.0),
+                    p1=Point(1125.0, 875.0),
+                    p2=Point(125.0, 125.0),
+                ),
+            },
+        ),
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
