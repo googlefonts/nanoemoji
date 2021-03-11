@@ -329,6 +329,13 @@ def _painted_layers(
                 yield PaintedLayer(paint, path.d)
 
 
+def _color_glyph_advance_width(view_box: Rect, config: FontConfig) -> int:
+    # Scale advance width proportionally to viewbox aspect ratio.
+    # Use the default advance width if it's larger than the proportional one.
+    font_height = config.ascent - config.descent  # descent <= 0
+    return max(config.width, round(font_height * view_box.w / view_box.h))
+
+
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
     filename: str
@@ -355,7 +362,7 @@ class ColorGlyph(NamedTuple):
         # non-square aspect ratio == proportional width; square == monospace
         view_box = svg.view_box()
         if view_box is not None:
-            base_glyph.width = round(font_config.width * view_box.w / view_box.h)
+            base_glyph.width = _color_glyph_advance_width(view_box, font_config)
         else:
             base_glyph.width = font_config.width
 

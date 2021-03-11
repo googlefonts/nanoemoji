@@ -59,15 +59,15 @@ def _nsvg(filename):
             Affine2D(8, 0, 0, -8, 1208, 3400),
             1024,
         ),
-        # made up example. Scale, translate, flip y
+        # made up example. Scale, translate, flip y, center horizontally
         (
             "10 11 20 21",
             100,
             100,
             100,
             0,
-            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-47.738095, f=152.380952),
-            95,
+            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-45.238095, f=152.380952),
+            100,
         ),
         # noto emoji width, ascender, descender
         (
@@ -89,15 +89,15 @@ def _nsvg(filename):
             Affine2D(a=10, b=0, c=0, d=-10, e=0, f=100),
             200,
         ),
-        # taller than wide: uniformly scale by height and shrink advance width to fit
+        # taller than wide: uniformly scale by height, center within advance width
         (
             "0 0 10 20",
             100,
             100,
             100,
             0,
-            Affine2D(a=5, b=0, c=0, d=-5, e=0, f=100),
-            50,
+            Affine2D(a=5, b=0, c=0, d=-5, e=25, f=100),
+            100,
         ),
     ],
 )
