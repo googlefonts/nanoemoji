@@ -137,6 +137,17 @@ class FontConfig(NamedTuple):
     def has_picosvgs(self):
         return not self.color_format.startswith("untouchedsvg")
 
+    def validate(self):
+        for attr_name in ("upem", "width", "ascent", "version_major", "version_minor"):
+            value = getattr(self, attr_name)
+            if value < 0:
+                raise ValueError(f"'{attr_name}' must be zero or positive")
+
+        if self.descent > 0:
+            raise ValueError("'descent' must be zero or negative")
+
+        return self
+
 
 def write(dest: Path, config: FontConfig):
     toml_cfg = {
@@ -316,4 +327,4 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),
-    )
+    ).validate()

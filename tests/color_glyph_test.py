@@ -110,7 +110,9 @@ def test_transform_and_width(
         f' viewBox="{view_box}"'
         "/>"
     )
-    config = FontConfig(upem=upem, width=width, ascent=ascender, descent=descender)
+    config = FontConfig(
+        upem=upem, width=width, ascent=ascender, descent=descender
+    ).validate()
     ufo = _ufo(config)
     color_glyph = ColorGlyph.create(
         config, ufo, "duck", 1, [0x0042], SVG.fromstring(svg_str)
