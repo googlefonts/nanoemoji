@@ -145,8 +145,8 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     ufo.info.familyName = config.family
     # set various font metadata; see the full list of fontinfo attributes at
     # https://unifiedfontobject.org/versions/ufo3/fontinfo.plist/#generic-dimension-information
-    ufo.info.ascender = config.ascent
-    ufo.info.descender = config.descent
+    ufo.info.ascender = config.ascender
+    ufo.info.descender = config.descender
     ufo.info.unitsPerEm = config.upem
     # version
     ufo.info.versionMajor = config.version_major

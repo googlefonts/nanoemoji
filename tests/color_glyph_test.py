@@ -29,8 +29,8 @@ import ufoLib2
 def _ufo(config):
     ufo = ufoLib2.Font()
     ufo.info.unitsPerEm = config.upem
-    ufo.info.ascender = config.ascent
-    ufo.info.descender = config.descent
+    ufo.info.ascender = config.ascender
+    ufo.info.descender = config.descender
     return ufo
 
 
@@ -111,7 +111,7 @@ def test_transform_and_width(
         "/>"
     )
     config = FontConfig(
-        upem=upem, width=width, ascent=ascender, descent=descender
+        upem=upem, width=width, ascender=ascender, descender=descender
     ).validate()
     ufo = _ufo(config)
     color_glyph = ColorGlyph.create(
@@ -348,7 +348,7 @@ def _round_gradient_coordinates(paint, prec=6):
     ],
 )
 def test_paint_from_shape(svg_in, expected_paints):
-    config = FontConfig(upem=1000, ascent=1000, descent=0, width=1000)
+    config = FontConfig(upem=1000, ascender=1000, descender=0, width=1000)
     color_glyph = ColorGlyph.create(
         config, _ufo(config), "duck", 1, [0x0042], _nsvg(svg_in)
     )

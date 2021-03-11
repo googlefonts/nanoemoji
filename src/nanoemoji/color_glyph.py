@@ -89,7 +89,7 @@ def _get_gradient_transform(
     glyph_width: int,
 ) -> Affine2D:
     transform = map_viewbox_to_font_space(
-        view_box, config.ascent, config.descent, glyph_width, config.transform
+        view_box, config.ascender, config.descender, glyph_width, config.transform
     )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
@@ -151,7 +151,7 @@ def _parse_radial_gradient(
     r1 = gradient.r
 
     transform = map_viewbox_to_font_space(
-        view_box, config.ascent, config.descent, glyph_width, config.transform
+        view_box, config.ascender, config.descender, glyph_width, config.transform
     )
 
     gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
@@ -332,7 +332,7 @@ def _painted_layers(
 def _color_glyph_advance_width(view_box: Rect, config: FontConfig) -> int:
     # Scale advance width proportionally to viewbox aspect ratio.
     # Use the default advance width if it's larger than the proportional one.
-    font_height = config.ascent - config.descent  # descent <= 0
+    font_height = config.ascender - config.descender  # descender <= 0
     return max(config.width, round(font_height * view_box.w / view_box.h))
 
 
