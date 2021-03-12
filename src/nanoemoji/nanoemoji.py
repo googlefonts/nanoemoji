@@ -121,19 +121,20 @@ def write_preamble(nw, font_config: FontConfig):
         f"picosvg",
         f"picosvg "
         + _bool_flag("clip_to_viewbox", font_config.clip_to_viewbox)
-        + " $in > $out",
+        + " --output_file $out"
+        + " $in",
     )
     nw.newline()
 
     module_rule(
         "write_codepoints",
-        "@$out.rsp > $out",
+        "--output_file $out @$out.rsp",
         rspfile="$out.rsp",
         rspfile_content="$in",
     )
     nw.newline()
 
-    module_rule("write_fea", "$in > $out")
+    module_rule("write_fea", "--output_file $out $in")
     nw.newline()
 
     if len(font_config.masters) == 1:
