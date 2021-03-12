@@ -54,6 +54,7 @@ flags.DEFINE_integer("upem", None, "Units per em.")
 flags.DEFINE_integer("width", None, "Width.")
 flags.DEFINE_integer("ascender", None, "Ascender")
 flags.DEFINE_integer("descender", None, "Descender.")
+flags.DEFINE_integer("linegap", None, "Line gap.")
 flags.DEFINE_string("transform", None, "User transform, in font coordinates.")
 flags.DEFINE_integer("version_major", None, "Major version.")
 flags.DEFINE_integer("version_minor", None, "Minor version.")
@@ -111,10 +112,12 @@ class FontConfig(NamedTuple):
     family: str = "An Emoji Family"
     output_file: str = "AnEmojiFamily.ttf"
     color_format: str = "glyf_colr_1"
+    # metrics default based on Noto Emoji
     upem: int = 1024
-    width: int = 1275  # default based on Noto Emoji
-    ascender: int = 950  # default based on Noto Emoji
-    descender: int = -250  # default based on Noto Emoji
+    width: int = 1275
+    ascender: int = 950
+    descender: int = -250
+    linegap: int = 0
     transform: Affine2D = Affine2D.identity()
     version_major: int = 1
     version_minor: int = 0
@@ -142,6 +145,7 @@ class FontConfig(NamedTuple):
             "upem",
             "width",
             "ascender",
+            "linegap",
             "version_major",
             "version_minor",
         ):
@@ -164,6 +168,7 @@ def write(dest: Path, config: FontConfig):
         "width": config.width,
         "ascender": config.ascender,
         "descender": config.descender,
+        "linegap": config.linegap,
         "transform": config.transform.tostring(),
         "version_major": config.version_major,
         "version_minor": config.version_minor,
@@ -243,6 +248,7 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
     width = int(_pop_flag(config, "width"))
     ascender = int(_pop_flag(config, "ascender"))
     descender = int(_pop_flag(config, "descender"))
+    linegap = int(_pop_flag(config, "linegap"))
     transform = _pop_flag(config, "transform")
     if not isinstance(transform, Affine2D):
         assert isinstance(transform, str)
@@ -320,6 +326,7 @@ def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontC
         width=width,
         ascender=ascender,
         descender=descender,
+        linegap=linegap,
         transform=transform,
         version_major=version_major,
         version_minor=version_minor,

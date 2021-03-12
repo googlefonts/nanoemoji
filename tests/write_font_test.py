@@ -14,6 +14,7 @@
 
 
 from nanoemoji import write_font
+from nanoemoji.config import _DEFAULT_CONFIG
 from picosvg.svg_transform import Affine2D
 import pytest
 import test_helper
@@ -82,6 +83,44 @@ def test_version(color_format, version_major, version_minor, expected):
     assert ufo.info.versionMajor == version_major
     assert ufo.info.versionMinor == version_minor
     assert ttfont["name"].getDebugName(nameID=5).startswith(f"Version {expected}")
+
+
+@pytest.mark.parametrize(
+    "ascender, descender, linegap",
+    [
+        (
+            _DEFAULT_CONFIG.ascender,
+            _DEFAULT_CONFIG.descender,
+            _DEFAULT_CONFIG.linegap,
+        ),
+        (1024, 0, 0),
+        (820, -204, 200),
+    ],
+)
+def test_vertical_metrics(ascender, descender, linegap):
+    config_overrides = {
+        "ascender": ascender,
+        "descender": descender,
+        "linegap": linegap,
+    }
+    config, glyph_inputs = test_helper.color_font_config(
+        config_overrides, ("rect.svg", "one-o-clock.svg")
+    )
+    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
+
+    hhea = ttfont["hhea"]
+    os2 = ttfont["OS/2"]
+
+    assert ufo.info.ascender == hhea.ascent == os2.sTypoAscender == ascender
+    assert ufo.info.descender == hhea.descent == os2.sTypoDescender == descender
+    assert hhea.lineGap == os2.sTypoLineGap == linegap
+    # check USE_TYPO_METRICS is set
+    assert os2.fsSelection & (1 << 7) != 0
+    # These are ufo2ft's fallback WinAscent/WinDescent, good enough for now.
+    # TODO: Set to the actual global yMin/yMax to prevent any clipping?
+    assert os2.usWinAscent == ascender + linegap
+    assert os2.usWinDescent == abs(descender)  # always positive
 
 
 # TODO test that width, height are removed from svg
