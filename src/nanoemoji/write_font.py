@@ -145,9 +145,21 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     ufo.info.familyName = config.family
     # set various font metadata; see the full list of fontinfo attributes at
     # https://unifiedfontobject.org/versions/ufo3/fontinfo.plist/#generic-dimension-information
-    ufo.info.ascender = config.ascender
-    ufo.info.descender = config.descender
     ufo.info.unitsPerEm = config.upem
+    # we just use a simple scheme that makes all sets of vertical metrics the same;
+    # if one needs more fine-grained control they can fix up post build
+    ufo.info.ascender = (
+        ufo.info.openTypeHheaAscender
+    ) = ufo.info.openTypeOS2TypoAscender = config.ascender
+    ufo.info.descender = (
+        ufo.info.openTypeHheaDescender
+    ) = ufo.info.openTypeOS2TypoDescender = config.descender
+    ufo.info.openTypeHheaLineGap = ufo.info.openTypeOS2TypoLineGap = config.linegap
+    # set USE_TYPO_METRICS flag (OS/2.fsSelection bit 7) to make sure OS/2 Typo* metrics
+    # are preferred to define Windows line spacing over legacy WinAscent/WinDescent:
+    # https://docs.microsoft.com/en-us/typography/opentype/spec/os2#fsselection
+    ufo.info.openTypeOS2Selection = [7]
+
     # version
     ufo.info.versionMajor = config.version_major
     ufo.info.versionMinor = config.version_minor
