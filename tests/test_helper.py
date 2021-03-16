@@ -78,7 +78,7 @@ def reload_font(ttfont):
 
 
 def _save_actual_ttx(expected_ttx, ttx_content):
-    tmp_file = f"/tmp/{expected_ttx}"
+    tmp_file = os.path.join(tempfile.gettempdir(), expected_ttx)
     with open(tmp_file, "w") as f:
         f.write(ttx_content)
     return tmp_file
