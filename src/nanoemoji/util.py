@@ -15,6 +15,8 @@
 """Small helper functions."""
 
 import os
+import contextlib
+from functools import partial
 from pathlib import Path
 import shlex
 from typing import List
@@ -56,3 +58,12 @@ def fs_root() -> Path:
 def rel(from_path: Path, to_path: Path) -> Path:
     # relative_to(A,B) doesn't like it if B doesn't start with A
     return Path(os.path.relpath(str(to_path.resolve()), str(from_path.resolve())))
+
+
+@contextlib.contextmanager
+def file_printer(filename):
+    if filename == "-":  # conventionally means print to stdout
+        yield print
+    else:
+        with open(filename, "w") as f:
+            yield partial(print, file=f)

@@ -21,6 +21,7 @@ from absl import app
 from absl import flags
 from nanoemoji import codepoints
 from nanoemoji import features
+from nanoemoji import util
 
 
 FLAGS = flags.FLAGS
@@ -29,14 +30,10 @@ flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
 def main(argv):
-    with open(argv[1]) as f:
-        rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
-    output = features.generate_fea(rgi_sequences)
-    if FLAGS.output_file == "-":
-        print(output)
-    else:
-        with open(FLAGS.output_file, "w") as f:
-            f.write(output)
+    with util.file_printer(FLAGS.output_file) as print:
+        with open(argv[1]) as f:
+            rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
+        print(features.generate_fea(rgi_sequences))
 
 
 if __name__ == "__main__":
