@@ -87,10 +87,10 @@ def _save_actual_ttx(expected_ttx, ttx_content):
 def assert_expected_ttx(svgs, ttfont, expected_ttx):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
-    # Use os-native line separators so we can run difflib.
+    # force consistent Unix newlines (the expected test files use \n too)
     ttfont.saveXML(
         actual_ttx,
-        newlinestr=os.linesep,
+        newlinestr="\n",
         skipTables=["head", "hhea", "maxp", "name", "post", "OS/2"],
     )
 
