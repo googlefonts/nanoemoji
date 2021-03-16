@@ -18,33 +18,22 @@
 
 
 from absl import app
+from absl import flags
 from nanoemoji import codepoints
-from nanoemoji.glyph import glyph_name
+from nanoemoji import features
+from nanoemoji import util
 
 
-def _generate_fea(rgi_sequences):
-    rules = []
-    rules.append("languagesystem DFLT dflt;")
-    rules.append("languagesystem latn dflt;")
-    rules.append("")
+FLAGS = flags.FLAGS
 
-    rules.append("feature rlig {")
-    for rgi in sorted(rgi_sequences):
-        if len(rgi) == 1:
-            continue
-        glyphs = [glyph_name(cp) for cp in rgi]
-        target = glyph_name(rgi)
-        rules.append("  sub %s by %s;" % (" ".join(glyphs), target))
-
-    rules.append("} rlig;")
-    rules.append("")
-    return "\n".join(rules)
+flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
 def main(argv):
-    with open(argv[1]) as f:
-        rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
-    print(_generate_fea(rgi_sequences))
+    with util.file_printer(FLAGS.output_file) as print:
+        with open(argv[1]) as f:
+            rgi_sequences = sorted(codepoints.parse_csv_line(l)[1] for l in f)
+        print(features.generate_fea(rgi_sequences))
 
 
 if __name__ == "__main__":

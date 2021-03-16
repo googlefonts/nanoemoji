@@ -15,18 +15,25 @@
 """Prints a csv of filename,codepoint sequence"""
 
 from absl import app
+from absl import flags
 from nanoemoji import codepoints
 from nanoemoji import util
 
 
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
+
+
 def main(argv):
-    for filename in util.expand_ninja_response_files(argv[1:]):
-        if filename.endswith(".txt"):
-            with open(filename) as f:
-                for l in f:
-                    print(codepoints.csv_line(l.strip()))
-        else:
-            print(codepoints.csv_line(filename))
+    with util.file_printer(FLAGS.output_file) as print:
+        for filename in util.expand_ninja_response_files(argv[1:]):
+            if filename.endswith(".txt"):
+                with open(filename) as f:
+                    for l in f:
+                        print(codepoints.csv_line(l.strip()))
+            else:
+                print(codepoints.csv_line(filename))
 
 
 if __name__ == "__main__":

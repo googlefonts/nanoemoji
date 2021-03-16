@@ -21,7 +21,7 @@ from lxml import etree
 from fontTools import ttLib
 from nanoemoji import codepoints
 from nanoemoji import config
-from nanoemoji import write_fea
+from nanoemoji import features
 from nanoemoji import write_font
 from pathlib import Path
 from picosvg.svg import SVG
@@ -50,7 +50,7 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
     fea_file = os.path.join(tmp_dir, "test.fea")
     rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
     with open(fea_file, "w") as f:
-        f.write(write_fea._generate_fea(rgi_seqs))
+        f.write(features.generate_fea(rgi_seqs))
 
     return (
         config.load(config_file=None, additional_srcs=svgs)
