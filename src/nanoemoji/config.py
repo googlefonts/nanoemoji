@@ -213,9 +213,8 @@ def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
     src_path = Path(src)
     if src_path.is_absolute():
         if "*" in src:
-            root = Path(src_path.root)
-            stem = src[len(src_path.root) :]
-            return tuple(root.glob(stem))
+            root, *stem = src_path.parts
+            return tuple(Path(root).glob("/".join(stem)))
         return (src_path,)
 
     if relative_base is None:

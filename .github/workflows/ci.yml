@@ -22,17 +22,21 @@ jobs:
     - name: Run style and typing checks
       run: tox -e lint
   test:
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.config.platform }}
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
-        platform: [ubuntu-latest]
+        config:
+          - {platform: ubuntu-latest, python-version: 3.6}
+          - {platform: ubuntu-latest, python-version: 3.7}
+          - {platform: ubuntu-latest, python-version: 3.8}
+          - {platform: ubuntu-latest, python-version: 3.9}
+          - {platform: windows-latest, python-version: 3.9}
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.config.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.config.python-version }}
     - name: Install tox
       run: pip install tox
     - name: Run the tests
