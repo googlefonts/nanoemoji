@@ -145,14 +145,18 @@ def _apply_gradient_ot_paint(
     transform: Affine2D = Affine2D.identity(),
 ):
     paint = _gradient_paint(ttfont, ot_paint)
-    # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
-    paint = _map_gradient_coordinates(paint, font_to_vbox)
-    # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
-    if transform != Affine2D.identity():
-        transform = Affine2D.product(
-            font_to_vbox.inverse(), Affine2D.product(transform, font_to_vbox)
+    # For radial gradients we want to keep cirlces as such, so we must decompose into
+    # a uniform scale+translate plus a remainder to encode as gradientTransform.
+    # Whereas for linear gradients, we can simply apply the whole combined transform to
+    # start/end points and omit gradientTransform attribute.
+    coord_transform = Affine2D.compose_ltr((transform, font_to_vbox))
+    remaining_transform = Affine2D.identity()
+    if paint.format == PaintRadialGradient.format:
+        coord_transform, remaining_transform = color_glyph._decompose_uniform_transform(
+            coord_transform
         )
-    _apply_gradient_paint(svg_defs, svg_path, paint, transform=transform)
+    paint = _map_gradient_coordinates(paint, coord_transform)
+    _apply_gradient_paint(svg_defs, svg_path, paint, transform=remaining_transform)
 
 
 def _colr_v0_glyph_to_svg(

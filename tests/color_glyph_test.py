@@ -178,12 +178,29 @@ def _round_gradient_coordinates(paint, prec=6):
                 )
             },
         ),
-        # radial
+        # radial on square using objectBoundingBox (no wrapping PaintTransform needed)
+        (
+            "radial_gradient_square.svg",
+            {
+                PaintRadialGradient(
+                    extend=Extend.REPEAT,
+                    stops=(
+                        ColorStop(stopOffset=0.05, color=Color.fromstring("fuchsia")),
+                        ColorStop(stopOffset=0.75, color=Color.fromstring("orange")),
+                    ),
+                    c0=Point(500, 500),
+                    c1=Point(500, 500),
+                    r0=0,
+                    r1=500,
+                ),
+            },
+        ),
+        # radial on non-square rect using objectBoundingBox
         (
             "radial_gradient_rect.svg",
             {
                 PaintTransform(
-                    transform=(1.0, 0.0, 0.0, 0.333333, 0.0, 533.333333),
+                    transform=(1.0, 0.0, 0.0, 0.333333, 0.0, 0.0),
                     paint=PaintRadialGradient(
                         extend=Extend.REPEAT,
                         stops=(
@@ -194,8 +211,8 @@ def _round_gradient_coordinates(paint, prec=6):
                                 stopOffset=0.75, color=Color.fromstring("orange")
                             ),
                         ),
-                        c0=Point(500, 500),
-                        c1=Point(500, 500),
+                        c0=Point(500, 2100),
+                        c1=Point(500, 2100),
                         r0=0,
                         r1=300,
                     ),
@@ -207,7 +224,7 @@ def _round_gradient_coordinates(paint, prec=6):
             "radial_gradient_transform.svg",
             {
                 PaintTransform(
-                    transform=(1.0, 0.0, -0.36397, 1.0, 363.970234, 0.0),
+                    transform=(0.939693, 0.0, -0.34202, 0.939693, 0.0, 0.0),
                     paint=PaintRadialGradient(
                         stops=(
                             ColorStop(
@@ -220,10 +237,10 @@ def _round_gradient_coordinates(paint, prec=6):
                                 stopOffset=1.0, color=Color.fromstring("darkblue")
                             ),
                         ),
-                        c0=Point(x=325, y=500),
-                        c1=Point(x=325, y=500),
+                        c0=Point(x=733.186809, y=532.088886),
+                        c1=Point(x=733.186809, y=532.088886),
                         r0=0,
-                        r1=500,
+                        r1=532.088886,
                     ),
                 ),
             },
@@ -274,14 +291,14 @@ def _round_gradient_coordinates(paint, prec=6):
             "radial_gradient_transform_2.svg",
             {
                 PaintTransform(
-                    transform=(0.0, -1.0, 0.9288, 0.0, -928.8, 1000.0),
+                    transform=(0.0, -1.0, 0.9288, 0.0, 0.0, 0.0),
                     paint=PaintRadialGradient(
                         stops=(
                             ColorStop(stopOffset=0.0, color=Color.fromstring("white")),
                             ColorStop(stopOffset=1.0, color=Color.fromstring("black")),
                         ),
-                        c0=Point(x=26.875, y=1301.77018),
-                        c1=Point(x=26.875, y=1301.77018),
+                        c0=Point(x=-973.125, y=301.77018),
+                        c1=Point(x=-973.125, y=301.77018),
                         r0=0.0,
                         r1=129.015625,
                     ),
@@ -308,7 +325,7 @@ def _round_gradient_coordinates(paint, prec=6):
                     p2=Point(200.0, 600.0),
                 ),
                 PaintTransform(
-                    transform=(1.0, 0.0, 0.0, 0.333333, 0, 333.333333),
+                    transform=(1.0, 0.0, 0.0, 0.333333, 0, 0),
                     paint=PaintRadialGradient(
                         stops=(
                             ColorStop(
@@ -319,8 +336,8 @@ def _round_gradient_coordinates(paint, prec=6):
                                 color=Color.fromstring("yellow", alpha=0.5 * 0.8),
                             ),
                         ),
-                        c0=Point(x=500.0, y=200.0),
-                        c1=Point(x=500.0, y=200.0),
+                        c0=Point(x=500.0, y=1200.0),
+                        c1=Point(x=500.0, y=1200.0),
                         r0=0.0,
                         r1=300.0,
                     ),
