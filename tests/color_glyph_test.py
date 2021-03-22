@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from nanoemoji.colors import Color
-from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.color_glyph import ColorGlyph, _decompose_uniform_transform
 from nanoemoji.config import FontConfig
 from nanoemoji.paint import *
 from picosvg.svg import SVG
@@ -120,6 +120,35 @@ def test_transform_and_width(
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
     assert ufo[color_glyph.glyph_name].width == expected_width
+
+
+@pytest.mark.parametrize(
+    "transform, expected",
+    [
+        (
+            Affine2D(2, 0, 0, 1, 0, 0),
+            (Affine2D(2, 0, 0, 2, 0, 0), Affine2D(1, 0, 0, 0.5, 0, 0)),
+        ),
+        (
+            Affine2D(8, 0, 0, -8, 0, 1024),
+            (Affine2D(8, 0, 0, -8, 0, 1024), Affine2D(1, 0, 0, 1, 0, 0)),
+        ),
+        (
+            Affine2D.fromstring("rotate(-90) translate(50, -100)"),
+            (Affine2D(1, 0, 0, 1, 50, -100), Affine2D(0, -1.0, 1.0, 0, 0, 0)),
+        ),
+        (
+            Affine2D.fromstring("rotate(90) scale(2)"),
+            (Affine2D(2, 0, 0, 2, 0, 0), Affine2D(0, 1.0, -1.0, 0, 0, 0)),
+        ),
+        (
+            Affine2D.fromstring("translate(50, -100) scale(2) rotate(90)"),
+            (Affine2D(2, 0, 0, 2, -100, -50), Affine2D(0, 1.0, -1.0, 0, 0, 0)),
+        ),
+    ],
+)
+def test_decompose_uniform_transform(transform, expected):
+    assert _decompose_uniform_transform(transform) == expected
 
 
 def _round_gradient_coordinates(paint, prec=6):

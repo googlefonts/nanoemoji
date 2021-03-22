@@ -1,0 +1,11 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <radialGradient id="grad1"
+                    spreadMethod="repeat" >
+      <stop offset="5%"  stop-color="fuchsia"/>
+      <stop offset="0.75" stop-color="orange"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="10" height="10" fill="url(#grad1)" />
+</svg>
