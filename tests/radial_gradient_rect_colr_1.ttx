@@ -91,10 +91,10 @@
                 </ColorStop>
               </ColorLine>
               <x0 value="50"/>
-              <y0 value="50"/>
+              <y0 value="210"/>
               <r0 value="0"/>
               <x1 value="50"/>
-              <y1 value="50"/>
+              <y1 value="210"/>
               <r1 value="30"/>
             </Paint>
             <Transform>
@@ -103,7 +103,7 @@
               <xy value="0.0"/>
               <yy value="0.33333"/>
               <dx value="0.0"/>
-              <dy value="53.33333"/>
+              <dy value="0.0"/>
             </Transform>
           </Paint>
           <Glyph value="e000.0"/>

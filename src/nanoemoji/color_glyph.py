@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 from absl import logging
 from itertools import chain, groupby
 from lxml import etree  # type: ignore
@@ -135,6 +136,36 @@ def _parse_linear_gradient(
     )
 
 
+def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
+    scale, remaining_transform = transform.decompose_scale()
+    s = max(*scale.getscale())
+    # most transforms will contain a Y-flip component as result of mapping from SVG to
+    # font coordinate space. Here we keep this negative Y sign as part of the uniform
+    # transform since it does not affect the circle-ness, and also makes so that the
+    # font-mapped gradient geometry is more likely to be in the +x,+y quadrant like
+    # the path geometry it is applied to.
+    uniform_scale = Affine2D(s, 0, 0, math.copysign(s, transform.d), 0, 0)
+    remaining_transform = Affine2D.compose_ltr(
+        (uniform_scale.inverse(), scale, remaining_transform)
+    )
+
+    translate, remaining_transform = remaining_transform.decompose_translation()
+    # round away very small float-math noise, so we get clean 0s and 1s for the special
+    # case of identity matrix which implies no wrapping PaintTransform
+    remaining_transform = remaining_transform.round(9)
+
+    logging.debug(
+        "Decomposing %r:\n\tscale: %r\n\ttranslate: %r\n\tremaining: %r",
+        transform,
+        uniform_scale,
+        translate,
+        remaining_transform,
+    )
+
+    uniform_transform = Affine2D.compose_ltr((uniform_scale, translate))
+    return uniform_transform, remaining_transform
+
+
 def _parse_radial_gradient(
     config: FontConfig,
     grad_el: etree.Element,
@@ -150,66 +181,39 @@ def _parse_radial_gradient(
     c1 = Point(gradient.cx, gradient.cy)
     r1 = gradient.r
 
-    transform = map_viewbox_to_font_space(
-        view_box, config.ascender, config.descender, glyph_width, config.transform
+    transform = _get_gradient_transform(
+        config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    gradient_units = grad_el.attrib.get("gradientUnits", "objectBoundingBox")
-    if gradient_units == "objectBoundingBox":
-        bbox_space = Rect(0, 0, 1, 1)
-        bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
-        transform = Affine2D.product(bbox_transform, transform)
+    # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
+    # gradientTransform, we may end up with a transformation that does not keep the
+    # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
+    # PaintRadialGradient by itself can only define circles. Thus we only apply the
+    # uniform scale and translate components of the original transform to the circles,
+    # then encode any remaining non-uniform transformation as a COLRv1 PaintTransform
+    # that wraps the PaintRadialGradient (see further below).
+    uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
 
-    assert transform[1:3] == (0, 0), (
-        f"{transform} contains unexpected skew/rotation:"
-        " (ascender-descender), view_box, shape_bbox are all rectangles"
-    )
+    c0 = uniform_transform.map_point(c0)
+    c1 = uniform_transform.map_point(c1)
 
-    # if viewBox is not square or if gradientUnits="objectBoundingBox" and the bbox
-    # is not square, we may end up with scaleX != scaleY; CORLv1 PaintRadialGradient
-    # by themselves can only define circles, not ellipses. We want to keep aspect ratio
-    # by applying a uniform scale to the circles, so we use the max (in absolute terms)
-    # of scaleX or scaleY.  We will then concatenate any remaining non-proportional
-    # transformation with the gradientTransform, and encode the latter as a COLRv1
-    # PaintTransform that wraps the PaintRadialGradient (see further below).
-    sx, sy = transform.getscale()
-    s = max(abs(sx), abs(sy))
-    sx = -s if sx < 0 else s
-    sy = -s if sy < 0 else s
-    proportional_transform = Affine2D(sx, 0, 0, sy, *transform.gettranslate())
-
-    c0 = proportional_transform.map_point(c0)
-    c1 = proportional_transform.map_point(c1)
-    r0 *= s
-    r1 *= s
+    sx, _ = uniform_transform.getscale()
+    r0 *= sx
+    r1 *= sx
 
     gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
     gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
 
-    gradient_transform = gradient.gradientTransform
-
     # TODO handle degenerate cases, fallback to solid, w/e
 
-    if (
-        proportional_transform == transform
-        and gradient_transform == Affine2D.identity()
-    ):
-        # If the chain of trasforms applied so far ([bbox-to-]vbox-to-upem) maintains the
-        # circles' aspect ratio and we don't have any additional gradientTransform, we
-        # are done
+    if remaining_transform == Affine2D.identity():
+        # If the chain of trasforms applied so far maintains the circles' aspect ratio
+        # we are done
         return PaintRadialGradient(**gradient_args)  # pytype: disable=wrong-arg-types
     else:
         # Otherwise we need to wrap our PaintRadialGradient in a PaintTransform.
-        # To compute the final transform, we first "undo" the transform that we have
-        # already applied to the circles (to restore their original coordinate system);
-        # then we can apply the SVG gradientTransform (if any), and finally the rest of
-        # the transforms. The order matters.
-        gradient_transform = Affine2D.product(
-            proportional_transform.inverse(),
-            Affine2D.product(gradient_transform, transform),
-        )
         return PaintTransform(
-            gradient_transform,
+            remaining_transform,
             PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
         )
 
