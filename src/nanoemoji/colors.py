@@ -188,6 +188,7 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
     @classmethod
     def fromstring(cls, s, alpha=1.0):
         # https://www.w3.org/TR/css-color-4/#hex-notation
+        s = s.strip()
         if s.startswith("#"):
             ss = s[1:]
             if len(ss) in (3, 4):
