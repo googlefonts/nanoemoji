@@ -423,16 +423,24 @@ def _rawsvg_docs(
     for color_glyph in color_glyphs:
         svg = (
             SVG.parse(color_glyph.filename)
-            # dumb sizing isn't useful
-            .remove_attributes(("width", "height"), inplace=True)
+            # all the scaling and positioning happens in "transform" below
+            .remove_attributes(("width", "height", "viewBox"), inplace=True)
             # Firefox likes to render blank if present
             .remove_attributes(("enable-background",), inplace=True)
-            # Map gid => svg doc
-            .set_attributes((("id", f"glyph{color_glyph.glyph_id}"),))
         )
-        svg.svg_root.attrib[
-            "transform"
-        ] = f"translate(0, {-color_glyph.ufo.info.unitsPerEm})"
+        g = etree.Element(
+            "g",
+            {
+                # Map gid => svg doc
+                "id": f"glyph{color_glyph.glyph_id}",
+                # map viewBox to OT-SVG space (+x,-y)
+                "transform": _svg_matrix(color_glyph.transform_for_otsvg_space()),
+            },
+        )
+        # move all the elements under the new group
+        g.extend(svg.svg_root)
+        svg.svg_root.append(g)
+
         doc_list.append((svg.tostring(), color_glyph.glyph_id, color_glyph.glyph_id))
     return doc_list
 
