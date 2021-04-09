@@ -124,9 +124,11 @@ def test_build_untouchedsvg_font():
     assert "SVG " in font
 
     font = TTFont(tmp_dir / "Font.ttf")
-    # rect stayed rect, fill non ellipse still around, no group introduced
     svg_content = font["SVG "].docList[0][0]
-    assert _svg_element_names("/svg/*", svg_content) == (
+    # one group introduced
+    assert _svg_element_names("/svg/*", svg_content) == ("g",), svg_content
+    # rect stayed rect, fill non ellipse still around
+    assert _svg_element_names("/svg/g/*", svg_content) == (
         "path",
         "rect",
         "ellipse",
