@@ -33,6 +33,8 @@ import pytest
         ("rgb(0, 256, -1)", Color(0, 255, 0, 1.0)),
         # rgb(r g b)
         ("rgb(42 101 43)", Color(42, 101, 43, 1.0)),
+        # extra whitespace as found in the noto-emoji Luxembourg flag
+        ("#00A1DE\n", Color(0, 161, 222, 1.0)),
     ],
 )
 def test_color_fromstring(color_string, expected_color):
