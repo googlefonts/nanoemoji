@@ -217,6 +217,13 @@ def test_vertical_metrics(ascender, descender, linegap):
                 "width": 120,
             },
         ),
+        # Check that we use xlink:href to reuse shapes with <use> elements
+        # https://github.com/googlefonts/nanoemoji/issues/266
+        (
+            ("reused_shape_2.svg",),
+            "reused_shape_2_picosvg.ttx",
+            {"color_format": "picosvg"},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
