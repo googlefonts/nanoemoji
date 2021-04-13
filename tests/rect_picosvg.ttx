@@ -46,7 +46,7 @@
   <SVG>
 
     <svgDoc endGlyphID="2" startGlyphID="2">
-      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs/><g id="glyph2" transform="matrix(10 0 0 10 0 -100)"><path d="M2,2 H8 V4 H2 V2 Z" fill="blue"/><path d="M4,4 H10 V6 H4 V4 Z" fill="blue" opacity="0.8"/></g></svg>]]>
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><g id="glyph2" transform="matrix(10 0 0 10 0 -100)"><path d="M2,2 H8 V4 H2 V2 Z" fill="blue"/><path d="M4,4 H10 V6 H4 V4 Z" fill="blue" opacity="0.8"/></g></svg>]]>
     </svgDoc>
   </SVG>
 
