@@ -412,14 +412,19 @@ def _picosvg_docs(
             {"version": "1.1"},
             nsmap={None: svg_meta.svgns(), "xlink": svg_meta.xlinkns()},
         )
-        etree.SubElement(root, f"{{{svg_meta.svgns()}}}defs", nsmap=root.nsmap)
+        defs = etree.SubElement(root, f"{{{svg_meta.svgns()}}}defs", nsmap=root.nsmap)
         svg = SVG(root)
 
         for color_glyph in (color_glyphs[g] for g in group):
             _add_glyph(svg, color_glyph, reuse_cache)
 
+        # if there are no gradients, strip the empty <defs/>
+        if len(defs) == 0:
+            root.remove(defs)
+
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append((svg.tostring(), min(gids), max(gids)))
+
     return doc_list
 
 
