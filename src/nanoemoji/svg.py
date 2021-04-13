@@ -286,6 +286,9 @@ def _apply_paint(
         raise NotImplementedError(type(paint))
 
 
+_XLINK_HREF_ATTR_NAME = f"{{{svg_meta.xlinkns()}}}href"
+
+
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     svg_defs = svg.xpath_one("//svg:defs")
 
@@ -315,8 +318,8 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
             reuse_cache.shapes[reuse_key] = el
             for reuse in painted_layer.reuses:
                 _ensure_has_id(el)
-                svg_use = etree.SubElement(svg_g, "use")
-                svg_use.attrib["href"] = f'#{el.attrib["id"]}'
+                svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
+                svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
                 tx, ty = reuse.gettranslate()
                 if tx:
                     svg_use.attrib["x"] = _ntos(tx)
@@ -329,8 +332,8 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
         else:
             el = reuse_cache.shapes[reuse_key]
             _ensure_has_id(el)
-            svg_use = etree.SubElement(svg_g, "use")
-            svg_use.attrib["href"] = f'#{el.attrib["id"]}'
+            svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
+            svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
 
 
 def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
@@ -404,9 +407,13 @@ def _picosvg_docs(
     for group in reuse_groups:
         reuse_cache = ReuseCache()
         # establish base svg, defs
-        svg = SVG.fromstring(
-            r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
+        root = etree.Element(
+            f"{{{svg_meta.svgns()}}}svg",
+            {"version": "1.1"},
+            nsmap={None: svg_meta.svgns(), "xlink": svg_meta.xlinkns()},
         )
+        etree.SubElement(root, f"{{{svg_meta.svgns()}}}defs", nsmap=root.nsmap)
+        svg = SVG(root)
 
         for color_glyph in (color_glyphs[g] for g in group):
             _add_glyph(svg, color_glyph, reuse_cache)
