@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="1000" height="1000">
+  <defs>
+    <!-- testing Safari's quirk when gradientTransform contains a matrix whose inverse == itself
+    https://github.com/googlefonts/nanoemoji/issues/268 -->
+    <radialGradient id="a" gradientTransform="scale(-1 1)" gradientUnits="userSpaceOnUse" cx="-64" cy="64" r="64" fx="-32" fy="32" fr="0">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#a)"/>
+</svg>

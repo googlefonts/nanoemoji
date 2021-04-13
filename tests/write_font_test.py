@@ -224,6 +224,14 @@ def test_vertical_metrics(ascender, descender, linegap):
             "reused_shape_2_picosvg.ttx",
             {"color_format": "picosvg"},
         ),
+        # Safari can't deal with gradientTransform where matrix.inverse() == self,
+        # we work around it by nudging one matrix component by an invisible amount
+        # https://github.com/googlefonts/nanoemoji/issues/268
+        (
+            ("involutory_matrix.svg",),
+            "involutory_matrix_picosvg.ttx",
+            {"color_format": "picosvg"},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

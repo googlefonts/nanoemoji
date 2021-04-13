@@ -40,6 +40,10 @@ from picosvg.svg_types import SVGPath
 from typing import MutableMapping, NamedTuple, Optional, Sequence, Tuple, Union
 
 
+# topicosvg()'s default
+_DEFAULT_ROUND_NDIGITS = 3
+
+
 class InterGlyphReuseKey(NamedTuple):
     view_box: Rect
     paint: Paint
@@ -96,12 +100,12 @@ def _glyph_groups(color_glyphs: Sequence[ColorGlyph]) -> Tuple[Tuple[str, ...]]:
 
 
 def _ntos(n: float) -> str:
-    return svg_meta.ntos(round(n, 3))
+    return svg_meta.ntos(round(n, _DEFAULT_ROUND_NDIGITS))
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
-    return f'matrix({" ".join((_ntos(v) for v in transform))})'
+    return transform.round(_DEFAULT_ROUND_NDIGITS).tostring()
 
 
 def _inter_glyph_reuse_key(
@@ -172,8 +176,19 @@ def _apply_gradient_common_parts(
             stop_el.attrib["stop-opacity"] = _ntos(stop.color.alpha)
     if paint.extend != Extend.PAD:
         gradient.attrib["spreadMethod"] = paint.extend.name.lower()
+
+    transform = transform.round(_DEFAULT_ROUND_NDIGITS)
     if transform != Affine2D.identity():
-        gradient.attrib["gradientTransform"] = _svg_matrix(transform)
+        # Safari has a bug which makes it reject a gradient if gradientTransform
+        # contains an 'involutory matrix' (i.e. matrix whose inverse equals itself,
+        # such that M @ M == Identity, e.g. reflection), hence the following hack:
+        # https://github.com/googlefonts/nanoemoji/issues/268
+        # https://en.wikipedia.org/wiki/Involutory_matrix
+        # TODO: Remove once the bug gets fixed
+        if Affine2D.product(transform, transform) == Affine2D.identity():
+            transform = transform._replace(a=transform.a + 0.00001)
+            assert transform.inverse() != transform
+        gradient.attrib["gradientTransform"] = transform.tostring()
 
 
 def _define_linear_gradient(
