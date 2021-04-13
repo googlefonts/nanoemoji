@@ -20,6 +20,7 @@ from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.color_glyph import ColorGlyph, PaintedLayer
 from nanoemoji.disjoint_set import DisjointSet
+from picosvg.svg_meta import xlinkns
 
 from nanoemoji.paint import (
     Extend,
@@ -305,9 +306,6 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     upem_to_vbox = vbox_to_upem.inverse()
 
     # copy the shapes into our svg
-    XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
-    XLINK = "{%s}" % XLINK_NAMESPACE
-
     for painted_layer in color_glyph.painted_layers:
         reuse_key = _inter_glyph_reuse_key(view_box, painted_layer)
         if reuse_key not in reuse_cache.shapes:
@@ -320,13 +318,10 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
             for reuse in painted_layer.reuses:
                 _ensure_has_id(el)
 
-                # The xlink:href attribute must be added to the <use> element, 
-                # otherwise it will not take effect in Safari/Mac/iOS.
-                svg_use = etree.SubElement(
-                    svg_g, "use",
-                )
-
-                svg_use.attrib[XLINK + "href"] = f'#{el.attrib["id"]}'
+                svg_use = etree.SubElement(svg_g, "use", nsmap={"xlink": xlinkns()})
+                # Add xlink:href attribute.
+                # https://svgwg.org/specs/svg-native/#commonattributes
+                svg_use.attrib[f"{{{xlinkns()}}}href"] = f'#{el.attrib["id"]}'
                 tx, ty = reuse.gettranslate()
                 if tx:
                     svg_use.attrib["x"] = _ntos(tx)
@@ -339,8 +334,8 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
         else:
             el = reuse_cache.shapes[reuse_key]
             _ensure_has_id(el)
-            svg_use = etree.SubElement(svg_g, "use", nsmap={"xlink": XLINK_NAMESPACE})
-            svg_use.attrib[XLINK + "href"] = f'#{el.attrib["id"]}'
+            svg_use = etree.SubElement(svg_g, "use", nsmap={"xlink": xlinkns()})
+            svg_use.attrib[f"{{{xlinkns()}}}href"] = f'#{el.attrib["id"]}'
 
 
 def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
@@ -415,14 +410,14 @@ def _picosvg_docs(
         reuse_cache = ReuseCache()
         # establish base svg, defs
         svg = SVG.fromstring(
-            r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/></svg>'
-        , False)
+            r'<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><defs/></svg>'
+        )
 
         for color_glyph in (color_glyphs[g] for g in group):
             _add_glyph(svg, color_glyph, reuse_cache)
 
         gids = tuple(color_glyphs[g].glyph_id for g in group)
-        doc_list.append((svg.tostring(False), min(gids), max(gids)))
+        doc_list.append((svg.tostring(), min(gids), max(gids)))
 
     return doc_list
 
