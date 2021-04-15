@@ -331,24 +331,24 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
 
             svg_g.append(el)
             reuse_cache.shapes[reuse_key] = el
-            for reuse in painted_layer.reuses:
-                _ensure_has_id(el)
-                svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
-                svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
-                tx, ty = reuse.gettranslate()
-                if tx:
-                    svg_use.attrib["x"] = _ntos(tx)
-                if ty:
-                    svg_use.attrib["y"] = _ntos(ty)
-                transform = reuse.translate(-tx, -ty)
-                if transform != Affine2D.identity():
-                    svg_use.attrib["transform"] = _svg_matrix(transform)
-
         else:
             el = reuse_cache.shapes[reuse_key]
             _ensure_has_id(el)
             svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
             svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
+
+        for reuse in painted_layer.reuses:
+            _ensure_has_id(el)
+            svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
+            svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
+            tx, ty = reuse.gettranslate()
+            if tx:
+                svg_use.attrib["x"] = _ntos(tx)
+            if ty:
+                svg_use.attrib["y"] = _ntos(ty)
+            transform = reuse.translate(-tx, -ty)
+            if transform != Affine2D.identity():
+                svg_use.attrib["transform"] = _svg_matrix(transform)
 
 
 def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
