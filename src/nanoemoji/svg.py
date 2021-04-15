@@ -334,10 +334,22 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
         else:
             el = reuse_cache.shapes[reuse_key]
             _ensure_has_id(el)
+
+            # we have an inter-glyph shape reuse: move the reused element to the outer
+            # <defs> and replace its first occurrence with a <use>. Adobe Illustrator
+            # doesn't support direct references between glyphs:
+            # https://github.com/googlefonts/nanoemoji/issues/264#issuecomment-820518808
+            if el not in svg_defs:
+                svg_use = etree.Element("use", nsmap=svg.svg_root.nsmap)
+                svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
+                el.addnext(svg_use)
+                svg_defs.append(el)  # append moves
+
             svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
             svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
 
         for reuse in painted_layer.reuses:
+            # intra-glyph shape reuse
             _ensure_has_id(el)
             svg_use = etree.SubElement(svg_g, "use", nsmap=svg.svg_root.nsmap)
             svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
