@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs><radialGradient id="g1" fx="-32" fy="32" cx="-64" cy="64" r="64" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-0.99999 0 0 1 0 0)"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></radialGradient></defs><g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)"><path d="M0,0 H128 V128 H0 V0 Z" fill="url(#g1)"/></g></svg>]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>
