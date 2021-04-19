@@ -20,14 +20,17 @@
 from nanoemoji.glyph import glyph_name
 
 
-def generate_fea(rgi_sequences):
-    # Generate rlig feature with ligature lookup for multi-codepoint RGIs
+DEFAULT_GSUB_FEATURE_TAG = "ccmp"
+
+
+def generate_fea(rgi_sequences, feature_tag=DEFAULT_GSUB_FEATURE_TAG):
+    # Generate feature with ligature lookup for multi-codepoint RGIs
     rules = []
     rules.append("languagesystem DFLT dflt;")
     rules.append("languagesystem latn dflt;")
     rules.append("")
 
-    rules.append("feature rlig {")
+    rules.append(f"feature {feature_tag} {{")
     for rgi in sorted(rgi_sequences):
         if len(rgi) == 1:
             continue
@@ -35,6 +38,6 @@ def generate_fea(rgi_sequences):
         target = glyph_name(rgi)
         rules.append("  sub %s by %s;" % (" ".join(glyphs), target))
 
-    rules.append("} rlig;")
+    rules.append(f"}} {feature_tag};")
     rules.append("")
     return "\n".join(rules)
