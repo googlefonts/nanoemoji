@@ -232,6 +232,15 @@ def test_vertical_metrics(ascender, descender, linegap):
             "involutory_matrix_picosvg.ttx",
             {"color_format": "picosvg"},
         ),
+        # Check that we do _not_ make composite glyphs with reused paths if
+        # the latter overlap and the transform for the shape reuse is such
+        # that the winding direction is reversed
+        # https://github.com/googlefonts/nanoemoji/issues/287
+        (
+            ("transformed_components_overlap.svg",),
+            "transformed_components_overlap.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
