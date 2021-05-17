@@ -14,7 +14,7 @@
 
 import math
 from absl import logging
-from itertools import chain, groupby
+from itertools import chain, groupby, combinations
 from lxml import etree  # type: ignore
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
@@ -33,9 +33,15 @@ from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg import SVG
-from picosvg.svg_types import SVGPath, SVGLinearGradient, SVGRadialGradient
+from picosvg.svg_types import (
+    SVGPath,
+    SVGLinearGradient,
+    SVGRadialGradient,
+    intersection,
+)
 from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
+import pathops
 
 
 def _scale_viewbox_to_font_metrics(
@@ -286,6 +292,39 @@ def _in_glyph_reuse_key(
     )
 
 
+def _intersect(path1: SVGPath, path2: SVGPath) -> bool:
+    # Try computing intersection using pathops; if for whatever reason it fails
+    # (probably some bug) then be on the safe side and assume we do have one...
+    try:
+        return bool(intersection((path1, path2)))
+    except pathops.PathOpsError:
+        logging.error(
+            "pathops failed to compute intersection:\n- %s\n- %s", path1.d, path2.d
+        )
+        return True
+
+
+def _any_overlap_with_reversing_transform(
+    paths: Sequence[SVGPath], transforms: Sequence[Affine2D]
+) -> bool:
+    reverses_direction = [t.determinant() < 0 for t in transforms]
+    for i, j in combinations(range(len(paths)), 2):
+        if (reverses_direction[i] or reverses_direction[j]) and _intersect(
+            paths[i], paths[j]
+        ):
+            logging.info(
+                "overlapping paths with reversing transform decomposed:\n"
+                "- %s\n  transform: %s\n"
+                "- %s\n  transform: %s",
+                paths[i].d,
+                transforms[i],
+                paths[j].d,
+                transforms[j],
+            )
+            return True
+    return False
+
+
 def _painted_layers(
     debug_hint: str,
     config: FontConfig,
@@ -307,14 +346,14 @@ def _painted_layers(
         key=lambda s: _in_glyph_reuse_key(debug_hint, config, picosvg, s, glyph_width),
     ):
         paths = list(paths)
-        transforms = ()
+        transforms = [Affine2D.identity()]
         if len(paths) > 1:
-            transforms = tuple(
+            transforms.extend(
                 affine_between(paths[0], p, config.reuse_tolerance) for p in paths[1:]
             )
 
         success = True
-        for path, transform in zip(paths[1:], transforms):
+        for path, transform in zip(paths[1:], transforms[1:]):
             if transform is None:
                 success = False
                 error_msg = (
@@ -326,8 +365,15 @@ def _painted_layers(
                 else:
                     raise ValueError(error_msg)
 
+        if success and len(paths) > 1:
+            # Don't create composite glyphs if components intersect each other and
+            # they have a transform which reverses their winding direction, or else this
+            # creates holes where they overlap as nonzero fill rule is applied by
+            # TrueType renderer: https://github.com/googlefonts/nanoemoji/issues/287
+            success = not _any_overlap_with_reversing_transform(paths, transforms)
+
         if success:
-            yield PaintedLayer(paint, paths[0].d, transforms)
+            yield PaintedLayer(paint, paths[0].d, tuple(transforms[1:]))
         else:
             for path in paths:
                 yield PaintedLayer(paint, path.d)
