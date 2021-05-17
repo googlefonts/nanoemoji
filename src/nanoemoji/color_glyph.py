@@ -298,7 +298,31 @@ def _intersect(path1: SVGPath, path2: SVGPath) -> bool:
     try:
         return bool(intersection((path1, path2)))
     except pathops.PathOpsError:
+        logging.error(
+            "pathops failed to compute intersection:\n- %s\n- %s", path1.d, path2.d
+        )
         return True
+
+
+def _any_overlap_with_reversing_transform(
+    paths: Sequence[SVGPath], transforms: Sequence[Affine2D]
+) -> bool:
+    reverses_direction = [t.determinant() < 0 for t in transforms]
+    for i, j in combinations(range(len(paths)), 2):
+        if (reverses_direction[i] or reverses_direction[j]) and _intersect(
+            paths[i], paths[j]
+        ):
+            logging.info(
+                "overlapping paths with reversing transform decomposed:\n"
+                "- %s\n  transform: %s\n"
+                "- %s\n  transform: %s",
+                paths[i].d,
+                transforms[i],
+                paths[j].d,
+                transforms[j],
+            )
+            return True
+    return False
 
 
 def _painted_layers(
@@ -346,14 +370,7 @@ def _painted_layers(
             # they have a transform which reverses their winding direction, or else this
             # creates holes where they overlap as nonzero fill rule is applied by
             # TrueType renderer: https://github.com/googlefonts/nanoemoji/issues/287
-            reverses_direction = [t.determinant() < 0 for t in transforms]
-            success = not any(
-                (
-                    (reverses_direction[i] or reverses_direction[j])
-                    and _intersect(paths[i], paths[j])
-                )
-                for i, j in combinations(range(len(paths)), 2)
-            )
+            success = not _any_overlap_with_reversing_transform(paths, transforms)
 
         if success:
             yield PaintedLayer(paint, paths[0].d, tuple(transforms[1:]))
