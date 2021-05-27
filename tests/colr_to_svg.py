@@ -202,8 +202,13 @@ def _colr_v1_paint_to_svg(
         assert svg_path is None, "recursive PaintGlyph is unsupported"
         layer_glyph = ot_paint.Glyph
         svg_path = etree.SubElement(svg_root, "path")
+
+        # This only occurs if path is reused; we could wire up use. But for now ... not.
         if transform != Affine2D.identity():
-            svg_path.attrib["transform"] = _svg_matrix(transform)
+            svg_transform = Affine2D.compose_ltr(
+                (font_to_vbox.inverse(), transform, font_to_vbox)
+            )
+            svg_path.attrib["transform"] = _svg_matrix(svg_transform)
 
         _colr_v1_paint_to_svg(
             ttfont,

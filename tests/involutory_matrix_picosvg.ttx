@@ -46,7 +46,18 @@
   <SVG>
 
     <svgDoc endGlyphID="2" startGlyphID="2">
-      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs><radialGradient id="g1" fx="-32" fy="32" cx="-64" cy="64" r="64" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-0.99999 0 0 1 0 0)"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></radialGradient></defs><g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)"><path d="M0,0 H128 V128 H0 V0 Z" fill="url(#g1)"/></g></svg>]]>
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <defs>
+    <radialGradient id="g1" fx="-32" fy="32" cx="-64" cy="64" r="64" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-0.99999 0 0 1 0 0)">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </radialGradient>
+  </defs>
+  <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
+    <path d="M0,0 L128,0 L128,128 L0,128 L0,0 Z" fill="url(#g1)"/>
+  </g>
+</svg>
+]]>
     </svgDoc>
   </SVG>
 

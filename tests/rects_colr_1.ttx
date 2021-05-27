@@ -8,7 +8,6 @@
     <GlyphID id="2" name="e000"/>
     <GlyphID id="3" name="e001"/>
     <GlyphID id="4" name="e000.0"/>
-    <GlyphID id="5" name="e000.1"/>
   </GlyphOrder>
 
   <hmtx>
@@ -16,7 +15,6 @@
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="20"/>
     <mtx name="e000.0" width="100" lsb="20"/>
-    <mtx name="e000.1" width="100" lsb="40"/>
     <mtx name="e001" width="100" lsb="20"/>
   </hmtx>
 
@@ -65,16 +63,6 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.1" xMin="40" yMin="40" xMax="100" yMax="60">
-      <contour>
-        <pt x="40" y="60" on="1"/>
-        <pt x="40" y="40" on="1"/>
-        <pt x="100" y="40" on="1"/>
-        <pt x="100" y="60" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
     <TTGlyph name="e001" xMin="20" yMin="40" xMax="100" yMax="80">
       <contour>
         <pt x="100" y="80" on="1"/>
@@ -117,14 +105,24 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="1" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="0"/>
-            <Alpha value="0.8"/>
-          </Color>
+      <Paint index="1" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="0"/>
+              <Alpha value="0.8"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
         </Paint>
-        <Glyph value="e000.1"/>
+        <Transform>
+          <xx value="1.0"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="1.0"/>
+          <dx value="20.0"/>
+          <dy value="-20.0"/>
+        </Transform>
       </Paint>
       <Paint index="2" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -135,14 +133,24 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="3" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="1"/>
-            <Alpha value="0.8"/>
-          </Color>
+      <Paint index="3" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="1"/>
+              <Alpha value="0.8"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
         </Paint>
-        <Glyph value="e000.1"/>
+        <Transform>
+          <xx value="1.0"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="1.0"/>
+          <dx value="20.0"/>
+          <dy value="-20.0"/>
+        </Transform>
       </Paint>
     </LayerList>
   </COLR>
