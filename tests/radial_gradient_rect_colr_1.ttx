@@ -70,7 +70,7 @@
       <BaseGlyphPaintRecord index="0">
         <BaseGlyph value="e000"/>
         <Paint Format="10"><!-- PaintGlyph -->
-          <Paint Format="12"><!-- PaintTransform -->
+          <Paint Format="16"><!-- PaintScale -->
             <Paint Format="6"><!-- PaintRadialGradient -->
               <ColorLine>
                 <Extend value="repeat"/>
@@ -97,14 +97,8 @@
               <y1 value="210"/>
               <r1 value="30"/>
             </Paint>
-            <Transform>
-              <xx value="1.0"/>
-              <yx value="0.0"/>
-              <xy value="0.0"/>
-              <yy value="0.33333"/>
-              <dx value="0.0"/>
-              <dy value="0.0"/>
-            </Transform>
+            <scaleX value="1.0"/>
+            <scaleY value="0.3333"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>

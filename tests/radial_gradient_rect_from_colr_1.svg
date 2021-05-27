@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
   <defs>
-    <radialGradient id="g1" cx="5" cy="9" r="3" gradientUnits="userSpaceOnUse" spreadMethod="repeat" gradientTransform="matrix(1 0 0 0.333 0 0)">
+    <radialGradient id="g1" cx="5" cy="9.002" r="3" gradientUnits="userSpaceOnUse" spreadMethod="repeat" gradientTransform="matrix(1 0 0 0.333 0 0)">
       <stop offset="0.05" stop-color="fuchsia"/>
       <stop offset="0.75" stop-color="orange"/>
     </radialGradient>

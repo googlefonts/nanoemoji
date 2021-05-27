@@ -31,7 +31,7 @@ from nanoemoji.paint import (
     PaintLinearGradient,
     PaintRadialGradient,
     PaintSolid,
-    PaintTransform,
+    transformed,
 )
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_meta import number_or_percentage
@@ -162,7 +162,7 @@ def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2
 
     translate, remaining_transform = remaining_transform.decompose_translation()
     # round away very small float-math noise, so we get clean 0s and 1s for the special
-    # case of identity matrix which implies no wrapping PaintTransform
+    # case of identity matrix which implies no wrapping transform
     remaining_transform = remaining_transform.round(9)
 
     logging.debug(
@@ -201,7 +201,7 @@ def _parse_radial_gradient(
     # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
     # PaintRadialGradient by itself can only define circles. Thus we only apply the
     # uniform scale and translate components of the original transform to the circles,
-    # then encode any remaining non-uniform transformation as a COLRv1 PaintTransform
+    # then encode any remaining non-uniform transformation as a COLRv1 transform
     # that wraps the PaintRadialGradient (see further below).
     uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
 
@@ -217,16 +217,10 @@ def _parse_radial_gradient(
 
     # TODO handle degenerate cases, fallback to solid, w/e
 
-    if remaining_transform == Affine2D.identity():
-        # If the chain of trasforms applied so far maintains the circles' aspect ratio
-        # we are done
-        return PaintRadialGradient(**gradient_args)  # pytype: disable=wrong-arg-types
-    else:
-        # Otherwise we need to wrap our PaintRadialGradient in a PaintTransform.
-        return PaintTransform(
-            remaining_transform,
-            PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
-        )
+    return transformed(
+        remaining_transform,
+        PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
+    )
 
 
 _GRADIENT_INFO = {

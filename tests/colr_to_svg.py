@@ -17,14 +17,15 @@ from nanoemoji import color_glyph
 from nanoemoji.paint import (
     ColorStop,
     Extend,
+    Paint,
     PaintSolid,
     PaintLinearGradient,
     PaintRadialGradient,
     PaintGlyph,
     PaintColrGlyph,
-    PaintTransform,
     PaintComposite,
     PaintColrLayers,
+    is_transform,
 )
 from nanoemoji.svg import (
     _svg_matrix,
@@ -220,23 +221,11 @@ def _colr_v1_paint_to_svg(
         )
 
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
-    elif ot_paint.Format == PaintTransform.format:
-        transform = Affine2D.compose_ltr(
-            (
-                (
-                    Affine2D.identity()
-                    if not ot_paint.Transform
-                    else Affine2D(
-                        ot_paint.Transform.xx,
-                        ot_paint.Transform.yx,
-                        ot_paint.Transform.xy,
-                        ot_paint.Transform.yy,
-                        ot_paint.Transform.dx,
-                        ot_paint.Transform.dy,
-                    )
-                ),
-                transform,
-            )
+    elif is_transform(ot_paint.Format):
+        paint = Paint.from_ot(ot_paint)
+        transform = Affine2D.product(
+            paint.gettransform(),
+            transform,
         )
         _colr_v1_paint_to_svg(
             ttfont,

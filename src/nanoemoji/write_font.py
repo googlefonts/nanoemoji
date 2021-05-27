@@ -32,13 +32,13 @@ from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import (
+    transformed,
     CompositeMode,
     Paint,
     PaintComposite,
     PaintColrGlyph,
     PaintGlyph,
     PaintSolid,
-    PaintTransform,
 )
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
@@ -264,6 +264,7 @@ class GlyphReuseCache:
 
         norm_path = normalize(SVGPath(d=path), self._config.reuse_tolerance).d
         if norm_path not in self._reusable_paths:
+            print(f"  not in reusable {norm_path}")
             return None
 
         glyph_name, glyph_path = self._reusable_paths[norm_path]
@@ -273,6 +274,7 @@ class GlyphReuseCache:
         if affine is None:
             logging.warning("affine_between %s %s failed", glyph_path, path)
             return None
+        print(f"  reuse! {norm_path} {affine}")
         return ReuseResult(glyph_name, affine)
 
     def add_glyph(self, glyph_name, glyph_path):
@@ -322,15 +324,13 @@ def _migrate_paths_to_ufo_glyphs(
         if reuse_result is not None:
             # TODO: use the most compact valid transform
             # TODO: when is it more compact to use a new transforming glyph?
-            paint = PaintGlyph(
-                glyph=reuse_result.glyph_name,
-                paint=paint.paint,
+            return transformed(
+                reuse_result.transform,
+                PaintGlyph(
+                    glyph=reuse_result.glyph_name,
+                    paint=paint.paint,
+                ),
             )
-            if reuse_result.transform != Affine2D.identity():
-                paint = PaintTransform(
-                    paint=paint, transform=tuple(reuse_result.transform)
-                )
-            return paint
 
         glyph = _create_glyph(color_glyph, paint, path_in_font_space)
         glyph_cache.add_glyph(glyph.name, path_in_font_space)
@@ -383,7 +383,7 @@ def _glyf_ufo(
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
                 # For 'glyf' just dump anything that isn't a PaintGlyph
-                if not isinstance(context.paint, PaintGlyph):
+                if context.paint.format != PaintGlyph.format:
                     continue
                 paint_glyph = cast(PaintGlyph, context.paint)
                 glyph = ufo.get(paint_glyph.glyph)
