@@ -370,6 +370,7 @@ def _painted_layers(
             nodes.append(
                 _paint_glyph(debug_hint, config, picosvg, context, glyph_width)
             )
+            nodes = [paint]
 
         if context.is_group():
             # flush the current shapes into a new group
@@ -520,7 +521,6 @@ class ColorGlyph(NamedTuple):
         def _traverse_callback(paint):
             visitor(paint)
             return paint
-
         for p in self.painted_layers:
             _mutating_traverse(p, _traverse_callback)
 

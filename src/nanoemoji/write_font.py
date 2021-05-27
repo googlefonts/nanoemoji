@@ -423,7 +423,6 @@ def _create_transformed_glyph(
     glyph = _init_glyph(color_glyph)
     glyph.components.append(Component(baseGlyph=paint.glyph, transformation=transform))
     color_glyph.ufo.glyphOrder += [glyph.name]
-
     return glyph
 
 
