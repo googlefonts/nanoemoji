@@ -40,7 +40,7 @@ setup(
     extras_require={
         "dev": [
             "pytest",
-            "black==21.5b1",
+            "black==21.5b2",
             # As of November 2020, pytype requires: Python <3.9, >=3.6
             # https://pypi.org/project/pytype/2020.11.23
             "pytype==2020.11.23; python_version < '3.9'",
