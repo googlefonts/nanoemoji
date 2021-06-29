@@ -264,6 +264,7 @@ class GlyphReuseCache:
 
         norm_path = normalize(SVGPath(d=path), self._config.reuse_tolerance).d
         if norm_path not in self._reusable_paths:
+            print(f"  not in reusable {norm_path}")
             return None
 
         glyph_name, glyph_path = self._reusable_paths[norm_path]
@@ -273,6 +274,7 @@ class GlyphReuseCache:
         if affine is None:
             logging.warning("affine_between %s %s failed", glyph_path, path)
             return None
+        print(f"  reuse! {norm_path} {affine}")
         return ReuseResult(glyph_name, affine)
 
     def add_glyph(self, glyph_name, glyph_path):
@@ -383,7 +385,7 @@ def _glyf_ufo(
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
                 # For 'glyf' just dump anything that isn't a PaintGlyph
-                if not isinstance(context.paint, PaintGlyph):
+                if context.paint.format != PaintGlyph.format:
                     continue
                 paint_glyph = cast(PaintGlyph, context.paint)
                 glyph = ufo.get(paint_glyph.glyph)
@@ -408,6 +410,13 @@ def _glyf_ufo(
 
 def _name_prefix(color_glyph: ColorGlyph) -> Glyph:
     return f"{color_glyph.glyph_name}."
+
+
+def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
+    ufo = color_glyph.ufo
+    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{_name_prefix(color_glyph)}{i}"))
+    glyph.width = ufo.get(color_glyph.glyph_name).width
+    return glyph
 
 
 def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
