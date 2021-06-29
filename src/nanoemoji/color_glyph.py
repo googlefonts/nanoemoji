@@ -103,11 +103,11 @@ def _get_gradient_transform(
     if gradient_units == "objectBoundingBox":
         bbox_space = Rect(0, 0, 1, 1)
         bbox_transform = Affine2D.rect_to_rect(bbox_space, shape_bbox)
-        transform = Affine2D.product(bbox_transform, transform)
+        transform = Affine2D.compose_ltr((bbox_transform, transform))
 
     if "gradientTransform" in grad_el.attrib:
         gradient_transform = Affine2D.fromstring(grad_el.attrib["gradientTransform"])
-        transform = Affine2D.product(gradient_transform, transform)
+        transform = Affine2D.compose_ltr((gradient_transform, transform))
 
     return transform
 
