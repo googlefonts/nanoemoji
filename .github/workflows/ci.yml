@@ -26,7 +26,6 @@ jobs:
     strategy:
       matrix:
         config:
-          - {platform: ubuntu-latest, python-version: 3.6}
           - {platform: ubuntu-latest, python-version: 3.7}
           - {platform: ubuntu-latest, python-version: 3.8}
           - {platform: ubuntu-latest, python-version: 3.9}
