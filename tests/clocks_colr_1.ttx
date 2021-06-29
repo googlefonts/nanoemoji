@@ -285,24 +285,24 @@
     <Version value="1"/>
     <!-- BaseGlyphRecordCount=0 -->
     <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1List>
+    <BaseGlyphList>
       <!-- BaseGlyphCount=2 -->
-      <BaseGlyphV1Record index="0">
+      <BaseGlyphPaintRecord index="0">
         <BaseGlyph value="e000"/>
         <Paint Format="1"><!-- PaintColrLayers -->
           <NumLayers value="7"/>
           <FirstLayerIndex value="0"/>
         </Paint>
-      </BaseGlyphV1Record>
-      <BaseGlyphV1Record index="1">
+      </BaseGlyphPaintRecord>
+      <BaseGlyphPaintRecord index="1">
         <BaseGlyph value="e001"/>
         <Paint Format="1"><!-- PaintColrLayers -->
           <NumLayers value="4"/>
           <FirstLayerIndex value="7"/>
         </Paint>
-      </BaseGlyphV1Record>
-    </BaseGlyphV1List>
-    <LayerV1List>
+      </BaseGlyphPaintRecord>
+    </BaseGlyphList>
+    <LayerList>
       <!-- LayerCount=11 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="4"><!-- PaintLinearGradient -->
@@ -438,7 +438,7 @@
         <NumLayers value="4"/>
         <FirstLayerIndex value="3"/>
       </Paint>
-    </LayerV1List>
+    </LayerList>
   </COLR>
 
   <CPAL>

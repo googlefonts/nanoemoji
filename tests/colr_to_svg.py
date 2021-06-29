@@ -241,7 +241,7 @@ def _colr_v1_paint_to_svg(
             transform=transform,
         )
     elif ot_paint.Format == PaintColrLayers.format:
-        layerList = ttfont["COLR"].table.LayerV1List.Paint
+        layerList = ttfont["COLR"].table.LayerList.Paint
         assert layerList, "Paint layers without a layer list :("
         for child_paint in layerList[
             ot_paint.FirstLayerIndex : ot_paint.FirstLayerIndex + ot_paint.NumLayers
@@ -291,7 +291,7 @@ def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
         g.BaseGlyph: SVG.fromstring(
             etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
         )
-        for g in ttfont["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record
+        for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
 
 
