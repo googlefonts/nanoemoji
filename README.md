@@ -14,6 +14,8 @@ nanoemoji --helpfull
 nanoemoji --color_format glyf_colr_1 $(find ../noto-emoji/svg -name 'emoji_u270d*.svg')
 ```
 
+Requires Python 3.7 or greater.
+
 ## Releasing
 
 See https://googlefonts.github.io/python#make-a-release.
