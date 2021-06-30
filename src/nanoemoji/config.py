@@ -15,9 +15,9 @@
 from absl import flags
 
 try:
-    import importlib.resources as resources
+    import importlib.resources as resources  # pytype: disable=import-error
 except ImportError:
-    import importlib_resources as resources
+    import importlib_resources as resources  # pytype: disable=import-error
 
 from pathlib import Path
 from picosvg.svg_transform import Affine2D

@@ -152,7 +152,7 @@ class PaintLinearGradient(Paint):
 class PaintRadialGradient(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRadialGradient)
     extend: Extend = Extend.PAD
-    stops: Tuple[ColorStop] = tuple()
+    stops: Tuple[ColorStop, ...] = tuple()
     c0: Point = Point()
     c1: Point = Point()
     r0: float = 0.0
