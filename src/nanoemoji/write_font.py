@@ -385,7 +385,7 @@ def _glyf_ufo(
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
                 # For 'glyf' just dump anything that isn't a PaintGlyph
-                if context.paint.format != PaintGlyph.format:
+                if not isinstance(context.paint, PaintGlyph):
                     continue
                 paint_glyph = cast(PaintGlyph, context.paint)
                 glyph = ufo.get(paint_glyph.glyph)

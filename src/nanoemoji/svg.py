@@ -93,7 +93,7 @@ def _glyph_groups(
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
                 # Group glyphs based on common shapes
-                if context.paint.format != PaintGlyph.format:
+                if not isinstance(context.paint, PaintGlyph):
                     continue
                 reuse_key = _inter_glyph_reuse_key(
                     config.reuse_tolerance, color_glyph.svg.view_box(), context.paint
