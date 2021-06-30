@@ -14,6 +14,16 @@
 
 from setuptools import setup, find_packages
 
+extras_require={
+    "test": [
+        "pytest",
+    ],
+    "lint": [
+        "black",
+        "pytype",
+    ],
+}
+extras_require["dev"] = extras_require["test"] + extras_require["lint"]
 
 setup(
     name="nanoemoji",
@@ -36,13 +46,7 @@ setup(
         "ufo2ft[cffsubr]>=2.15.0",
         "ufoLib2>=0.6.2",
     ],
-    extras_require={
-        "dev": [
-            "pytest",
-            "black",
-            "pytype",
-        ],
-    },
+    extras_require=extras_require,
     # this is so we can use the built-in dataclasses module
     python_requires=">=3.7",
 
