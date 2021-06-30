@@ -12,11 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
-        # pytype currently doesn't work with python >= 3.9
-        python-version: 3.8
+        python-version: 3.9
     - name: Install tox
       run: pip install tox
     - name: Run style and typing checks

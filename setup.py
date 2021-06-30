@@ -39,10 +39,8 @@ setup(
     extras_require={
         "dev": [
             "pytest",
-            "black==21.6b0",
-            # As of November 2020, pytype requires: Python <3.9, >=3.6
-            # https://pypi.org/project/pytype/2020.11.23
-            "pytype==2020.11.23; python_version < '3.9'",
+            "black",
+            "pytype",
         ],
     },
     # this is so we can use the built-in dataclasses module
