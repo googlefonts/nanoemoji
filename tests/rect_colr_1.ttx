@@ -77,17 +77,17 @@
     <Version value="1"/>
     <!-- BaseGlyphRecordCount=0 -->
     <!-- LayerRecordCount=0 -->
-    <BaseGlyphV1List>
+    <BaseGlyphList>
       <!-- BaseGlyphCount=1 -->
-      <BaseGlyphV1Record index="0">
+      <BaseGlyphPaintRecord index="0">
         <BaseGlyph value="e000"/>
         <Paint Format="1"><!-- PaintColrLayers -->
           <NumLayers value="2"/>
           <FirstLayerIndex value="0"/>
         </Paint>
-      </BaseGlyphV1Record>
-    </BaseGlyphV1List>
-    <LayerV1List>
+      </BaseGlyphPaintRecord>
+    </BaseGlyphList>
+    <LayerList>
       <!-- LayerCount=2 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -107,7 +107,7 @@
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
-    </LayerV1List>
+    </LayerList>
   </COLR>
 
   <CPAL>

@@ -185,7 +185,7 @@ def _apply_gradient_common_parts(
         # https://github.com/googlefonts/nanoemoji/issues/268
         # https://en.wikipedia.org/wiki/Involutory_matrix
         # TODO: Remove once the bug gets fixed
-        if Affine2D.product(transform, transform) == Affine2D.identity():
+        if transform @ transform == Affine2D.identity():
             transform = transform._replace(a=transform.a + 0.00001)
             assert transform.inverse() != transform
         gradient.attrib["gradientTransform"] = transform.tostring()
@@ -288,12 +288,12 @@ def _apply_paint(
         paint = _map_gradient_coordinates(paint, upem_to_vbox)
         # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
         if transform != Affine2D.identity():
-            transform = Affine2D.product(
-                upem_to_vbox.inverse(), Affine2D.product(transform, upem_to_vbox)
+            transform = Affine2D.compose_ltr(
+                (upem_to_vbox.inverse(), transform, upem_to_vbox)
             )
         _apply_gradient_paint(svg_defs, svg_path, paint, reuse_cache, transform)
     elif isinstance(paint, PaintTransform):
-        transform = Affine2D.product(paint.transform, transform)
+        transform = Affine2D.compose_ltr((paint.transform, transform))
         _apply_paint(
             svg_defs, svg_path, paint.paint, upem_to_vbox, reuse_cache, transform
         )

@@ -216,20 +216,22 @@ def _colr_v1_paint_to_svg(
 
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
     elif ot_paint.Format == PaintTransform.format:
-        transform = Affine2D.product(
+        transform = Affine2D.compose_ltr(
             (
-                Affine2D.identity()
-                if not ot_paint.Transform
-                else Affine2D(
-                    ot_paint.Transform.xx,
-                    ot_paint.Transform.yx,
-                    ot_paint.Transform.xy,
-                    ot_paint.Transform.yy,
-                    ot_paint.Transform.dx,
-                    ot_paint.Transform.dy,
-                )
-            ),
-            transform,
+                (
+                    Affine2D.identity()
+                    if not ot_paint.Transform
+                    else Affine2D(
+                        ot_paint.Transform.xx,
+                        ot_paint.Transform.yx,
+                        ot_paint.Transform.xy,
+                        ot_paint.Transform.yy,
+                        ot_paint.Transform.dx,
+                        ot_paint.Transform.dy,
+                    )
+                ),
+                transform,
+            )
         )
         _colr_v1_paint_to_svg(
             ttfont,
@@ -241,7 +243,7 @@ def _colr_v1_paint_to_svg(
             transform=transform,
         )
     elif ot_paint.Format == PaintColrLayers.format:
-        layerList = ttfont["COLR"].table.LayerV1List.Paint
+        layerList = ttfont["COLR"].table.LayerList.Paint
         assert layerList, "Paint layers without a layer list :("
         for child_paint in layerList[
             ot_paint.FirstLayerIndex : ot_paint.FirstLayerIndex + ot_paint.NumLayers
@@ -291,7 +293,7 @@ def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
         g.BaseGlyph: SVG.fromstring(
             etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
         )
-        for g in ttfont["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record
+        for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
 
 

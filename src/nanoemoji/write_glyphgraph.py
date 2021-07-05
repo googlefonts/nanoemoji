@@ -76,7 +76,7 @@ class DAG:
 
 
 def _base_glyphs(font, filter_fn):
-    for base_glyph in font["COLR"].table.BaseGlyphV1List.BaseGlyphV1Record:
+    for base_glyph in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
         if filter_fn(base_glyph):
             yield base_glyph
 
@@ -193,7 +193,7 @@ def _paint(dag, parent, font, paint, depth):
     # Descend
     if new_edge:
         if paint.Format == ot.Paint.Format.PaintColrLayers:
-            child_paints = font["COLR"].table.LayerV1List.Paint[
+            child_paints = font["COLR"].table.LayerList.Paint[
                 paint.FirstLayerIndex : paint.FirstLayerIndex + paint.NumLayers
             ]
             for child_paint in child_paints:
