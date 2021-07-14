@@ -43,7 +43,7 @@ setup(
         "pillow>=7.2.0",
         "regex>=2020.4.4",
         "toml>=0.10.1",
-        "ufo2ft[cffsubr]==2.21.0",  # TEMPORARY VERSION LOCK
+        "ufo2ft[cffsubr]==2.22.0",  # TEMPORARY VERSION LOCK
         "ufoLib2>=0.6.2",
     ],
     extras_require=extras_require,
