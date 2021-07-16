@@ -223,10 +223,7 @@ def _colr_v1_paint_to_svg(
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
     elif is_transform(ot_paint.Format):
         paint = Paint.from_ot(ot_paint)
-        transform = Affine2D.product(
-            paint.gettransform(),
-            transform,
-        )
+        transform @= paint.gettransform()
         _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,
