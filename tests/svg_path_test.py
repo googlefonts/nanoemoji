@@ -78,3 +78,10 @@ def test_roundtrip_path_with_pen(d):
     pen = SVGPathPen()
     draw_svg_path(path, pen)
     assert pen.path.d == d
+
+
+def test_draw_svg_close_subpaths():
+    path = SVGPath(d="M0,0 L0,10 L10,10 L10,0 M12,0 L12,10 L22,10 L22,0")
+    pen = SVGPathPen()
+    draw_svg_path(path, pen, close_subpaths=True)
+    assert pen.path.d == "M0,0 L0,10 L10,10 L10,0 Z M12,0 L12,10 L22,10 L22,0 Z"
