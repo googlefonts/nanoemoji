@@ -246,7 +246,10 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
         glyph_names.append(base_glyph.name)
 
         draw_svg_path(
-            SVGPath(d=painted_layer.path), base_glyph.getPen(), svg_units_to_font_units
+            SVGPath(d=painted_layer.path),
+            base_glyph.getPen(),
+            svg_units_to_font_units,
+            close_subpaths=True,
         )
 
         glyph.components.append(
@@ -268,7 +271,10 @@ def _create_glyph(color_glyph: ColorGlyph, painted_layer: PaintedLayer) -> Glyph
     else:
         # Not a composite, just draw directly on the glyph
         draw_svg_path(
-            SVGPath(d=painted_layer.path), glyph.getPen(), svg_units_to_font_units
+            SVGPath(d=painted_layer.path),
+            glyph.getPen(),
+            svg_units_to_font_units,
+            close_subpaths=True,
         )
 
     ufo.glyphOrder += glyph_names

@@ -31,7 +31,10 @@ _SVG_CMD_TO_PEN_METHOD = {
 
 
 def draw_svg_path(
-    path: SVGPath, pen: AbstractPen, transform: Optional[Affine2D] = None
+    path: SVGPath,
+    pen: AbstractPen,
+    transform: Optional[Affine2D] = None,
+    close_subpaths: bool = False,
 ):
     """Draw SVGPath using a FontTools Segment Pen."""
     if transform is not None:
@@ -44,7 +47,10 @@ def draw_svg_path(
     for cmd, args in path.as_cmd_seq():
         if cmd == "M":
             if not closed:
-                pen.endPath()
+                if close_subpaths:
+                    pen.closePath()
+                else:
+                    pen.endPath()
             closed = False
 
         # pens expect args as 2-tuples; we use the 'grouper' itertools recipe
@@ -58,7 +64,10 @@ def draw_svg_path(
             closed = True
 
     if not closed:
-        pen.endPath()
+        if close_subpaths:
+            pen.closePath()
+        else:
+            pen.endPath()
 
 
 class SVGPathPen(DecomposingPen):
