@@ -264,7 +264,6 @@ class GlyphReuseCache:
 
         norm_path = normalize(SVGPath(d=path), self._config.reuse_tolerance).d
         if norm_path not in self._reusable_paths:
-            print(f"  not in reusable {norm_path}")
             return None
 
         glyph_name, glyph_path = self._reusable_paths[norm_path]
@@ -274,7 +273,6 @@ class GlyphReuseCache:
         if affine is None:
             logging.warning("affine_between %s %s failed", glyph_path, path)
             return None
-        print(f"  reuse! {norm_path} {affine}")
         return ReuseResult(glyph_name, affine)
 
     def add_glyph(self, glyph_name, glyph_path):
@@ -465,6 +463,7 @@ def _bounds(color_glyph: ColorGlyph):
                 continue
             paint_glyph: PaintGlyph = cast(PaintGlyph, context.paint)
             glyph = color_glyph.ufo.get(paint_glyph.glyph)
+            assert glyph is not None, f"{paint_glyph.glyph} not in UFO"
             glyph_bbox = glyph.getControlBounds(color_glyph.ufo)
             if glyph_bbox is None:
                 continue

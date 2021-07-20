@@ -142,10 +142,14 @@ class PaintColrLayers(Paint):
     layers: Tuple[Paint, ...]
 
     def colors(self):
-        pass
+        for p in self.layers:
+            yield from p.colors()
 
     def to_ufo_paint(self, colors):
-        return [p.to_ufo_paint(colors) for p in self.layers]
+        return {
+            "Format": self.format,
+            "Layers": [p.to_ufo_paint(colors) for p in self.layers]
+        }
 
     def children(self):
         return self.layers

@@ -350,11 +350,11 @@ def _painted_layers(
     # Reverse to get leaves first because that makes building Paint's easier
     # shapes *must* be leaves per picosvg
     nodes = []
-    for context in reversed(tuple(picosvg.breadth_first())):
+    for context in reversed(tuple(picosvg.depth_first())):
         if context.depth() == 0:
             continue  # svg root
 
-        # picosvg will deliver us exactly one defs and it will be the first child of svg
+        # picosvg will deliver us exactly one defs
         if context.path == "/svg[0]/defs[0]":
             assert not defs_seen
             defs_seen = True
@@ -369,11 +369,11 @@ def _painted_layers(
         if context.is_group():
             # flush the current shapes into a new group
             opacity = float(context.element.get("opacity"))
-            assert 0.0 < opacity < 1.0, f"{context.path} should be transparent"
-            assert len(nodes) > 1, f"{context.path} should have 2+ children"
+            assert 0.0 < opacity < 1.0, f"{debug_hint} {context.path} should be transparent"
+            assert len(nodes) > 1, f"{debug_hint} {context.path} should have 2+ children"
             assert {"opacity"} == set(
                 context.element.attrib.keys()
-            ), f"{context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
+            ), f"{debug_hint} {context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
             paint = PaintComposite(
                 mode=CompositeMode.SRC_IN,
                 source=PaintColrLayers(tuple(nodes)),
@@ -385,7 +385,7 @@ def _painted_layers(
             # insert reversed to undo the reversed at the top of loop
             layers.insert(0, nodes.pop())
 
-    assert defs_seen, "We never saw defs, what's up with that?!"
+    assert defs_seen, f"{debug_hint} we never saw defs, what's up with that?!"
     return tuple(layers)
 
 
@@ -416,6 +416,18 @@ def _mutating_traverse(paint, mutator):
             modified = _mutating_traverse(current, mutator)
             if current is not modified:
                 changes[field.name] = modified
+
+    # PaintColrLayers, uniquely, has a tuple of paint
+    if isinstance(paint, PaintColrLayers):
+        new_layers = list(paint.layers)
+        for i, current in enumerate(paint.layers):
+            modified = _mutating_traverse(current, mutator)
+            if current is not modified:
+                new_layers[i] = modified
+        new_layers = tuple(new_layers)
+        if new_layers != paint.layers:
+            changes["layers"] = tuple(new_layers)
+
     if changes:
         paint = dataclasses.replace(paint, **changes)
     return paint
