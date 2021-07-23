@@ -197,7 +197,7 @@ def write(dest: Path, config: FontConfig):
 
 
 def _resolve_config(
-    config_file: Path = None,
+    config_file: Optional[Path] = None,
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
         if FLAGS.config is None:
@@ -236,7 +236,9 @@ def _pop_flag(config: MutableMapping[str, Any], name: str) -> Any:
     return flag_value if flag_value is not None else config_value
 
 
-def load(config_file: Path = None, additional_srcs: Tuple[Path] = None) -> FontConfig:
+def load(
+    config_file: Optional[Path] = None, additional_srcs: Optional[Tuple[Path]] = None
+) -> FontConfig:
     config_dir, config = _resolve_config(config_file)
 
     # CLI flags will take precedence over the config file
