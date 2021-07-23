@@ -89,3 +89,65 @@ def test_to_ufo_paint(paint, colors, expected_ufo_paint):
 )
 def test_gettransform(input_point, paint, expected_point):
     assert paint.gettransform().map_point(input_point).round(6) == expected_point
+
+
+@pytest.mark.parametrize(
+    "transform, target, expected_result",
+    [
+        # Nop
+        (
+            Affine2D.identity(),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+        ),
+        # Int16 translation (expected to be typical case)
+        (
+            Affine2D.fromstring("translate(-5, 10)"),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintTranslate(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                dx=-5,
+                dy=10,
+            ),
+        ),
+        # Non-Int16 translation
+        (
+            Affine2D.fromstring("translate(-5.5, 10)"),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintTransform(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                transform=(1, 0, 0, 1, -5.5, 10),
+            ),
+        ),
+        # Uniform scaling
+        (
+            Affine2D.fromstring("scale(1.75)"),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintScaleUniform(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                scale=1.75,
+            ),
+        ),
+        # Non-uniform scaling
+        (
+            Affine2D.fromstring("scale(1.75, 1.5)"),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintScale(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                scaleX=1.75,
+                scaleY=1.5,
+            ),
+        ),
+        # Scaling unsafe for f2dot14
+        (
+            Affine2D.fromstring("scale(3.1)"),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintTransform(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                transform=(3.1, 0, 0, 3.1, 0, 0),
+            ),
+        ),
+    ],
+)
+def test_transformed(transform, target, expected_result):
+    assert transformed(transform, target) == expected_result

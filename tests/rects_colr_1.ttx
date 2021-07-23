@@ -103,7 +103,7 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="1" Format="12"><!-- PaintTransform -->
+      <Paint index="1" Format="14"><!-- PaintTranslate -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="0"/>
@@ -111,14 +111,8 @@
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
-        <Transform>
-          <xx value="1.0"/>
-          <yx value="0.0"/>
-          <xy value="0.0"/>
-          <yy value="1.0"/>
-          <dx value="20.0"/>
-          <dy value="-20.0"/>
-        </Transform>
+        <dx value="20"/>
+        <dy value="-20"/>
       </Paint>
       <Paint index="2" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -127,7 +121,7 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="3" Format="12"><!-- PaintTransform -->
+      <Paint index="3" Format="14"><!-- PaintTranslate -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="1"/>
@@ -135,14 +129,8 @@
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
-        <Transform>
-          <xx value="1.0"/>
-          <yx value="0.0"/>
-          <xy value="0.0"/>
-          <yy value="1.0"/>
-          <dx value="20.0"/>
-          <dy value="-20.0"/>
-        </Transform>
+        <dx value="20"/>
+        <dy value="-20"/>
       </Paint>
     </LayerList>
   </COLR>
