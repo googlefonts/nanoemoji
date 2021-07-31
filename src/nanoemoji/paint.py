@@ -148,7 +148,7 @@ class PaintColrLayers(Paint):
     def to_ufo_paint(self, colors):
         return {
             "Format": self.format,
-            "Layers": [p.to_ufo_paint(colors) for p in self.layers]
+            "Layers": [p.to_ufo_paint(colors) for p in self.layers],
         }
 
     def children(self):

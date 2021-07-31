@@ -369,8 +369,12 @@ def _painted_layers(
         if context.is_group():
             # flush the current shapes into a new group
             opacity = float(context.element.get("opacity"))
-            assert 0.0 < opacity < 1.0, f"{debug_hint} {context.path} should be transparent"
-            assert len(nodes) > 1, f"{debug_hint} {context.path} should have 2+ children"
+            assert (
+                0.0 < opacity < 1.0
+            ), f"{debug_hint} {context.path} should be transparent"
+            assert (
+                len(nodes) > 1
+            ), f"{debug_hint} {context.path} should have 2+ children"
             assert {"opacity"} == set(
                 context.element.attrib.keys()
             ), f"{debug_hint} {context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
@@ -527,6 +531,7 @@ class ColorGlyph(NamedTuple):
         def _traverse_callback(paint):
             visitor(paint)
             return paint
+
         for p in self.painted_layers:
             _mutating_traverse(p, _traverse_callback)
 
