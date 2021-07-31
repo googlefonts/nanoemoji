@@ -132,7 +132,10 @@ class PaintColrLayers(Paint):
             yield from p.colors()
 
     def to_ufo_paint(self, colors):
-        return [p.to_ufo_paint(colors) for p in self.layers]
+        return {
+            "Format": self.format,
+            "Layers": [p.to_ufo_paint(colors) for p in self.layers],
+        }
 
     def children(self):
         return self.layers
@@ -538,7 +541,7 @@ class PaintSkewAroundCenter(Paint):
         return (
             Affine2D.identity()
             .translate(self.center[0], self.center[1])
-            .skew(radians(self.xSkewAngle), radians(self.ySkewAngle))
+            .skew(-radians(self.xSkewAngle), radians(self.ySkewAngle))
             .translate(-self.center[0], -self.center[1])
         )
 
