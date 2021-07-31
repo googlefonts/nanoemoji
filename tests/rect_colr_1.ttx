@@ -79,20 +79,16 @@
       <!-- LayerCount=2 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="0"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
       <Paint index="1" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="0"/>
-              <Alpha value="0.8"/>
-            </Color>
+            <PaletteIndex value="0"/>
+            <Alpha value="0.8"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>

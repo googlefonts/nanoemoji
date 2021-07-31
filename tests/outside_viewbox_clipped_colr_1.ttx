@@ -100,19 +100,15 @@
       <!-- LayerCount=2 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="0"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="g_25fd.0"/>
       </Paint>
       <Paint index="1" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="1"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="1"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="g_25fd.1"/>
       </Paint>

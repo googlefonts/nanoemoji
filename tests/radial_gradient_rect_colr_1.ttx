@@ -77,17 +77,13 @@
                 <!-- StopCount=2 -->
                 <ColorStop index="0">
                   <StopOffset value="0.05"/>
-                  <Color>
-                    <PaletteIndex value="0"/>
-                    <Alpha value="1.0"/>
-                  </Color>
+                  <PaletteIndex value="0"/>
+                  <Alpha value="1.0"/>
                 </ColorStop>
                 <ColorStop index="1">
                   <StopOffset value="0.75"/>
-                  <Color>
-                    <PaletteIndex value="1"/>
-                    <Alpha value="1.0"/>
-                  </Color>
+                  <PaletteIndex value="1"/>
+                  <Alpha value="1.0"/>
                 </ColorStop>
               </ColorLine>
               <x0 value="50"/>

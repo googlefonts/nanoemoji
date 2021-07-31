@@ -17,14 +17,15 @@ from nanoemoji import color_glyph
 from nanoemoji.paint import (
     ColorStop,
     Extend,
+    Paint,
     PaintSolid,
     PaintLinearGradient,
     PaintRadialGradient,
     PaintGlyph,
     PaintColrGlyph,
-    PaintTransform,
     PaintComposite,
     PaintColrLayers,
+    PaintTransform,
 )
 from nanoemoji.svg import (
     _svg_matrix,
@@ -98,7 +99,7 @@ def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _Gradient
     stops = [
         ColorStop(
             stop.StopOffset,
-            _color(ttfont, stop.Color.PaletteIndex, stop.Color.Alpha),
+            _color(ttfont, stop.PaletteIndex, stop.Alpha),
         )
         for stop in ot_paint.ColorLine.ColorStop
     ]
@@ -132,7 +133,7 @@ def _apply_solid_ot_paint(
     ttfont: ttLib.TTFont,
     ot_paint: otTables.Paint,
 ):
-    color = _color(ttfont, ot_paint.Color.PaletteIndex, ot_paint.Color.Alpha)
+    color = _color(ttfont, ot_paint.PaletteIndex, ot_paint.Alpha)
     _apply_solid_paint(svg_path, PaintSolid(color))
 
 

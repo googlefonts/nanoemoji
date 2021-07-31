@@ -243,17 +243,13 @@
             <!-- StopCount=2 -->
             <ColorStop index="0">
               <StopOffset value="0.3212"/>
-              <Color>
-                <PaletteIndex value="6"/>
-                <Alpha value="1.0"/>
-              </Color>
+              <PaletteIndex value="6"/>
+              <Alpha value="1.0"/>
             </ColorStop>
             <ColorStop index="1">
               <StopOffset value="1.0"/>
-              <Color>
-                <PaletteIndex value="5"/>
-                <Alpha value="1.0"/>
-              </Color>
+              <PaletteIndex value="5"/>
+              <Alpha value="1.0"/>
             </ColorStop>
           </ColorLine>
           <x0 value="50"/>
@@ -267,29 +263,23 @@
       </Paint>
       <Paint index="1" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="0"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
       <Paint index="2" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="1"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="1"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e000.2"/>
       </Paint>
       <Paint index="3" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="2"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -305,10 +295,8 @@
       <Paint index="4" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="8"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="8"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -324,10 +312,8 @@
       <Paint index="5" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="3"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -343,10 +329,8 @@
       <Paint index="6" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="3"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -362,10 +346,8 @@
       <Paint index="7" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="3"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -381,10 +363,8 @@
       <Paint index="8" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <Color>
-              <PaletteIndex value="3"/>
-              <Alpha value="1.0"/>
-            </Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
@@ -399,10 +379,8 @@
       </Paint>
       <Paint index="9" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="2"/>
-            <Alpha value="0.2"/>
-          </Color>
+          <PaletteIndex value="2"/>
+          <Alpha value="0.2"/>
         </Paint>
         <Glyph value="e000.3"/>
       </Paint>
@@ -413,17 +391,13 @@
             <!-- StopCount=2 -->
             <ColorStop index="0">
               <StopOffset value="0.3212"/>
-              <Color>
-                <PaletteIndex value="6"/>
-                <Alpha value="1.0"/>
-              </Color>
+              <PaletteIndex value="6"/>
+              <Alpha value="1.0"/>
             </ColorStop>
             <ColorStop index="1">
               <StopOffset value="1.0"/>
-              <Color>
-                <PaletteIndex value="5"/>
-                <Alpha value="1.0"/>
-              </Color>
+              <PaletteIndex value="5"/>
+              <Alpha value="1.0"/>
             </ColorStop>
           </ColorLine>
           <x0 value="50"/>
@@ -437,19 +411,15 @@
       </Paint>
       <Paint index="11" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="4"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="4"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
       <Paint index="12" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="7"/>
-            <Alpha value="1.0"/>
-          </Color>
+          <PaletteIndex value="7"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e001.0"/>
       </Paint>
