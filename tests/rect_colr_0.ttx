@@ -62,13 +62,7 @@
     </TTGlyph>
 
     <TTGlyph name="e000.1" xMin="40" yMin="40" xMax="100" yMax="60">
-      <contour>
-        <pt x="40" y="60" on="1"/>
-        <pt x="40" y="40" on="1"/>
-        <pt x="100" y="40" on="1"/>
-        <pt x="100" y="60" on="1"/>
-      </contour>
-      <instructions/>
+      <component glyphName="e000.0" x="20" y="-20" flags="0x4"/>
     </TTGlyph>
 
   </glyf>

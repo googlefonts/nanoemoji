@@ -138,7 +138,11 @@ def test_vertical_metrics(ascender, descender, linegap):
         # simple fill on rect
         (("rect.svg",), "rect_colr_0.ttx", {"color_format": "glyf_colr_0"}),
         (("rect.svg",), "rect_colr_1.ttx", {"color_format": "glyf_colr_1"}),
-        (("rect.svg",), "rect_picosvg.ttx", {"color_format": "picosvg"}),
+        (
+            ("rect.svg",),
+            "rect_picosvg.ttx",
+            {"color_format": "picosvg", "pretty_print": True},
+        ),
         (("rect.svg",), "rect_untouchedsvg.ttx", {"color_format": "untouchedsvg"}),
         # linear gradient on rect
         (
@@ -172,7 +176,7 @@ def test_vertical_metrics(ascender, descender, linegap):
         (
             ("one-o-clock.svg", "two-o-clock.svg"),
             "clocks_picosvg.ttx",
-            {"color_format": "picosvg"},
+            {"color_format": "picosvg", "pretty_print": True},
         ),
         # passing a negative --reuse_tolerance disables shape reuse
         (
@@ -185,7 +189,7 @@ def test_vertical_metrics(ascender, descender, linegap):
         (
             ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
             "clocks_rects_picosvg.ttx",
-            {"color_format": "picosvg"},
+            {"color_format": "picosvg", "pretty_print": True},
         ),
         (
             ("one-o-clock.svg", "rect.svg", "two-o-clock.svg", "rect2.svg"),
@@ -222,7 +226,7 @@ def test_vertical_metrics(ascender, descender, linegap):
         (
             ("reused_shape_2.svg",),
             "reused_shape_2_picosvg.ttx",
-            {"color_format": "picosvg"},
+            {"color_format": "picosvg", "pretty_print": True},
         ),
         # Safari can't deal with gradientTransform where matrix.inverse() == self,
         # we work around it by nudging one matrix component by an invisible amount
@@ -230,7 +234,7 @@ def test_vertical_metrics(ascender, descender, linegap):
         (
             ("involutory_matrix.svg",),
             "involutory_matrix_picosvg.ttx",
-            {"color_format": "picosvg"},
+            {"color_format": "picosvg", "pretty_print": True},
         ),
         # Check that we do _not_ make composite glyphs with reused paths if
         # the latter overlap and the transform for the shape reuse is such

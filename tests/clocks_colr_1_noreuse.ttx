@@ -18,6 +18,15 @@
     <GlyphID id="12" name="e000.8"/>
     <GlyphID id="13" name="e000.9"/>
     <GlyphID id="14" name="e001.0"/>
+    <GlyphID id="15" name="e001.1"/>
+    <GlyphID id="16" name="e001.2"/>
+    <GlyphID id="17" name="e001.3"/>
+    <GlyphID id="18" name="e001.4"/>
+    <GlyphID id="19" name="e001.5"/>
+    <GlyphID id="20" name="e001.6"/>
+    <GlyphID id="21" name="e001.7"/>
+    <GlyphID id="22" name="e001.8"/>
+    <GlyphID id="23" name="e001.9"/>
   </GlyphOrder>
 
   <hmtx>
@@ -35,7 +44,16 @@
     <mtx name="e000.8" width="100" lsb="84"/>
     <mtx name="e000.9" width="100" lsb="3"/>
     <mtx name="e001" width="100" lsb="3"/>
-    <mtx name="e001.0" width="100" lsb="49"/>
+    <mtx name="e001.0" width="100" lsb="3"/>
+    <mtx name="e001.1" width="100" lsb="47"/>
+    <mtx name="e001.2" width="100" lsb="49"/>
+    <mtx name="e001.3" width="100" lsb="45"/>
+    <mtx name="e001.4" width="100" lsb="48"/>
+    <mtx name="e001.5" width="100" lsb="9"/>
+    <mtx name="e001.6" width="100" lsb="47"/>
+    <mtx name="e001.7" width="100" lsb="47"/>
+    <mtx name="e001.8" width="100" lsb="84"/>
+    <mtx name="e001.9" width="100" lsb="3"/>
   </hmtx>
 
   <cmap>
@@ -273,6 +291,7 @@
         <pt x="87" y="75" on="0"/>
         <pt x="75" y="87" on="0"/>
         <pt x="59" y="94" on="0"/>
+        <pt x="50" y="94" on="1"/>
       </contour>
       <contour>
         <pt x="50" y="97" on="1"/>
@@ -308,7 +327,55 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e001.0" xMin="49" yMin="48" xMax="71" yMax="63">
+    <TTGlyph name="e001.0" xMin="3" yMin="3" xMax="97" yMax="97">
+      <contour>
+        <pt x="97" y="50" on="1"/>
+        <pt x="97" y="60" on="0"/>
+        <pt x="90" y="77" on="0"/>
+        <pt x="77" y="90" on="0"/>
+        <pt x="60" y="97" on="0"/>
+        <pt x="50" y="97" on="1"/>
+        <pt x="40" y="97" on="0"/>
+        <pt x="23" y="90" on="0"/>
+        <pt x="10" y="77" on="0"/>
+        <pt x="3" y="60" on="0"/>
+        <pt x="3" y="50" on="1"/>
+        <pt x="3" y="40" on="0"/>
+        <pt x="10" y="23" on="0"/>
+        <pt x="23" y="10" on="0"/>
+        <pt x="40" y="3" on="0"/>
+        <pt x="50" y="3" on="1"/>
+        <pt x="60" y="3" on="0"/>
+        <pt x="77" y="10" on="0"/>
+        <pt x="90" y="23" on="0"/>
+        <pt x="97" y="40" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.1" xMin="47" yMin="50" xMax="53" yMax="81">
+      <contour>
+        <pt x="50" y="50" on="1"/>
+        <pt x="49" y="50" on="0"/>
+        <pt x="47" y="52" on="0"/>
+        <pt x="47" y="53" on="1"/>
+        <pt x="47" y="78" on="1"/>
+        <pt x="47" y="80" on="0"/>
+        <pt x="49" y="81" on="0"/>
+        <pt x="50" y="81" on="1"/>
+        <pt x="50" y="81" on="1"/>
+        <pt x="51" y="81" on="0"/>
+        <pt x="53" y="80" on="0"/>
+        <pt x="53" y="78" on="1"/>
+        <pt x="53" y="53" on="1"/>
+        <pt x="53" y="52" on="0"/>
+        <pt x="51" y="50" on="0"/>
+        <pt x="50" y="50" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.2" xMin="49" yMin="48" xMax="71" yMax="63">
       <contour>
         <pt x="50" y="50" on="1"/>
         <pt x="49" y="51" on="0"/>
@@ -326,6 +393,164 @@
         <pt x="53" y="48" on="0"/>
         <pt x="51" y="49" on="0"/>
         <pt x="50" y="50" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.3" xMin="45" yMin="45" xMax="55" yMax="55">
+      <contour>
+        <pt x="55" y="50" on="1"/>
+        <pt x="55" y="52" on="0"/>
+        <pt x="52" y="55" on="0"/>
+        <pt x="50" y="55" on="1"/>
+        <pt x="48" y="55" on="0"/>
+        <pt x="45" y="52" on="0"/>
+        <pt x="45" y="50" on="1"/>
+        <pt x="45" y="48" on="0"/>
+        <pt x="48" y="45" on="0"/>
+        <pt x="50" y="45" on="1"/>
+        <pt x="52" y="45" on="0"/>
+        <pt x="55" y="48" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.4" xMin="48" yMin="48" xMax="52" yMax="52">
+      <contour>
+        <pt x="52" y="50" on="1"/>
+        <pt x="52" y="51" on="0"/>
+        <pt x="51" y="52" on="0"/>
+        <pt x="50" y="52" on="1"/>
+        <pt x="49" y="52" on="0"/>
+        <pt x="48" y="51" on="0"/>
+        <pt x="48" y="50" on="1"/>
+        <pt x="48" y="49" on="0"/>
+        <pt x="49" y="48" on="0"/>
+        <pt x="50" y="48" on="1"/>
+        <pt x="51" y="48" on="0"/>
+        <pt x="52" y="49" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.5" xMin="9" yMin="47" xMax="16" yMax="53">
+      <contour>
+        <pt x="16" y="50" on="1"/>
+        <pt x="16" y="51" on="0"/>
+        <pt x="14" y="53" on="0"/>
+        <pt x="12" y="53" on="1"/>
+        <pt x="11" y="53" on="0"/>
+        <pt x="9" y="51" on="0"/>
+        <pt x="9" y="50" on="1"/>
+        <pt x="9" y="49" on="0"/>
+        <pt x="11" y="47" on="0"/>
+        <pt x="12" y="47" on="1"/>
+        <pt x="14" y="47" on="0"/>
+        <pt x="16" y="49" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.6" xMin="47" yMin="84" xMax="53" yMax="91">
+      <contour>
+        <pt x="53" y="87" on="1"/>
+        <pt x="53" y="89" on="0"/>
+        <pt x="51" y="91" on="0"/>
+        <pt x="50" y="91" on="1"/>
+        <pt x="49" y="91" on="0"/>
+        <pt x="47" y="89" on="0"/>
+        <pt x="47" y="87" on="1"/>
+        <pt x="47" y="86" on="0"/>
+        <pt x="49" y="84" on="0"/>
+        <pt x="50" y="84" on="1"/>
+        <pt x="51" y="84" on="0"/>
+        <pt x="53" y="86" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.7" xMin="47" yMin="9" xMax="53" yMax="16">
+      <contour>
+        <pt x="53" y="12" on="1"/>
+        <pt x="53" y="14" on="0"/>
+        <pt x="51" y="16" on="0"/>
+        <pt x="50" y="16" on="1"/>
+        <pt x="49" y="16" on="0"/>
+        <pt x="47" y="14" on="0"/>
+        <pt x="47" y="12" on="1"/>
+        <pt x="47" y="11" on="0"/>
+        <pt x="49" y="9" on="0"/>
+        <pt x="50" y="9" on="1"/>
+        <pt x="51" y="9" on="0"/>
+        <pt x="53" y="11" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.8" xMin="84" yMin="47" xMax="91" yMax="53">
+      <contour>
+        <pt x="91" y="50" on="1"/>
+        <pt x="91" y="51" on="0"/>
+        <pt x="89" y="53" on="0"/>
+        <pt x="87" y="53" on="1"/>
+        <pt x="86" y="53" on="0"/>
+        <pt x="84" y="51" on="0"/>
+        <pt x="84" y="50" on="1"/>
+        <pt x="84" y="49" on="0"/>
+        <pt x="86" y="47" on="0"/>
+        <pt x="87" y="47" on="1"/>
+        <pt x="89" y="47" on="0"/>
+        <pt x="91" y="49" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e001.9" xMin="3" yMin="3" xMax="97" yMax="97">
+      <contour>
+        <pt x="50" y="94" on="1"/>
+        <pt x="41" y="94" on="0"/>
+        <pt x="25" y="87" on="0"/>
+        <pt x="13" y="75" on="0"/>
+        <pt x="6" y="59" on="0"/>
+        <pt x="6" y="50" on="1"/>
+        <pt x="6" y="41" on="0"/>
+        <pt x="13" y="25" on="0"/>
+        <pt x="25" y="13" on="0"/>
+        <pt x="41" y="6" on="0"/>
+        <pt x="50" y="6" on="1"/>
+        <pt x="59" y="6" on="0"/>
+        <pt x="75" y="13" on="0"/>
+        <pt x="87" y="25" on="0"/>
+        <pt x="94" y="41" on="0"/>
+        <pt x="94" y="50" on="1"/>
+        <pt x="94" y="59" on="0"/>
+        <pt x="87" y="75" on="0"/>
+        <pt x="75" y="87" on="0"/>
+        <pt x="59" y="94" on="0"/>
+        <pt x="50" y="94" on="1"/>
+      </contour>
+      <contour>
+        <pt x="50" y="97" on="1"/>
+        <pt x="50" y="97" on="1"/>
+        <pt x="60" y="97" on="0"/>
+        <pt x="77" y="90" on="0"/>
+        <pt x="90" y="77" on="0"/>
+        <pt x="97" y="60" on="0"/>
+        <pt x="97" y="50" on="1"/>
+        <pt x="97" y="40" on="0"/>
+        <pt x="90" y="23" on="0"/>
+        <pt x="77" y="10" on="0"/>
+        <pt x="60" y="3" on="0"/>
+        <pt x="50" y="3" on="1"/>
+        <pt x="40" y="3" on="0"/>
+        <pt x="23" y="10" on="0"/>
+        <pt x="10" y="23" on="0"/>
+        <pt x="3" y="40" on="0"/>
+        <pt x="3" y="50" on="1"/>
+        <pt x="3" y="60" on="0"/>
+        <pt x="10" y="77" on="0"/>
+        <pt x="23" y="90" on="0"/>
+        <pt x="40" y="97" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -348,13 +573,13 @@
       <BaseGlyphPaintRecord index="1">
         <BaseGlyph value="e001"/>
         <Paint Format="1"><!-- PaintColrLayers -->
-          <NumLayers value="4"/>
+          <NumLayers value="10"/>
           <FirstLayerIndex value="10"/>
         </Paint>
       </BaseGlyphPaintRecord>
     </BaseGlyphList>
     <LayerList>
-      <!-- LayerCount=14 -->
+      <!-- LayerCount=20 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="4"><!-- PaintLinearGradient -->
           <ColorLine>
@@ -492,7 +717,7 @@
           <x2 value="-22"/>
           <y2 value="85"/>
         </Paint>
-        <Glyph value="e000.0"/>
+        <Glyph value="e001.0"/>
       </Paint>
       <Paint index="11" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -501,7 +726,7 @@
             <Alpha value="1.0"/>
           </Color>
         </Paint>
-        <Glyph value="e000.1"/>
+        <Glyph value="e001.1"/>
       </Paint>
       <Paint index="12" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
@@ -510,11 +735,70 @@
             <Alpha value="1.0"/>
           </Color>
         </Paint>
-        <Glyph value="e001.0"/>
+        <Glyph value="e001.2"/>
       </Paint>
-      <Paint index="13" Format="1"><!-- PaintColrLayers -->
-        <NumLayers value="7"/>
-        <FirstLayerIndex value="3"/>
+      <Paint index="13" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.3"/>
+      </Paint>
+      <Paint index="14" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="8"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.4"/>
+      </Paint>
+      <Paint index="15" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.5"/>
+      </Paint>
+      <Paint index="16" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.6"/>
+      </Paint>
+      <Paint index="17" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.7"/>
+      </Paint>
+      <Paint index="18" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="3"/>
+            <Alpha value="1.0"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.8"/>
+      </Paint>
+      <Paint index="19" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <Color>
+            <PaletteIndex value="2"/>
+            <Alpha value="0.2"/>
+          </Color>
+        </Paint>
+        <Glyph value="e001.9"/>
       </Paint>
     </LayerList>
   </COLR>

@@ -11,11 +11,7 @@
     <GlyphID id="5" name="e000.1"/>
     <GlyphID id="6" name="e000.2"/>
     <GlyphID id="7" name="e000.3"/>
-    <GlyphID id="8" name="e000.4"/>
-    <GlyphID id="9" name="e000.5"/>
-    <GlyphID id="10" name="e000.5.component.0"/>
-    <GlyphID id="11" name="e000.6"/>
-    <GlyphID id="12" name="e001.0"/>
+    <GlyphID id="8" name="e001.0"/>
   </GlyphOrder>
 
   <hmtx>
@@ -25,11 +21,7 @@
     <mtx name="e000.0" width="100" lsb="3"/>
     <mtx name="e000.1" width="100" lsb="47"/>
     <mtx name="e000.2" width="100" lsb="48"/>
-    <mtx name="e000.3" width="100" lsb="45"/>
-    <mtx name="e000.4" width="100" lsb="48"/>
-    <mtx name="e000.5" width="100" lsb="9"/>
-    <mtx name="e000.5.component.0" width="0" lsb="9"/>
-    <mtx name="e000.6" width="100" lsb="3"/>
+    <mtx name="e000.3" width="100" lsb="3"/>
     <mtx name="e001" width="100" lsb="3"/>
     <mtx name="e001.0" width="100" lsb="49"/>
   </hmtx>
@@ -139,68 +131,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.3" xMin="45" yMin="45" xMax="55" yMax="55">
-      <contour>
-        <pt x="55" y="50" on="1"/>
-        <pt x="55" y="52" on="0"/>
-        <pt x="52" y="55" on="0"/>
-        <pt x="50" y="55" on="1"/>
-        <pt x="48" y="55" on="0"/>
-        <pt x="45" y="52" on="0"/>
-        <pt x="45" y="50" on="1"/>
-        <pt x="45" y="48" on="0"/>
-        <pt x="48" y="45" on="0"/>
-        <pt x="50" y="45" on="1"/>
-        <pt x="52" y="45" on="0"/>
-        <pt x="55" y="48" on="0"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.4" xMin="48" yMin="48" xMax="52" yMax="52">
-      <contour>
-        <pt x="52" y="50" on="1"/>
-        <pt x="52" y="51" on="0"/>
-        <pt x="51" y="52" on="0"/>
-        <pt x="50" y="52" on="1"/>
-        <pt x="49" y="52" on="0"/>
-        <pt x="48" y="51" on="0"/>
-        <pt x="48" y="50" on="1"/>
-        <pt x="48" y="49" on="0"/>
-        <pt x="49" y="48" on="0"/>
-        <pt x="50" y="48" on="1"/>
-        <pt x="51" y="48" on="0"/>
-        <pt x="52" y="49" on="0"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.5" xMin="9" yMin="10" xMax="91" yMax="91">
-      <component glyphName="e000.5.component.0" x="0" y="0" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="38" y="38" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="38" y="-37" flags="0x4"/>
-      <component glyphName="e000.5.component.0" x="75" y="0" flags="0x4"/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.5.component.0" xMin="9" yMin="47" xMax="16" yMax="53">
-      <contour>
-        <pt x="16" y="50" on="1"/>
-        <pt x="16" y="51" on="0"/>
-        <pt x="14" y="53" on="0"/>
-        <pt x="12" y="53" on="1"/>
-        <pt x="11" y="53" on="0"/>
-        <pt x="9" y="51" on="0"/>
-        <pt x="9" y="50" on="1"/>
-        <pt x="9" y="49" on="0"/>
-        <pt x="11" y="47" on="0"/>
-        <pt x="12" y="47" on="1"/>
-        <pt x="14" y="47" on="0"/>
-        <pt x="16" y="49" on="0"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.6" xMin="3" yMin="3" xMax="97" yMax="97">
+    <TTGlyph name="e000.3" xMin="3" yMin="3" xMax="97" yMax="97">
       <contour>
         <pt x="50" y="94" on="1"/>
         <pt x="41" y="94" on="0"/>
@@ -222,6 +153,7 @@
         <pt x="87" y="75" on="0"/>
         <pt x="75" y="87" on="0"/>
         <pt x="59" y="94" on="0"/>
+        <pt x="50" y="94" on="1"/>
       </contour>
       <contour>
         <pt x="50" y="97" on="1"/>
@@ -290,7 +222,7 @@
       <BaseGlyphPaintRecord index="0">
         <BaseGlyph value="e000"/>
         <Paint Format="1"><!-- PaintColrLayers -->
-          <NumLayers value="7"/>
+          <NumLayers value="10"/>
           <FirstLayerIndex value="0"/>
         </Paint>
       </BaseGlyphPaintRecord>
@@ -298,12 +230,12 @@
         <BaseGlyph value="e001"/>
         <Paint Format="1"><!-- PaintColrLayers -->
           <NumLayers value="4"/>
-          <FirstLayerIndex value="7"/>
+          <FirstLayerIndex value="10"/>
         </Paint>
       </BaseGlyphPaintRecord>
     </BaseGlyphList>
     <LayerList>
-      <!-- LayerCount=11 -->
+      <!-- LayerCount=14 -->
       <Paint index="0" Format="10"><!-- PaintGlyph -->
         <Paint Format="4"><!-- PaintLinearGradient -->
           <ColorLine>
@@ -351,43 +283,130 @@
         </Paint>
         <Glyph value="e000.2"/>
       </Paint>
-      <Paint index="3" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="2"/>
-            <Alpha value="1.0"/>
-          </Color>
+      <Paint index="3" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="2"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
         </Paint>
-        <Glyph value="e000.3"/>
+        <Transform>
+          <xx value="0.117"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.117"/>
+          <dx value="44.167"/>
+          <dy value="44.167"/>
+        </Transform>
       </Paint>
-      <Paint index="4" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="8"/>
-            <Alpha value="1.0"/>
-          </Color>
+      <Paint index="4" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="8"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
         </Paint>
-        <Glyph value="e000.4"/>
+        <Transform>
+          <xx value="0.05"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.05"/>
+          <dx value="47.5"/>
+          <dy value="47.5"/>
+        </Transform>
       </Paint>
-      <Paint index="5" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <Color>
-            <PaletteIndex value="3"/>
-            <Alpha value="1.0"/>
-          </Color>
+      <Paint index="5" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="3"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
         </Paint>
-        <Glyph value="e000.5"/>
+        <Transform>
+          <xx value="0.067"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.067"/>
+          <dx value="9.081"/>
+          <dy value="46.565"/>
+        </Transform>
       </Paint>
-      <Paint index="6" Format="10"><!-- PaintGlyph -->
+      <Paint index="6" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="3"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="0.067"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.067"/>
+          <dx value="46.581"/>
+          <dy value="84.065"/>
+        </Transform>
+      </Paint>
+      <Paint index="7" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="3"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="0.067"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.067"/>
+          <dx value="46.581"/>
+          <dy value="9.065"/>
+        </Transform>
+      </Paint>
+      <Paint index="8" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <Color>
+              <PaletteIndex value="3"/>
+              <Alpha value="1.0"/>
+            </Color>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="0.067"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="0.067"/>
+          <dx value="84.081"/>
+          <dy value="46.565"/>
+        </Transform>
+      </Paint>
+      <Paint index="9" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="2"/>
             <Alpha value="0.2"/>
           </Color>
         </Paint>
-        <Glyph value="e000.6"/>
+        <Glyph value="e000.3"/>
       </Paint>
-      <Paint index="7" Format="10"><!-- PaintGlyph -->
+      <Paint index="10" Format="10"><!-- PaintGlyph -->
         <Paint Format="4"><!-- PaintLinearGradient -->
           <ColorLine>
             <Extend value="pad"/>
@@ -416,7 +435,7 @@
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="8" Format="10"><!-- PaintGlyph -->
+      <Paint index="11" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="4"/>
@@ -425,7 +444,7 @@
         </Paint>
         <Glyph value="e000.1"/>
       </Paint>
-      <Paint index="9" Format="10"><!-- PaintGlyph -->
+      <Paint index="12" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
           <Color>
             <PaletteIndex value="7"/>
@@ -434,8 +453,8 @@
         </Paint>
         <Glyph value="e001.0"/>
       </Paint>
-      <Paint index="10" Format="1"><!-- PaintColrLayers -->
-        <NumLayers value="4"/>
+      <Paint index="13" Format="1"><!-- PaintColrLayers -->
+        <NumLayers value="7"/>
         <FirstLayerIndex value="3"/>
       </Paint>
     </LayerList>

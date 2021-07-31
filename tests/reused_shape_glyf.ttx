@@ -7,9 +7,7 @@
     <GlyphID id="1" name=".space"/>
     <GlyphID id="2" name="e000"/>
     <GlyphID id="3" name="e000.0"/>
-    <GlyphID id="4" name="e000.0.component.0"/>
-    <GlyphID id="5" name="e000.1"/>
-    <GlyphID id="6" name="e000.1.component.0"/>
+    <GlyphID id="4" name="e000.1"/>
   </GlyphOrder>
 
   <hmtx>
@@ -17,9 +15,7 @@
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="3"/>
     <mtx name="e000.0" width="100" lsb="18"/>
-    <mtx name="e000.0.component.0" width="0" lsb="18"/>
-    <mtx name="e000.1" width="100" lsb="3"/>
-    <mtx name="e000.1.component.0" width="0" lsb="69"/>
+    <mtx name="e000.1" width="100" lsb="69"/>
   </hmtx>
 
   <cmap>
@@ -49,15 +45,12 @@
 
     <TTGlyph name="e000" xMin="3" yMin="3" xMax="97" yMax="97">
       <component glyphName="e000.0" x="0" y="0" flags="0x204"/>
+      <component glyphName="e000.0" x="100" y="100" scale="-1.0" flags="0x4"/>
       <component glyphName="e000.1" x="0" y="0" flags="0x4"/>
+      <component glyphName="e000.1" x="100" y="100" scale="-1.0" flags="0x4"/>
     </TTGlyph>
 
-    <TTGlyph name="e000.0" xMin="18" yMin="3" xMax="82" yMax="97">
-      <component glyphName="e000.0.component.0" x="0" y="0" flags="0x4"/>
-      <component glyphName="e000.0.component.0" x="100" y="100" scale="-1.0" flags="0x4"/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.0.component.0" xMin="18" yMin="69" xMax="82" yMax="97">
+    <TTGlyph name="e000.0" xMin="18" yMin="69" xMax="82" yMax="97">
       <contour>
         <pt x="50" y="69" on="1"/>
         <pt x="56" y="69" on="0"/>
@@ -100,12 +93,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.1" xMin="3" yMin="19" xMax="97" yMax="81">
-      <component glyphName="e000.1.component.0" x="0" y="0" flags="0x4"/>
-      <component glyphName="e000.1.component.0" x="100" y="100" scale="-1.0" flags="0x4"/>
-    </TTGlyph>
-
-    <TTGlyph name="e000.1.component.0" xMin="69" yMin="19" xMax="97" yMax="81">
+    <TTGlyph name="e000.1" xMin="69" yMin="19" xMax="97" yMax="81">
       <contour>
         <pt x="69" y="50" on="1"/>
         <pt x="69" y="44" on="0"/>

@@ -21,7 +21,17 @@ from enum import Enum, IntEnum
 from fontTools.ttLib.tables import otTables as ot
 from nanoemoji.colors import Color, css_color
 from picosvg.geometric_types import Point
-from typing import Any, ClassVar, Generator, Mapping, Optional, Sequence, Tuple
+from picosvg.svg_transform import Affine2D
+from typing import (
+    Any,
+    ClassVar,
+    Generator,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 
 class Extend(Enum):
@@ -63,6 +73,13 @@ class CompositeMode(IntEnum):
 
 
 @dataclasses.dataclass(frozen=True)
+class PaintTraverseContext:
+    path: Tuple["Paint", ...]
+    paint: "Paint"
+    transform: Affine2D
+
+
+@dataclasses.dataclass(frozen=True)
 class ColorStop:
     stopOffset: float = 0.0
     color: Color = css_color("black")
@@ -76,10 +93,42 @@ class Paint:
     def to_ufo_paint(self, colors: Sequence[Color]):
         raise NotImplementedError()
 
+    def breadth_first(self) -> Generator[PaintTraverseContext, None, None]:
+        frontier = [PaintTraverseContext((), self, Affine2D.identity())]
+        while frontier:
+            context = frontier.pop(0)
+            yield context
+            transform = context.transform
+            # TODO paint variants
+            if isinstance(context.paint, PaintTransform):
+                transform = Affine2D.compose_ltr(
+                    (
+                        transform,
+                        Affine2D(*context.paint.transform),
+                    )
+                )
+            for paint in context.paint.children():
+                frontier.append(
+                    PaintTraverseContext(context.path + (self,), paint, transform)
+                )
+
+    def children(self) -> Iterable["Paint"]:
+        return ()
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintColrLayers)
+    layers: Tuple[Paint, ...]
+
+    def colors(self):
+        pass
+
+    def to_ufo_paint(self, colors):
+        return [p.to_ufo_paint(colors) for p in self.layers]
+
+    def children(self):
+        return self.layers
 
 
 @dataclasses.dataclass(frozen=True)
@@ -193,6 +242,9 @@ class PaintGlyph(Paint):
         }
         return paint
 
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrGlyph(Paint):
@@ -221,6 +273,32 @@ class PaintTransform(Paint):
         }
         return paint
 
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintTranslate(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintTranslate)
+    paint: Paint
+    dx: float
+    dy: float
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "dx": self.dx,
+            "dy": self.dy,
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintComposite(Paint):
@@ -241,3 +319,6 @@ class PaintComposite(Paint):
             "BackdropPaint": self.backdrop.to_ufo_paint(colors),
         }
         return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.source, self.backdrop)
