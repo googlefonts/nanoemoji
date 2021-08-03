@@ -19,8 +19,9 @@ Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradi
 import dataclasses
 from enum import Enum, IntEnum
 from fontTools.ttLib.tables import otTables as ot
-from nanoemoji.colors import Color, css_color
-from picosvg.geometric_types import Point
+from math import radians
+from nanoemoji.colors import Color
+from picosvg.geometric_types import Point, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
     Any,
@@ -82,11 +83,13 @@ class PaintTraverseContext:
 @dataclasses.dataclass(frozen=True)
 class ColorStop:
     stopOffset: float = 0.0
-    color: Color = css_color("black")
+    color: Color = Color.fromstring("black")
 
 
 @dataclasses.dataclass(frozen=True)
 class Paint:
+    format: ClassVar[int] = -1  # so pytype knows all Paint have format
+
     def colors(self) -> Generator[Color, None, None]:
         raise NotImplementedError()
 
@@ -99,14 +102,13 @@ class Paint:
             context = frontier.pop(0)
             yield context
             transform = context.transform
-            # TODO paint variants
-            if isinstance(context.paint, PaintTransform):
-                transform = Affine2D.compose_ltr(
-                    (
-                        transform,
-                        Affine2D(*context.paint.transform),
-                    )
+            paint_transform = context.paint.gettransform()
+            transform = Affine2D.compose_ltr(
+                (
+                    transform,
+                    paint_transform,
                 )
+            )
             for paint in context.paint.children():
                 frontier.append(
                     PaintTraverseContext(context.path + (self,), paint, transform)
@@ -115,6 +117,10 @@ class Paint:
     def children(self) -> Iterable["Paint"]:
         return ()
 
+    def gettransform(self) -> Affine2D:
+        # Returns the transform caused by this Paint (not it's ancestors)
+        return Affine2D.identity()
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
@@ -122,7 +128,8 @@ class PaintColrLayers(Paint):
     layers: Tuple[Paint, ...]
 
     def colors(self):
-        pass
+        for p in self.layers:
+            yield from p.colors()
 
     def to_ufo_paint(self, colors):
         return [p.to_ufo_paint(colors) for p in self.layers]
@@ -134,7 +141,7 @@ class PaintColrLayers(Paint):
 @dataclasses.dataclass(frozen=True)
 class PaintSolid(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintSolid)
-    color: Color = css_color("black")
+    color: Color = Color.fromstring("black")
 
     def colors(self):
         yield self.color
@@ -142,10 +149,8 @@ class PaintSolid(Paint):
     def to_ufo_paint(self, colors):
         return {
             "Format": self.format,
-            "Color": {
-                "PaletteIndex": colors.index(self.color.opaque()),
-                "Alpha": self.color.alpha,
-            },
+            "PaletteIndex": colors.index(self.color.opaque()),
+            "Alpha": self.color.alpha,
         }
 
 
@@ -154,10 +159,8 @@ def _ufoColorLine(gradient, colors):
         "ColorStop": [
             {
                 "StopOffset": stop.stopOffset,
-                "Color": {
-                    "PaletteIndex": colors.index(stop.color.opaque()),
-                    "Alpha": stop.color.alpha,
-                },
+                "PaletteIndex": colors.index(stop.color.opaque()),
+                "Alpha": stop.color.alpha,
             }
             for stop in gradient.stops
         ],
@@ -225,6 +228,9 @@ class PaintRadialGradient(Paint):
         return paint
 
 
+# TODO PaintSweepGradient
+
+
 @dataclasses.dataclass(frozen=True)
 class PaintGlyph(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintGlyph)
@@ -276,13 +282,16 @@ class PaintTransform(Paint):
     def children(self) -> Iterable[Paint]:
         return (self.paint,)
 
+    def gettransform(self) -> Affine2D:
+        return Affine2D(*self.transform)
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintTranslate(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTranslate)
     paint: Paint
-    dx: float
-    dy: float
+    dx: int
+    dy: int
 
     def colors(self):
         yield from self.paint.colors()
@@ -298,6 +307,240 @@ class PaintTranslate(Paint):
 
     def children(self) -> Iterable[Paint]:
         return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().translate(self.dx, self.dy)
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintScale(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintScale)
+    paint: Paint
+    scaleX: float = 1.0
+    scaleY: float = 1.0
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "scaleX": self.scaleX,
+            "scaleY": self.scaleY,
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().scale(self.scaleX, self.scaleY)
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintScaleAroundCenter(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintScaleAroundCenter)
+    paint: Paint
+    scaleX: float = 1.0
+    scaleY: float = 1.0
+    center: Point = Point()
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "scaleX": self.scaleX,
+            "scaleY": self.scaleY,
+            "centerX": self.center[0],
+            "centerY": self.center[1],
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return (
+            Affine2D.identity()
+            .translate(self.center[0], self.center[1])
+            .scale(self.scaleX, self.scaleY)
+            .translate(-self.center[0], -self.center[1])
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintScaleUniform(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniform)
+    paint: Paint
+    scale: float = 1.0
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "scale": self.scale,
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().scale(self.scale)
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintScaleUniformAroundCenter(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniformAroundCenter)
+    paint: Paint
+    scale: float = 1.0
+    center: Point = Point()
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "scale": self.scale,
+            "centerX": self.center[0],
+            "centerY": self.center[1],
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return (
+            Affine2D.identity()
+            .translate(self.center[0], self.center[1])
+            .scale(self.scale)
+            .translate(-self.center[0], -self.center[1])
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintRotate(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintRotate)
+    paint: Paint
+    angle: float = 0.0
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "angle": self.angle,
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().rotate(radians(self.angle))
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintRotateAroundCenter(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintRotateAroundCenter)
+    paint: Paint
+    angle: float = 0.0
+    center: Point = Point()
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "angle": self.angle,
+            "centerX": self.center[0],
+            "centerY": self.center[1],
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().rotate(
+            radians(self.angle), self.center[0], self.center[1]
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintSkew(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintSkew)
+    paint: Paint
+    xSkewAngle: float = 0.0
+    ySkewAngle: float = 0.0
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "xSkewAngle": self.xSkewAngle,
+            "ySkewAngle": self.ySkewAngle,
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return Affine2D.identity().skew(
+            -radians(self.xSkewAngle), radians(self.ySkewAngle)
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class PaintSkewAroundCenter(Paint):
+    format: ClassVar[int] = int(ot.PaintFormat.PaintSkewAroundCenter)
+    paint: Paint
+    xSkewAngle: float = 0.0
+    ySkewAngle: float = 0.0
+    center: Point = Point()
+
+    def colors(self):
+        yield from self.paint.colors()
+
+    def to_ufo_paint(self, colors):
+        paint = {
+            "Format": self.format,
+            "Paint": self.paint.to_ufo_paint(colors),
+            "xSkewAngle": self.xSkewAngle,
+            "ySkewAngle": self.ySkewAngle,
+            "centerX": self.center[0],
+            "centerY": self.center[1],
+        }
+        return paint
+
+    def children(self) -> Iterable[Paint]:
+        return (self.paint,)
+
+    def gettransform(self) -> Affine2D:
+        return (
+            Affine2D.identity()
+            .translate(self.center[0], self.center[1])
+            .skew(radians(self.xSkewAngle), radians(self.ySkewAngle))
+            .translate(-self.center[0], -self.center[1])
+        )
 
 
 @dataclasses.dataclass(frozen=True)
