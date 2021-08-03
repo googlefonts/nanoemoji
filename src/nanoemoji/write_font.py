@@ -24,6 +24,7 @@ import dataclasses
 import math
 from fontTools import ttLib
 from fontTools.misc.arrayTools import rectArea, unionRect
+from fontTools.misc.roundTools import otRound
 from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
@@ -481,7 +482,9 @@ def _quantize_bounding_rect(
     )
 
 
-def _bounds(color_glyph: ColorGlyph, quantize_factor: int = 1):
+def _bounds(
+    color_glyph: ColorGlyph, quantize_factor: int = 1
+) -> Optional[Tuple[int, int, int, int]]:
     bounds = None
     for root in color_glyph.painted_layers:
         for context in root.breadth_first():
@@ -500,7 +503,15 @@ def _bounds(color_glyph: ColorGlyph, quantize_factor: int = 1):
                 bounds = glyph_bbox
             else:
                 bounds = unionRect(bounds, glyph_bbox)
-    return _quantize_bounding_rect(*bounds, factor=quantize_factor)
+    if bounds is None:
+        return
+    # before quantizing to integer values > 1, we must first round floats to
+    # int using the same rounding function (i.e. otRound) that fontTools
+    # glyf table's compile method will use to round any float coordinates.
+    bounds = tuple(otRound(v) for v in bounds)
+    if quantize_factor > 1:
+        return _quantize_bounding_rect(*bounds, factor=quantize_factor)
+    return bounds
 
 
 def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
@@ -574,9 +585,10 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
     # containing firstly the glyph names (array of strings), and secondly
     # the clip box values (array of 4 integers for a non-variable box)
     # shared by all those glyphs.
-    ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
-        (glyphs, box) for box, glyphs in clipBoxes.items()
-    ]
+    if clipBoxes:
+        ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
+            (glyphs, box) for box, glyphs in clipBoxes.items()
+        ]
 
 
 def _svg_ttfont(
