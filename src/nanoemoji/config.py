@@ -90,7 +90,8 @@ flags.DEFINE_bool(
 flags.DEFINE_integer(
     "clipbox_quantization",
     None,
-    "Whether to round COLR clip boxes to multiples of given integer.",
+    "Whether to quantize COLR clip boxes to multiples of given integer, i.e. "
+    "rounding {x,y}Min => -Inf (floor) and {x,y}Max => +Inf (ceiling)",
     lower_bound=1,
 )
 flags.DEFINE_bool(
