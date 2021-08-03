@@ -43,7 +43,7 @@ setup(
         "pillow>=7.2.0",
         "regex>=2020.4.4",
         "toml>=0.10.1",
-        "ufo2ft[cffsubr]>=2.23.0",
+        "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
     ],
     extras_require=extras_require,
