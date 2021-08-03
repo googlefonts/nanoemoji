@@ -87,6 +87,12 @@ flags.DEFINE_bool(
     "Whether to fail or continue with a warning when picosvg cannot compute "
     "affine between paths that normalize the same.",
 )
+flags.DEFINE_integer(
+    "clipbox_quantization",
+    None,
+    "Whether to round COLR clip boxes to multiples of given integer.",
+    lower_bound=1,
+)
 flags.DEFINE_bool(
     "pretty_print",
     None,
@@ -130,6 +136,7 @@ class FontConfig(NamedTuple):
     ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
     clip_to_viewbox: bool = True
+    clipbox_quantization: int = 1
     output: str = "font"
     fea_file: str = "features.fea"
     codepointmap_file: str = "codepointmap.csv"
@@ -182,6 +189,7 @@ def write(dest: Path, config: FontConfig):
         "ignore_reuse_error": config.ignore_reuse_error,
         "keep_glyph_names": config.keep_glyph_names,
         "clip_to_viewbox": config.clip_to_viewbox,
+        "clipbox_quantization": config.clipbox_quantization,
         "pretty_print": config.pretty_print,
         "output": config.output,
         "axis": {
@@ -267,6 +275,7 @@ def load(
     ignore_reuse_error = _pop_flag(config, "ignore_reuse_error")
     keep_glyph_names = _pop_flag(config, "keep_glyph_names")
     clip_to_viewbox = _pop_flag(config, "clip_to_viewbox")
+    clipbox_quantization = _pop_flag(config, "clipbox_quantization")
     pretty_print = _pop_flag(config, "pretty_print")
     output = _pop_flag(config, "output")
 
@@ -343,6 +352,7 @@ def load(
         ignore_reuse_error=ignore_reuse_error,
         keep_glyph_names=keep_glyph_names,
         clip_to_viewbox=clip_to_viewbox,
+        clipbox_quantization=clipbox_quantization,
         pretty_print=pretty_print,
         output=output,
         fea_file=_DEFAULT_CONFIG.fea_file,
