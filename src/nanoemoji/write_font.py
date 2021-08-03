@@ -574,7 +574,7 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
     # containing firstly the glyph names (array of strings), and secondly
     # the clip box values (array of 4 integers for a non-variable box)
     # shared by all those glyphs.
-    ufo.lib[ufo2ft.constants.COLOR_CLIP_BOXES_KEY] = [
+    ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
         (glyphs, box) for box, glyphs in clipBoxes.items()
     ]
 
