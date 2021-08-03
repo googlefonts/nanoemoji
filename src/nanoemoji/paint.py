@@ -73,6 +73,12 @@ class CompositeMode(IntEnum):
     HSL_LUMINOSITY = 26
 
 
+_PAINT_FIELD_TO_OT_FIELD = {
+    "format": "PaintFormat",
+    "paint": "Paint",
+}
+
+
 @dataclasses.dataclass(frozen=True)
 class PaintTraverseContext:
     path: Tuple["Paint", ...]
@@ -121,6 +127,16 @@ class Paint:
         # Returns the transform caused by this Paint (not it's ancestors)
         return Affine2D.identity()
 
+    @classmethod
+    def from_ot(cls, ot_paint: ot.Paint) -> "Paint":
+        paint_t = globals()[ot_paint.getFormatName()]
+        paint_args = tuple(
+            getattr(ot_paint, _PAINT_FIELD_TO_OT_FIELD.get(f.name, f.name))
+            for f in dataclasses.fields(paint_t)
+        )
+        paint = paint_t(*paint_args)
+        return paint
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintColrLayers(Paint):
@@ -132,7 +148,10 @@ class PaintColrLayers(Paint):
             yield from p.colors()
 
     def to_ufo_paint(self, colors):
-        return [p.to_ufo_paint(colors) for p in self.layers]
+        return {
+            "Format": self.format,
+            "Layers": [p.to_ufo_paint(colors) for p in self.layers],
+        }
 
     def children(self):
         return self.layers
@@ -538,7 +557,7 @@ class PaintSkewAroundCenter(Paint):
         return (
             Affine2D.identity()
             .translate(self.center[0], self.center[1])
-            .skew(radians(self.xSkewAngle), radians(self.ySkewAngle))
+            .skew(-radians(self.xSkewAngle), radians(self.ySkewAngle))
             .translate(-self.center[0], -self.center[1])
         )
 
@@ -565,3 +584,53 @@ class PaintComposite(Paint):
 
     def children(self) -> Iterable[Paint]:
         return (self.source, self.backdrop)
+
+
+def is_transform(paint_or_format) -> bool:
+    if isinstance(paint_or_format, Paint):
+        paint_or_format = paint_or_format.format
+    return (
+        ot.PaintFormat.PaintTransform
+        <= paint_or_format
+        <= ot.PaintFormat.PaintVarSkewAroundCenter
+    )
+
+
+def _int16_safe(*values):
+    return all(v == int(v) and v <= 32767 and v >= -32768 for v in values)
+
+
+def _f2dot14_safe(*values):
+    return all(value >= -2.0 and value < 2.0 for value in values)
+
+
+def _f2dot14_rotation_safe(*values):
+    return all((value / 180.0) >= -2.0 and (value / 180.0) < 2.0 for value in values)
+
+
+def transformed(transform: Affine2D, target: Paint) -> Paint:
+    if transform == Affine2D.identity():
+        return target
+
+    # Int16 translation?
+    translation, rest = transform.decompose_translation()
+    if translation != Affine2D.identity() and rest == Affine2D.identity():
+        dx, dy = transform.gettranslate()
+        if _int16_safe(dx, dy):
+            return PaintTranslate(paint=target, dx=dx, dy=dy)
+
+    # A wee scale?
+    scale, rest = transform.decompose_scale()
+    if scale != Affine2D.identity() and rest == Affine2D.identity():
+        sx, sy = transform.getscale()
+        if _f2dot14_safe(sx, sy):
+            if almost_equal(sx, sy):
+                return PaintScaleUniform(paint=target, scale=sx)
+            else:
+                return PaintScale(paint=target, scaleX=sx, scaleY=sy)
+
+    # TODO optimize rotations
+
+    # TODO optimize scale, skew, rotate around center
+
+    return PaintTransform(paint=target, transform=tuple(transform))

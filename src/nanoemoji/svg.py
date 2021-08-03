@@ -29,9 +29,9 @@ from nanoemoji.paint import (
     PaintRadialGradient,
     PaintGlyph,
     PaintColrGlyph,
-    PaintTransform,
     PaintComposite,
     PaintColrLayers,
+    is_transform,
 )
 from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG
@@ -295,17 +295,16 @@ def _apply_paint(
         # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
         # so that they match the SVGPath.d coordinates (that we copy unmodified).
         paint = _map_gradient_coordinates(paint, upem_to_vbox)
-        # Likewise PaintTransforms refer to UPEM so they must be adjusted for SVG
+        # Likewise transforms refer to UPEM so they must be adjusted for SVG
         if transform != Affine2D.identity():
             transform = Affine2D.compose_ltr(
                 (upem_to_vbox.inverse(), transform, upem_to_vbox)
             )
         _apply_gradient_paint(svg_defs, svg_path, paint, reuse_cache, transform)
-    elif isinstance(paint, PaintTransform):
-        transform = Affine2D.compose_ltr((paint.transform, transform))
-        _apply_paint(
-            svg_defs, svg_path, paint.paint, upem_to_vbox, reuse_cache, transform
-        )
+    elif is_transform(paint):
+        transform @= paint.gettransform()
+        child = paint.paint  # pytype: disable=attribute-error
+        _apply_paint(svg_defs, svg_path, child, upem_to_vbox, reuse_cache, transform)
     else:
         raise NotImplementedError(type(paint))
 

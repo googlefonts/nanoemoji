@@ -31,7 +31,7 @@ from nanoemoji.paint import (
     PaintLinearGradient,
     PaintRadialGradient,
     PaintSolid,
-    PaintTransform,
+    transformed,
 )
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_meta import number_or_percentage
@@ -162,7 +162,7 @@ def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2
 
     translate, remaining_transform = remaining_transform.decompose_translation()
     # round away very small float-math noise, so we get clean 0s and 1s for the special
-    # case of identity matrix which implies no wrapping PaintTransform
+    # case of identity matrix which implies no wrapping transform
     remaining_transform = remaining_transform.round(9)
 
     logging.debug(
@@ -201,7 +201,7 @@ def _parse_radial_gradient(
     # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
     # PaintRadialGradient by itself can only define circles. Thus we only apply the
     # uniform scale and translate components of the original transform to the circles,
-    # then encode any remaining non-uniform transformation as a COLRv1 PaintTransform
+    # then encode any remaining non-uniform transformation as a COLRv1 transform
     # that wraps the PaintRadialGradient (see further below).
     uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
 
@@ -217,16 +217,10 @@ def _parse_radial_gradient(
 
     # TODO handle degenerate cases, fallback to solid, w/e
 
-    if remaining_transform == Affine2D.identity():
-        # If the chain of trasforms applied so far maintains the circles' aspect ratio
-        # we are done
-        return PaintRadialGradient(**gradient_args)  # pytype: disable=wrong-arg-types
-    else:
-        # Otherwise we need to wrap our PaintRadialGradient in a PaintTransform.
-        return PaintTransform(
-            remaining_transform,
-            PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
-        )
+    return transformed(
+        remaining_transform,
+        PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
+    )
 
 
 _GRADIENT_INFO = {
@@ -356,11 +350,11 @@ def _painted_layers(
     # Reverse to get leaves first because that makes building Paint's easier
     # shapes *must* be leaves per picosvg
     nodes = []
-    for context in reversed(tuple(picosvg.breadth_first())):
+    for context in reversed(tuple(picosvg.depth_first())):
         if context.depth() == 0:
             continue  # svg root
 
-        # picosvg will deliver us exactly one defs and it will be the first child of svg
+        # picosvg will deliver us exactly one defs
         if context.path == "/svg[0]/defs[0]":
             assert not defs_seen
             defs_seen = True
@@ -374,11 +368,15 @@ def _painted_layers(
         if context.is_group():
             # flush the current shapes into a new group
             opacity = float(context.element.get("opacity"))
-            assert 0.0 < opacity < 1.0, f"{context.path} should be transparent"
-            assert len(nodes) > 1, f"{context.path} should have 2+ children"
+            assert (
+                0.0 < opacity < 1.0
+            ), f"{debug_hint} {context.path} should be transparent"
+            assert (
+                len(nodes) > 1
+            ), f"{debug_hint} {context.path} should have 2+ children"
             assert {"opacity"} == set(
                 context.element.attrib.keys()
-            ), f"{context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
+            ), f"{debug_hint} {context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
             paint = PaintComposite(
                 mode=CompositeMode.SRC_IN,
                 source=PaintColrLayers(tuple(nodes)),
@@ -390,7 +388,7 @@ def _painted_layers(
             # insert reversed to undo the reversed at the top of loop
             layers.insert(0, nodes.pop())
 
-    assert defs_seen, "We never saw defs, what's up with that?!"
+    assert defs_seen, f"{debug_hint} we never saw defs, what's up with that?!"
     return tuple(layers)
 
 
@@ -421,6 +419,18 @@ def _mutating_traverse(paint, mutator):
             modified = _mutating_traverse(current, mutator)
             if current is not modified:
                 changes[field.name] = modified
+
+    # PaintColrLayers, uniquely, has a tuple of paint
+    if isinstance(paint, PaintColrLayers):
+        new_layers = list(paint.layers)
+        for i, current in enumerate(paint.layers):
+            modified = _mutating_traverse(current, mutator)
+            if current is not modified:
+                new_layers[i] = modified
+        new_layers = tuple(new_layers)
+        if new_layers != paint.layers:
+            changes["layers"] = tuple(new_layers)
+
     if changes:
         paint = dataclasses.replace(paint, **changes)
     return paint

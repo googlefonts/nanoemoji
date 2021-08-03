@@ -32,13 +32,13 @@ from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
 from nanoemoji.paint import (
+    transformed,
     CompositeMode,
     Paint,
     PaintComposite,
     PaintColrGlyph,
     PaintGlyph,
     PaintSolid,
-    PaintTransform,
 )
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
@@ -322,15 +322,13 @@ def _migrate_paths_to_ufo_glyphs(
         if reuse_result is not None:
             # TODO: use the most compact valid transform
             # TODO: when is it more compact to use a new transforming glyph?
-            paint = PaintGlyph(
-                glyph=reuse_result.glyph_name,
-                paint=paint.paint,
+            return transformed(
+                reuse_result.transform,
+                PaintGlyph(
+                    glyph=reuse_result.glyph_name,
+                    paint=paint.paint,
+                ),
             )
-            if reuse_result.transform != Affine2D.identity():
-                paint = PaintTransform(
-                    paint=paint, transform=tuple(reuse_result.transform)
-                )
-            return paint
 
         glyph = _create_glyph(color_glyph, paint, path_in_font_space)
         glyph_cache.add_glyph(glyph.name, path_in_font_space)
@@ -417,13 +415,19 @@ def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
     return glyph
 
 
+def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
+    ufo = color_glyph.ufo
+    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{_name_prefix(color_glyph)}{i}"))
+    glyph.width = ufo.get(color_glyph.glyph_name).width
+    return glyph
+
+
 def _create_transformed_glyph(
     color_glyph: ColorGlyph, paint: PaintGlyph, transform: Affine2D
 ) -> Glyph:
     glyph = _init_glyph(color_glyph)
     glyph.components.append(Component(baseGlyph=paint.glyph, transformation=transform))
     color_glyph.ufo.glyphOrder += [glyph.name]
-
     return glyph
 
 
@@ -459,6 +463,7 @@ def _bounds(color_glyph: ColorGlyph):
                 continue
             paint_glyph: PaintGlyph = cast(PaintGlyph, context.paint)
             glyph = color_glyph.ufo.get(paint_glyph.glyph)
+            assert glyph is not None, f"{paint_glyph.glyph} not in UFO"
             glyph_bbox = glyph.getControlBounds(color_glyph.ufo)
             if glyph_bbox is None:
                 continue

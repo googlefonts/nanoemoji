@@ -175,11 +175,8 @@ def _round_coords(paint, prec=5):
             r0=round(paint.r0, prec),
             r1=round(paint.r1, prec),
         )
-    if isinstance(paint, PaintTransform):
-        return dataclasses.replace(
-            paint,
-            transform=tuple(round(v, prec) for v in paint.transform),
-        )
+    if is_transform(paint):
+        return transformed(paint.gettransform().round(prec), paint.paint)
     return paint
 
 
@@ -250,8 +247,9 @@ def _round_coords(paint, prec=5):
             (
                 PaintGlyph(
                     glyph="M2,2 L8,2 L8,4 L2,4 L2,2 Z",
-                    paint=PaintTransform(
-                        transform=(1.0, 0.0, 0.0, 0.33333, 0.0, 0.0),
+                    paint=PaintScale(
+                        scaleX=1.0,
+                        scaleY=0.33333,
                         paint=PaintRadialGradient(
                             extend=Extend.REPEAT,
                             stops=(
@@ -408,8 +406,9 @@ def _round_coords(paint, prec=5):
                 ),
                 PaintGlyph(
                     glyph="M2,5 L8,5 L8,7 L2,7 L2,5 Z",
-                    paint=PaintTransform(
-                        transform=(1.0, 0.0, 0.0, 0.33333, 0, 0),
+                    paint=PaintScale(
+                        scaleX=1.0,
+                        scaleY=0.33333,
                         paint=PaintRadialGradient(
                             stops=(
                                 ColorStop(
