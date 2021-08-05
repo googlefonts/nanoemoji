@@ -581,14 +581,21 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
             clipBoxes.setdefault(bounds, []).append(color_glyph.glyph_name)
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
-    # Clip boxes are stored in lib.plist as an array of 2-tuples, each
-    # containing firstly the glyph names (array of strings), and secondly
-    # the clip box values (array of 4 integers for a non-variable box)
-    # shared by all those glyphs.
     if clipBoxes:
-        ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
-            (glyphs, box) for box, glyphs in clipBoxes.items()
-        ]
+        if colr_version == 0:
+            # COLRv0 doesn't define its own bounding boxes, but some implementations
+            # rely on the extents of the base glyph so we must add those
+            for bounds, glyphs in clipBoxes.items():
+                for glyph_name in glyphs:
+                    _draw_glyph_extents(ufo, ufo[glyph_name], bounds)
+        else:
+            # COLRv1 clip boxes are stored in UFO lib.plist as an array of 2-tuples,
+            # each containing firstly the glyph names (array of strings), and secondly
+            # the clip box values (array of 4 integers for a non-variable box) shared
+            # by all those glyphs.
+            ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
+                (glyphs, box) for box, glyphs in clipBoxes.items()
+            ]
 
 
 def _svg_ttfont(
