@@ -266,7 +266,6 @@ class GlyphReuseCache:
         assert path.startswith("M"), f"{path} doesn't look like a path"
 
         if self._config.reuse_tolerance == -1:
-            print("reuse disabled")
             return None
 
         norm_path = normalize(SVGPath(d=path), self._config.reuse_tolerance).d
