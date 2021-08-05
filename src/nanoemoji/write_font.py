@@ -639,6 +639,9 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(config, ufo, filename, base_gid + idx, codepoints, svg)
         for idx, (filename, codepoints, svg) in enumerate(inputs)
     ]
+    # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
+    # values are placed next to one another in continuous ranges, to minimize number
+    # of COLRv1 ClipRecords
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
         assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
