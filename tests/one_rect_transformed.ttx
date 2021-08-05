@@ -12,7 +12,7 @@
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="120" lsb="0"/>
-    <mtx name="e000" width="120" lsb="7"/>
+    <mtx name="e000" width="120" lsb="0"/>
     <mtx name="e000.0" width="120" lsb="7"/>
   </hmtx>
 
@@ -41,13 +41,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="7" yMin="48" xMax="36" yMax="90">
-      <contour>
-        <pt x="36" y="90" on="1"/>
-        <pt x="7" y="48" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
+    <TTGlyph name="e000"/><!-- contains no outline data -->
 
     <TTGlyph name="e000.0" xMin="7" yMin="48" xMax="36" yMax="90">
       <contour>
@@ -78,6 +72,17 @@
         </Paint>
       </BaseGlyphPaintRecord>
     </BaseGlyphList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="e000"/>
+        <ClipBox Format="1">
+          <xMin value="7"/>
+          <yMin value="48"/>
+          <xMax value="36"/>
+          <yMax value="90"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
   </COLR>
 
   <CPAL>

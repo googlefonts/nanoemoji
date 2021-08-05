@@ -17,12 +17,12 @@
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="3"/>
+    <mtx name="e000" width="100" lsb="0"/>
     <mtx name="e000.0" width="100" lsb="3"/>
     <mtx name="e000.1" width="100" lsb="47"/>
     <mtx name="e000.2" width="100" lsb="48"/>
     <mtx name="e000.3" width="100" lsb="3"/>
-    <mtx name="e001" width="100" lsb="3"/>
+    <mtx name="e001" width="100" lsb="0"/>
     <mtx name="e001.0" width="100" lsb="49"/>
   </hmtx>
 
@@ -53,13 +53,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="3" yMin="3" xMax="97" yMax="97">
-      <contour>
-        <pt x="97" y="97" on="1"/>
-        <pt x="3" y="3" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
+    <TTGlyph name="e000"/><!-- contains no outline data -->
 
     <TTGlyph name="e000.0" xMin="3" yMin="3" xMax="97" yMax="97">
       <contour>
@@ -181,13 +175,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e001" xMin="3" yMin="3" xMax="97" yMax="97">
-      <contour>
-        <pt x="97" y="97" on="1"/>
-        <pt x="3" y="3" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
+    <TTGlyph name="e001"/><!-- contains no outline data -->
 
     <TTGlyph name="e001.0" xMin="49" yMin="48" xMax="71" yMax="63">
       <contour>
@@ -428,6 +416,18 @@
         <FirstLayerIndex value="3"/>
       </Paint>
     </LayerList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="e000"/>
+        <Glyph value="e001"/>
+        <ClipBox Format="1">
+          <xMin value="3"/>
+          <yMin value="3"/>
+          <xMax value="97"/>
+          <yMax value="97"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
   </COLR>
 
   <CPAL>

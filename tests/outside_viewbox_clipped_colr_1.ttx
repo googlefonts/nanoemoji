@@ -13,7 +13,7 @@
   <hmtx>
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="g_25fd" width="100" lsb="20"/>
+    <mtx name="g_25fd" width="100" lsb="0"/>
     <mtx name="g_25fd.0" width="100" lsb="20"/>
     <mtx name="g_25fd.1" width="100" lsb="70"/>
   </hmtx>
@@ -43,13 +43,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="g_25fd" xMin="20" yMin="30" xMax="100" yMax="80">
-      <contour>
-        <pt x="100" y="80" on="1"/>
-        <pt x="20" y="30" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
+    <TTGlyph name="g_25fd"/><!-- contains no outline data -->
 
     <TTGlyph name="g_25fd.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
@@ -113,6 +107,17 @@
         <Glyph value="g_25fd.1"/>
       </Paint>
     </LayerList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="g_25fd"/>
+        <ClipBox Format="1">
+          <xMin value="20"/>
+          <yMin value="30"/>
+          <xMax value="100"/>
+          <yMax value="80"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
   </COLR>
 
   <CPAL>
