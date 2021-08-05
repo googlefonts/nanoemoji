@@ -74,6 +74,10 @@ import ufo2ft
 FLAGS = flags.FLAGS
 
 
+MIN_FIXED = -32768
+MAX_FIXED = 0x7FFFFFFF / (1 << 16)
+
+
 class InputGlyph(NamedTuple):
     filename: Path
     codepoints: Tuple[int, ...]
@@ -273,8 +277,16 @@ class GlyphReuseCache:
             SVGPath(d=glyph_path), SVGPath(d=path), self._config.reuse_tolerance
         )
         if affine is None:
-            logging.warning("affine_between %s %s failed", glyph_path, path)
+            logging.warning("affine_between failed: %s %s ", glyph_path, path)
             return None
+
+        # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
+        if not all(MIN_FIXED <= v <= MAX_FIXED for v in affine):
+            logging.warning(
+                "affine_between overflows Fixed: %s %s, %s", glyph_path, path, affine
+            )
+            return None
+
         return ReuseResult(glyph_name, affine)
 
     def add_glyph(self, glyph_name, glyph_path):
