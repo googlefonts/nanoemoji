@@ -16,6 +16,7 @@
 from nanoemoji import write_font
 from nanoemoji.config import _DEFAULT_CONFIG
 from picosvg.svg_transform import Affine2D
+from ufo2ft.constants import COLR_CLIP_BOXES_KEY
 import pytest
 import test_helper
 
@@ -292,17 +293,18 @@ def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
     config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     ufo, _ = write_font._generate_color_font(config, glyph_inputs)
 
-    base_glyph = ufo["e000"]
-    bounds = base_glyph.getControlBounds(ufo)
+    base_glyph_name = "e000"
+    assert len(ufo[base_glyph_name]) == 0
 
     if expected is not None:
+        clip_boxes = ufo.lib[COLR_CLIP_BOXES_KEY]
+        assert len(clip_boxes) == 1
+
+        glyphs, bounds = clip_boxes[0]
+        assert glyphs == [base_glyph_name]
         assert bounds == pytest.approx(expected)
-        # 1 contour with 2 points
-        assert len(base_glyph) == 1
-        assert len(base_glyph[0]) == 2
     else:
-        assert bounds is None
-        assert len(base_glyph) == 0
+        assert COLR_CLIP_BOXES_KEY not in ufo.lib
 
 
 # Not try to fully exercise affine_between, just to sanity check things somewhat work

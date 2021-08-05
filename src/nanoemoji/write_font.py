@@ -21,8 +21,10 @@ from absl import logging
 from collections import Counter
 import csv
 import dataclasses
+import math
 from fontTools import ttLib
 from fontTools.misc.arrayTools import rectArea, unionRect
+from fontTools.misc.roundTools import otRound
 from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
@@ -468,7 +470,34 @@ def _colr0_layers(color_glyph: ColorGlyph, root: Paint, palette: Sequence[Color]
     return layers
 
 
-def _bounds(color_glyph: ColorGlyph):
+def _quantize_bounding_rect(
+    xMin: float,
+    yMin: float,
+    xMax: float,
+    yMax: float,
+    factor: int = 1,
+) -> Tuple[int, int, int, int]:
+    """
+    >>> bounds = (72.3, -218.4, 1201.3, 919.1)
+    >>> _quantize_bounding_rect(*bounds)
+    (72, -219, 1202, 920)
+    >>> _quantize_bounding_rect(*bounds, factor=10)
+    (70, -220, 1210, 920)
+    >>> _quantize_bounding_rect(*bounds, factor=100)
+    (0, -300, 1300, 1000)
+    """
+    assert factor >= 1
+    return (
+        int(math.floor(xMin / factor) * factor),
+        int(math.floor(yMin / factor) * factor),
+        int(math.ceil(xMax / factor) * factor),
+        int(math.ceil(yMax / factor) * factor),
+    )
+
+
+def _bounds(
+    color_glyph: ColorGlyph, quantize_factor: int = 1
+) -> Optional[Tuple[int, int, int, int]]:
     bounds = None
     for root in color_glyph.painted_layers:
         for context in root.breadth_first():
@@ -487,6 +516,14 @@ def _bounds(color_glyph: ColorGlyph):
                 bounds = glyph_bbox
             else:
                 bounds = unionRect(bounds, glyph_bbox)
+    if bounds is None:
+        return
+    # before quantizing to integer values > 1, we must first round floats to
+    # int using the same rounding function (i.e. otRound) that fontTools
+    # glyf table's compile method will use to round any float coordinates.
+    bounds = tuple(otRound(v) for v in bounds)
+    if quantize_factor > 1:
+        return _quantize_bounding_rect(*bounds, factor=quantize_factor)
     return bounds
 
 
@@ -534,6 +571,7 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
     # potentially reusable glyphs
     glyph_cache = GlyphReuseCache(config)
 
+    clipBoxes = {}
     for i, color_glyph in enumerate(color_glyphs):
         logging.debug(
             "%s %s %s",
@@ -551,12 +589,26 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
         ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
             colr_version, colors, color_glyph, glyph_cache
         )
-        bounds = _bounds(color_glyph)
+        bounds = _bounds(color_glyph, config.clipbox_quantization)
         if bounds is not None:
-            colr_glyph = ufo.get(color_glyph.glyph_name)
-            _draw_glyph_extents(ufo, colr_glyph, bounds)
+            clipBoxes.setdefault(bounds, []).append(color_glyph.glyph_name)
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
+    if clipBoxes:
+        if colr_version == 0:
+            # COLRv0 doesn't define its own bounding boxes, but some implementations
+            # rely on the extents of the base glyph so we must add those
+            for bounds, glyphs in clipBoxes.items():
+                for glyph_name in glyphs:
+                    _draw_glyph_extents(ufo, ufo[glyph_name], bounds)
+        else:
+            # COLRv1 clip boxes are stored in UFO lib.plist as an array of 2-tuples,
+            # each containing firstly the glyph names (array of strings), and secondly
+            # the clip box values (array of 4 integers for a non-variable box) shared
+            # by all those glyphs.
+            ufo.lib[ufo2ft.constants.COLR_CLIP_BOXES_KEY] = [
+                (glyphs, box) for box, glyphs in clipBoxes.items()
+            ]
 
 
 def _svg_ttfont(
@@ -600,6 +652,9 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(config, ufo, filename, base_gid + idx, codepoints, svg)
         for idx, (filename, codepoints, svg) in enumerate(inputs)
     ]
+    # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
+    # values are placed next to one another in continuous ranges, to minimize number
+    # of COLRv1 ClipRecords
     ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
     for g in color_glyphs:
         assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)

@@ -35,7 +35,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "absl-py>=0.9.0",
-        "fonttools[ufo]>=4.25.2",
+        "fonttools[ufo]>=4.26.0",
         "importlib_resources>=3.3.0; python_version < '3.9'",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
@@ -43,7 +43,7 @@ setup(
         "pillow>=7.2.0",
         "regex>=2020.4.4",
         "toml>=0.10.1",
-        "ufo2ft[cffsubr]>=2.23.0",
+        "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
     ],
     extras_require=extras_require,
