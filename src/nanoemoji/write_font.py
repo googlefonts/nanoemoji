@@ -33,6 +33,7 @@ from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
+from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
     transformed,
     CompositeMode,
@@ -49,7 +50,6 @@ import os
 from pathlib import Path
 import ufoLib2
 from picosvg.svg import SVG
-from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 import regex
@@ -72,10 +72,6 @@ import ufo2ft
 
 
 FLAGS = flags.FLAGS
-
-
-MIN_FIXED = -32768
-MAX_FIXED = 0x7FFFFFFF / (1 << 16)
 
 
 class InputGlyph(NamedTuple):
@@ -242,66 +238,6 @@ def _next_name(ufo: ufoLib2.Font, name_fn) -> str:
     return name_fn(i)
 
 
-class ReuseResult(NamedTuple):
-    glyph_name: str
-    transform: Affine2D
-
-
-class GlyphReuseCache:
-    def __init__(self, config: FontConfig):
-        self._config = config
-        self._known_glyphs = set()
-        self._reusable_paths = {}
-
-    def try_reuse(self, path: str) -> Optional[ReuseResult]:
-        """Try to reproduce path as the transformation of another glyph.
-
-        Path is expected to be in font units.
-
-        Returns (glyph name, transform) if possible, None if not.
-        """
-        assert (
-            not path in self._known_glyphs
-        ), f"{path} isn't a path, it's a glyph name we've seen before"
-        assert path.startswith("M"), f"{path} doesn't look like a path"
-
-        if self._config.reuse_tolerance == -1:
-            return None
-
-        norm_path = normalize(SVGPath(d=path), self._config.reuse_tolerance).d
-        if norm_path not in self._reusable_paths:
-            return None
-
-        glyph_name, glyph_path = self._reusable_paths[norm_path]
-        affine = affine_between(
-            SVGPath(d=glyph_path), SVGPath(d=path), self._config.reuse_tolerance
-        )
-        if affine is None:
-            logging.warning("affine_between failed: %s %s ", glyph_path, path)
-            return None
-
-        # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
-        if not all(MIN_FIXED <= v <= MAX_FIXED for v in affine):
-            logging.warning(
-                "affine_between overflows Fixed: %s %s, %s", glyph_path, path, affine
-            )
-            return None
-
-        return ReuseResult(glyph_name, affine)
-
-    def add_glyph(self, glyph_name, glyph_path):
-        assert glyph_path.startswith("M"), f"{glyph_path} doesn't look like a path"
-        if self._config.reuse_tolerance != -1:
-            norm_path = normalize(SVGPath(d=glyph_path), self._config.reuse_tolerance).d
-        else:
-            norm_path = glyph_path
-        self._reusable_paths[norm_path] = (glyph_name, glyph_path)
-        self._known_glyphs.add(glyph_name)
-
-    def is_known_glyph(self, glyph_name):
-        return glyph_name in self._known_glyphs
-
-
 def _create_glyph(
     color_glyph: ColorGlyph, paint: PaintGlyph, path_in_font_space: str
 ) -> Glyph:
@@ -376,7 +312,7 @@ def _glyf_ufo(
     config: FontConfig, ufo: ufoLib2.Font, color_glyphs: MutableSequence[ColorGlyph]
 ):
     # glyphs by reuse_key
-    glyph_cache = GlyphReuseCache(config)
+    glyph_cache = GlyphReuseCache(config.reuse_tolerance)
     glyph_uses = Counter()
     for i, color_glyph in enumerate(color_glyphs):
         logging.debug(
@@ -526,7 +462,7 @@ def _bounds(
     return bounds
 
 
-def _ufo_colr_layers(colr_version, colors, color_glyph, glyph_cache):
+def _ufo_colr_layers(colr_version, colors, color_glyph):
     # The value for a COLOR_LAYERS_KEY entry per
     # https://github.com/googlefonts/ufo2ft/pull/359
     colr_layers = []
@@ -568,7 +504,7 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
     ufo_color_layers = {}
 
     # potentially reusable glyphs
-    glyph_cache = GlyphReuseCache(config)
+    glyph_cache = GlyphReuseCache(config.reuse_tolerance)
 
     clipBoxes = {}
     quantization = config.clipbox_quantization
@@ -590,7 +526,7 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
 
         # write out the ufo structures for COLR
         ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
-            colr_version, colors, color_glyph, glyph_cache
+            colr_version, colors, color_glyph
         )
         bounds = _bounds(color_glyph, quantization)
         if bounds is not None:

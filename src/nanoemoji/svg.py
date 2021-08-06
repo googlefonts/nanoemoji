@@ -22,6 +22,7 @@ from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.config import FontConfig
 from nanoemoji.disjoint_set import DisjointSet
+from nanoemoji.glyph_reuse import GlyphReuseCache, ReuseResult
 from nanoemoji.paint import (
     CompositeMode,
     Extend,
@@ -36,7 +37,7 @@ from nanoemoji.paint import (
     is_transform,
 )
 from picosvg.geometric_types import Rect
-from picosvg.svg import to_element, SVG
+from picosvg.svg import to_element, SVG, SVGTraverseContext
 from picosvg import svg_meta
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
@@ -46,11 +47,6 @@ from typing import cast, MutableMapping, NamedTuple, Optional, Sequence, Tuple, 
 
 # topicosvg()'s default
 _DEFAULT_ROUND_NDIGITS = 3
-
-
-class InterGlyphReuseKey(NamedTuple):
-    view_box: Rect
-    paint: PaintGlyph
 
 
 class GradientReuseKey(NamedTuple):
@@ -64,12 +60,31 @@ _GradientPaint = Union[PaintLinearGradient, PaintRadialGradient]
 @dataclasses.dataclass
 class ReuseCache:
     reuse_tolerance: float
-    shapes: MutableMapping[InterGlyphReuseKey, etree.Element] = dataclasses.field(
+    glyph_cache: GlyphReuseCache
+    glyph_elements: MutableMapping[str, etree.Element] = dataclasses.field(
+        default_factory=dict
+    )
+    reuse_results: MutableMapping[str, ReuseResult] = dataclasses.field(
         default_factory=dict
     )
     gradient_ids: MutableMapping[GradientReuseKey, str] = dataclasses.field(
         default_factory=dict
     )
+
+    def add_glyph(
+        self,
+        glyph_name: str,
+        reuse_result: Optional[ReuseResult],
+        context: SVGTraverseContext,
+    ):
+        assert glyph_name not in self.glyph_elements, f"Second addition of {glyph_name}"
+        if not isinstance(context.paint, PaintGlyph):
+            raise ValueError(f"Not a PaintGlyph {context}")
+        if not reuse_result:
+            self.glyph_cache.add_glyph(glyph_name, context.paint.glyph)
+        else:
+            self.reuse_results[glyph_name] = reuse_result
+        self.glyph_elements[glyph_name] = to_element(SVGPath(d=context.paint.glyph))
 
 
 def _ensure_has_id(el: etree.Element):
@@ -83,28 +98,42 @@ def _ensure_has_id(el: etree.Element):
     el.attrib["id"] = f'{el.getparent().attrib["id"]}::{nth_child}'
 
 
+def _paint_glyph_name(color_glyph: ColorGlyph, nth: int) -> str:
+    return f"{color_glyph.glyph_name}.{nth}"
+
+
+def _color_glyph_name(glyph_name: str) -> str:
+    return glyph_name[: glyph_name.rindex(".")]
+
+
 def _glyph_groups(
-    config: FontConfig, color_glyphs: Sequence[ColorGlyph]
+    config: FontConfig, color_glyphs: Sequence[ColorGlyph], reuse_cache: ReuseCache
 ) -> Tuple[Tuple[str, ...]]:
     """Find glyphs that need to be kept together by union find."""
-    # glyphs by reuse_key
-    glyphs = {}
+
     reuse_groups = DisjointSet()  # ensure glyphs sharing shapes are in the same doc
     for color_glyph in color_glyphs:
         reuse_groups.make_set(color_glyph.glyph_name)
+        nth_paint_glyph = 0
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
                 # Group glyphs based on common shapes
                 if not isinstance(context.paint, PaintGlyph):
                     continue
-                reuse_key = _inter_glyph_reuse_key(
-                    config.reuse_tolerance, color_glyph.svg.view_box(), context.paint
-                )
 
-                if reuse_key not in glyphs:
-                    glyphs[reuse_key] = color_glyph.glyph_name
-                else:
-                    reuse_groups.union(color_glyph.glyph_name, glyphs[reuse_key])
+                glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
+                reuse_result = reuse_cache.glyph_cache.try_reuse(
+                    context.paint.glyph  # pytype: disable=attribute-error
+                )
+                reuse_cache.add_glyph(glyph_name, reuse_result, context)
+                if reuse_result:
+                    # This entire color glyph and the one we share a shape with go in one svg doc
+                    reuse_groups.union(
+                        color_glyph.glyph_name,
+                        _color_glyph_name(reuse_result.glyph_name),
+                    )
+
+                nth_paint_glyph += 1
 
     return reuse_groups.sorted()
 
@@ -116,20 +145,6 @@ def _ntos(n: float) -> str:
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
     return transform.round(_DEFAULT_ROUND_NDIGITS).tostring()
-
-
-def _inter_glyph_reuse_key(
-    reuse_tolerance: float, view_box: Rect, paint: PaintGlyph
-) -> InterGlyphReuseKey:
-    """Individual glyf entries, including composites, can be reused.
-    SVG reuses w/paint so paint is part of key."""
-
-    # TODO we could recycle shapes that differ only in paint, would just need to
-    # transfer the paint attributes onto the use element if they differ
-    paint = dataclasses.replace(
-        paint, glyph=normalize(SVGPath(d=paint.glyph), reuse_tolerance).d
-    )
-    return InterGlyphReuseKey(view_box, paint)
 
 
 def _apply_solid_paint(el: etree.Element, paint: PaintSolid):
@@ -147,7 +162,7 @@ def _apply_gradient_paint(
     svg_defs: etree.Element,
     svg_path: etree.Element,
     paint: _GradientPaint,
-    reuse_cache: Optional[ReuseCache] = None,
+    reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
 ):
     if reuse_cache is None:
@@ -348,6 +363,8 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     # copy the shapes into our svg
     el_by_path = {(): svg_g}
     complete_paths = set()
+    nth_paint_glyph = 0
+
     for root in color_glyph.painted_layers:
         for context in root.breadth_first():
             if any(c == context.path[: len(c)] for c in complete_paths):
@@ -362,60 +379,80 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                 path = path[:-1]
 
             if isinstance(context.paint, PaintGlyph):
-                paint_glyph = cast(PaintGlyph, context.paint)
-                glyph_path = paint_glyph.glyph
-                reuse_key = _inter_glyph_reuse_key(
-                    reuse_cache.reuse_tolerance, view_box, context.paint
-                )
-                created_use = False
-                if reuse_key in reuse_cache.shapes:
-                    el = reuse_cache.shapes[reuse_key]
-                    source_path = el.attrib["d"]
-                    transform = affine_between(
-                        SVGPath(d=source_path),
-                        SVGPath(d=glyph_path),
-                        reuse_cache.reuse_tolerance,
-                    )
-                    if transform:
-                        _ensure_has_id(el)
+                glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
+                assert (
+                    glyph_name in reuse_cache.glyph_elements
+                ), f"Missing entry for {glyph_name}"
 
-                        # we have an inter-glyph shape reuse: move the reused element to the outer
-                        # <defs> and replace its first occurrence with a <use>. Adobe Illustrator
-                        # doesn't support direct references between glyphs:
-                        # https://github.com/googlefonts/nanoemoji/issues/264#issuecomment-820518808
-                        if el not in svg_defs:
+                reuse_result = reuse_cache.reuse_results.get(glyph_name, None)
+
+                if reuse_result:
+                    reused_el = reuse_cache.glyph_elements[reuse_result.glyph_name]
+                    reused_el.attrib[
+                        "id"
+                    ] = reuse_result.glyph_name  # we need to refer to you
+
+                    # if reuse spans glyphs then tag the reused element for migration to the outer
+                    # <defs> and replace its first occurrence with a <use>. Adobe Illustrator
+                    # doesn't support direct references between glyphs:
+                    # https://github.com/googlefonts/nanoemoji/issues/264#issuecomment-820518808
+                    if color_glyph.glyph_name != _color_glyph_name(
+                        reuse_result.glyph_name
+                    ):
+                        if reused_el not in svg_defs:
                             svg_use = etree.Element("use", nsmap=svg.svg_root.nsmap)
                             svg_use.attrib[
                                 _XLINK_HREF_ATTR_NAME
-                            ] = f'#{el.attrib["id"]}'
-                            el.addnext(svg_use)
-                            svg_defs.append(el)  # append moves
+                            ] = f"#{reuse_result.glyph_name}"
+                            # if reused_el hasn't been given a parent yet just let the <use> replace it
+                            # otherwise move it from current to new parent
+                            if reused_el.getparent() is None:
+                                reuse_cache.glyph_elements[
+                                    reuse_result.glyph_name
+                                ] = svg_use
+                            else:
+                                reused_el.addnext(svg_use)
 
-                        svg_use = etree.SubElement(
-                            parent_el, "use", nsmap=svg.svg_root.nsmap
-                        )
-                        svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f'#{el.attrib["id"]}'
-                        tx, ty = transform.gettranslate()
-                        if tx:
-                            svg_use.attrib["x"] = _ntos(tx)
-                        if ty:
-                            svg_use.attrib["y"] = _ntos(ty)
-                        transform = transform.translate(-tx, -ty)
-                        if transform != Affine2D.identity():
-                            svg_use.attrib["transform"] = _svg_matrix(transform)
+                            svg_defs.append(reused_el)  # append moves
 
-                        created_use = True
+                    svg_use = etree.SubElement(
+                        parent_el, "use", nsmap=svg.svg_root.nsmap
+                    )
+                    svg_use.attrib[
+                        _XLINK_HREF_ATTR_NAME
+                    ] = f"#{reuse_result.glyph_name}"
+                    transform = reuse_result.transform
+                    tx, ty = transform.gettranslate()
+                    if tx:
+                        svg_use.attrib["x"] = _ntos(tx)
+                    if ty:
+                        svg_use.attrib["y"] = _ntos(ty)
+                    transform = transform.translate(-tx, -ty)
+                    if transform != Affine2D.identity():
+                        svg_use.attrib["transform"] = _svg_matrix(transform)
 
-                if not created_use:
-                    el = to_element(SVGPath(d=paint_glyph.glyph))
                     _apply_paint(
-                        svg_defs, el, paint_glyph.paint, upem_to_vbox, reuse_cache
+                        svg_defs,
+                        svg_use,
+                        context.paint.paint,  # pytype: disable=attribute-error
+                        upem_to_vbox,
+                        reuse_cache,
+                    )
+
+                else:
+                    el = reuse_cache.glyph_elements[glyph_name]
+                    _apply_paint(
+                        svg_defs,
+                        el,
+                        context.paint.paint,  # pytype: disable=attribute-error
+                        upem_to_vbox,
+                        reuse_cache,
                     )
                     parent_el.append(el)  # pytype: disable=attribute-error
-                    reuse_cache.shapes[reuse_key] = el
 
                 # don't update el_by_path because we're declaring this path complete
                 complete_paths.add(context.path + (context.paint,))
+                nth_paint_glyph += 1
 
             elif isinstance(context.paint, PaintColrLayers):
                 pass
@@ -427,8 +464,12 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                 el = etree.SubElement(parent_el, f"{{{svg_meta.svgns()}}}g")
                 el_by_path[context.path + (context.paint,)] = el
 
+            # TODO: support transform types, either by introducing <g> or by applying context.transform to Paint
+
             else:
                 raise ValueError(f"What do we do with {context}")
+
+    #
 
 
 def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
@@ -488,10 +529,30 @@ def _ensure_groups_grouped_in_glyph_order(
     ttfont.setGlyphOrder(glyph_order)
 
 
+def _tidy_use_elements(svg: SVG):
+    for use_el in svg.xpath("//use"):
+        ref = use_el.attrib.get(f"{{{svg_meta.xlinkns()}}}href", "")
+        assert ref.startswith("#"), f"Only use #fragment supported, reject {ref}"
+
+        reused_el = svg.xpath_one(f'//svg:*[@id="{ref[1:]}"]')
+
+        duplicate_attrs = {
+            attr_name
+            for attr_name, attr_value in use_el.attrib.items()
+            if attr_name in reused_el.attrib
+            and attr_value == reused_el.attrib.get(attr_name)
+        }
+        for duplicate_attr in duplicate_attrs:
+            del use_el.attrib[duplicate_attr]
+
+
 def _picosvg_docs(
     config: FontConfig, ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]
 ) -> Sequence[Tuple[str, int, int]]:
-    reuse_groups = _glyph_groups(config, color_glyphs)
+    reuse_cache = ReuseCache(
+        config.reuse_tolerance, GlyphReuseCache(config.reuse_tolerance)
+    )
+    reuse_groups = _glyph_groups(config, color_glyphs, reuse_cache)
     color_glyph_order = [c.glyph_name for c in color_glyphs]
     color_glyphs = {c.glyph_name: c for c in color_glyphs}
     _ensure_groups_grouped_in_glyph_order(
@@ -500,7 +561,8 @@ def _picosvg_docs(
 
     doc_list = []
     for group in reuse_groups:
-        reuse_cache = ReuseCache(config.reuse_tolerance)
+        reuse_cache.gradient_ids = {}  # don't share gradients across groups
+
         # establish base svg, defs
         root = etree.Element(
             f"{{{svg_meta.svgns()}}}svg",
@@ -513,7 +575,10 @@ def _picosvg_docs(
         for color_glyph in (color_glyphs[g] for g in group):
             _add_glyph(svg, color_glyph, reuse_cache)
 
-        # if there are no gradients, strip the empty <defs/>
+        # tidy use elements, they may emerge from _add_glyph with unnecessary attributes
+        _tidy_use_elements(svg)
+
+        # strip <defs/> if empty
         if len(defs) == 0:
             root.remove(defs)
 

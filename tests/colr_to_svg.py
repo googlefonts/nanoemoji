@@ -14,6 +14,7 @@
 
 from nanoemoji import colors
 from nanoemoji import color_glyph
+from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
     ColorStop,
     Extend,
@@ -33,6 +34,7 @@ from nanoemoji.svg import (
     _apply_gradient_paint,
     _map_gradient_coordinates,
     _GradientPaint,
+    ReuseCache,
 )
 from nanoemoji.svg_path import SVGPathPen
 from picosvg.svg import SVG
@@ -96,13 +98,13 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
 
 
 def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _GradientPaint:
-    stops = [
+    stops = tuple(
         ColorStop(
             stop.StopOffset,
             _color(ttfont, stop.PaletteIndex, stop.Alpha),
         )
         for stop in ot_paint.ColorLine.ColorStop
-    ]
+    )
     extend = Extend((ot_paint.ColorLine.Extend,))
     if ot_paint.Format == PaintLinearGradient.format:
         return PaintLinearGradient(
@@ -143,6 +145,7 @@ def _apply_gradient_ot_paint(
     ttfont: ttLib.TTFont,
     font_to_vbox: Affine2D,
     ot_paint: otTables.Paint,
+    reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
 ):
     paint = _gradient_paint(ttfont, ot_paint)
@@ -157,7 +160,9 @@ def _apply_gradient_ot_paint(
             coord_transform
         )
     paint = _map_gradient_coordinates(paint, coord_transform)
-    _apply_gradient_paint(svg_defs, svg_path, paint, transform=remaining_transform)
+    _apply_gradient_paint(
+        svg_defs, svg_path, paint, reuse_cache, transform=remaining_transform
+    )
 
 
 def _colr_v0_glyph_to_svg(
@@ -187,6 +192,7 @@ def _colr_v1_paint_to_svg(
     svg_root: etree.Element,
     font_to_vbox: Affine2D,
     ot_paint: otTables.Paint,
+    reuse_cache: ReuseCache,
     svg_path: Optional[etree.Element] = None,
     transform: Affine2D = Affine2D.identity(),
 ):
@@ -197,7 +203,7 @@ def _colr_v1_paint_to_svg(
         assert svg_path is not None
         svg_defs = svg_root[0]
         _apply_gradient_ot_paint(
-            svg_defs, svg_path, ttfont, font_to_vbox, ot_paint, transform
+            svg_defs, svg_path, ttfont, font_to_vbox, ot_paint, reuse_cache, transform
         )
     elif ot_paint.Format == PaintGlyph.format:
         assert svg_path is None, "recursive PaintGlyph is unsupported"
@@ -217,6 +223,7 @@ def _colr_v1_paint_to_svg(
             svg_root,
             font_to_vbox,
             ot_paint.Paint,
+            reuse_cache,
             svg_path,
         )
 
@@ -230,6 +237,7 @@ def _colr_v1_paint_to_svg(
             svg_root,
             font_to_vbox,
             ot_paint.Paint,
+            reuse_cache,
             svg_path,
             transform=transform,
         )
@@ -245,6 +253,7 @@ def _colr_v1_paint_to_svg(
                 svg_root,
                 font_to_vbox,
                 child_paint,
+                reuse_cache,
                 svg_path,
                 transform=transform,
             )
@@ -257,6 +266,7 @@ def _colr_v1_glyph_to_svg(
     glyph_set: ttLib.ttFont._TTGlyphSet,
     view_box: Rect,
     glyph: otTables.BaseGlyphRecord,
+    reuse_cache: ReuseCache,
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
@@ -264,8 +274,14 @@ def _colr_v1_glyph_to_svg(
     descender = ttfont["OS/2"].sTypoDescender
     width = ttfont["hmtx"][glyph.BaseGlyph][0]
     font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
-    _colr_v1_paint_to_svg(ttfont, glyph_set, svg_root, font_to_vbox, glyph.Paint)
+    _colr_v1_paint_to_svg(
+        ttfont, glyph_set, svg_root, font_to_vbox, glyph.Paint, reuse_cache
+    )
     return svg_root
+
+
+def _new_reuse_cache() -> ReuseCache:
+    return ReuseCache(0.1, GlyphReuseCache(0.1))
 
 
 def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
@@ -280,9 +296,12 @@ def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
 
 def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
+    reuse_cache = _new_reuse_cache()
     return {
         g.BaseGlyph: SVG.fromstring(
-            etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
+            etree.tostring(
+                _colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g, reuse_cache)
+            )
         )
         for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
