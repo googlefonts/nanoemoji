@@ -599,7 +599,7 @@ def is_transform(paint_or_format) -> bool:
 
 
 def _int16_safe(*values):
-    return all(v == int(v) and v <= 32767 and v >= -32768 for v in values)
+    return all(almost_equal(v, int(v)) and v <= 32767 and v >= -32768 for v in values)
 
 
 def _f2dot14_safe(*values):
@@ -614,25 +614,47 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
     if transform == Affine2D.identity():
         return target
 
+    sx, b, c, sy, dx, dy = transform
+
     # Int16 translation?
-    translation, rest = transform.decompose_translation()
-    if translation != Affine2D.identity() and rest == Affine2D.identity():
-        dx, dy = transform.gettranslate()
+    if (dx, dy) != (0, 0) and Affine2D.identity().translate(dx, dy) == transform:
         if _int16_safe(dx, dy):
             return PaintTranslate(paint=target, dx=dx, dy=dy)
 
-    # A wee scale?
-    scale, rest = transform.decompose_scale()
-    if scale != Affine2D.identity() and rest == Affine2D.identity():
-        sx, sy = transform.getscale()
-        if _f2dot14_safe(sx, sy):
+    # Scale?
+    # If all we have are scale and translation this is pure scaling
+    # If b,c are present this is some sort of rotation or skew
+    if (sx, sy) != (1, 1) and (b, c) == (0, 0) and _f2dot14_safe(sx, sy):
+        if (dx, dy) == (0, 0):
             if almost_equal(sx, sy):
                 return PaintScaleUniform(paint=target, scale=sx)
             else:
                 return PaintScale(paint=target, scaleX=sx, scaleY=sy)
+        else:
+            # translated scaling is the same as scale around a non-origin center
+            # If you trace through translate, scale, translate you get:
+            # dx = (1 - sx) * cx
+            # cx = dx / (1 - sx)  # undefined if sx == 1; if so dx should == 0
+            # so, as long as (1==sx) == (0 == dx) we're good
+            if (1 == sx) == (0 == dx) and (1 == sy) == (0 == dy):
+                cx = 0
+                if sx != 1:
+                    cx = dx / (1 - sx)
+                cy = 0
+                if sy != 1:
+                    cy = dy / (1 - sy)
+                if _int16_safe(cx, cy):
+                    if almost_equal(sx, sy):
+                        return PaintScaleUniformAroundCenter(
+                            paint=target, scale=sx, center=Point(cx, cy)
+                        )
+                    else:
+                        return PaintScaleAroundCenter(
+                            paint=target, scaleX=sx, scaleY=sy, center=Point(cx, cy)
+                        )
 
     # TODO optimize rotations
 
-    # TODO optimize scale, skew, rotate around center
+    # TODO optimize, skew, rotate around center
 
     return PaintTransform(paint=target, transform=tuple(transform))

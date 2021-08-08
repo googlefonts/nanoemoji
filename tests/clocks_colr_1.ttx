@@ -280,7 +280,7 @@
           <dy value="44.167"/>
         </Transform>
       </Paint>
-      <Paint index="4" Format="12"><!-- PaintTransform -->
+      <Paint index="4" Format="22"><!-- PaintScaleUniformAroundCenter -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="8"/>
@@ -288,14 +288,9 @@
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
-        <Transform>
-          <xx value="0.05"/>
-          <yx value="0.0"/>
-          <xy value="0.0"/>
-          <yy value="0.05"/>
-          <dx value="47.5"/>
-          <dy value="47.5"/>
-        </Transform>
+        <scale value="0.05"/>
+        <centerX value="50"/>
+        <centerY value="50"/>
       </Paint>
       <Paint index="5" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
