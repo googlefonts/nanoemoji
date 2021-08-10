@@ -90,8 +90,9 @@ flags.DEFINE_bool(
 flags.DEFINE_integer(
     "clipbox_quantization",
     None,
-    "Whether to quantize COLR clip boxes to multiples of given integer, i.e. "
-    "rounding {x,y}Min => -Inf (floor) and {x,y}Max => +Inf (ceiling)",
+    "Whether to quantize COLR clip boxes to multiples of positive integer, i.e. "
+    "rounding {x,y}Min => -Inf (floor) and {x,y}Max => +Inf (ceiling). "
+    "By default, it's 2% of UPEM (e.g. multiples of 20 units out of 1024).",
     lower_bound=1,
 )
 flags.DEFINE_bool(
@@ -137,7 +138,7 @@ class FontConfig(NamedTuple):
     ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
     clip_to_viewbox: bool = True
-    clipbox_quantization: int = 1
+    clipbox_quantization: Optional[int] = None
     output: str = "font"
     fea_file: str = "features.fea"
     codepointmap_file: str = "codepointmap.csv"
@@ -169,6 +170,9 @@ class FontConfig(NamedTuple):
 
         if self.descender > 0:
             raise ValueError("'descender' must be zero or negative")
+
+        if self.clipbox_quantization is not None and self.clipbox_quantization < 1:
+            raise ValueError("If set, 'clipbox_quantization' must be 1 or positive")
 
         return self
 

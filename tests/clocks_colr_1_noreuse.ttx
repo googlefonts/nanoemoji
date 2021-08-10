@@ -750,10 +750,10 @@
         <Glyph value="e000"/>
         <Glyph value="e001"/>
         <ClipBox Format="1">
-          <xMin value="3"/>
-          <yMin value="3"/>
-          <xMax value="97"/>
-          <yMax value="97"/>
+          <xMin value="2"/>
+          <yMin value="2"/>
+          <xMax value="98"/>
+          <yMax value="98"/>
         </ClipBox>
       </Clip>
     </ClipList>

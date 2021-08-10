@@ -571,6 +571,10 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
     glyph_cache = GlyphReuseCache(config)
 
     clipBoxes = {}
+    quantization = config.clipbox_quantization
+    if quantization is None:
+        # by default, quantize clip boxes to an integer value 2% of the UPEM
+        quantization = round(config.upem * 0.02)
     for i, color_glyph in enumerate(color_glyphs):
         logging.debug(
             "%s %s %s",
@@ -588,7 +592,7 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
         ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
             colr_version, colors, color_glyph, glyph_cache
         )
-        bounds = _bounds(color_glyph, config.clipbox_quantization)
+        bounds = _bounds(color_glyph, quantization)
         if bounds is not None:
             clipBoxes.setdefault(bounds, []).append(color_glyph.glyph_name)
 
