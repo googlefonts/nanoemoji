@@ -136,7 +136,7 @@
         <ClipBox Format="1">
           <xMin value="38"/>
           <yMin value="34"/>
-          <xMax value="41"/>
+          <xMax value="42"/>
           <yMax value="72"/>
         </ClipBox>
       </Clip>

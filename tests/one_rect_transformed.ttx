@@ -76,7 +76,7 @@
       <Clip>
         <Glyph value="e000"/>
         <ClipBox Format="1">
-          <xMin value="7"/>
+          <xMin value="6"/>
           <yMin value="48"/>
           <xMax value="36"/>
           <yMax value="90"/>
