@@ -414,7 +414,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     parent_el.append(el)  # pytype: disable=attribute-error
                     reuse_cache.shapes[reuse_key] = el
 
-                # don't update el_by_path because we're delaring this path complete
+                # don't update el_by_path because we're declaring this path complete
                 complete_paths.add(context.path + (context.paint,))
 
             elif isinstance(context.paint, PaintColrLayers):
