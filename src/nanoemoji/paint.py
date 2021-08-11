@@ -21,6 +21,7 @@ from enum import Enum, IntEnum
 from fontTools.ttLib.tables import otTables as ot
 from math import radians
 from nanoemoji.colors import Color
+from nanoemoji.fixed import int16_safe, f2dot14_safe
 from picosvg.geometric_types import Point, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
@@ -598,18 +599,6 @@ def is_transform(paint_or_format) -> bool:
     )
 
 
-def _int16_safe(*values):
-    return all(almost_equal(v, int(v)) and v <= 32767 and v >= -32768 for v in values)
-
-
-def _f2dot14_safe(*values):
-    return all(value >= -2.0 and value < 2.0 for value in values)
-
-
-def _f2dot14_rotation_safe(*values):
-    return all((value / 180.0) >= -2.0 and (value / 180.0) < 2.0 for value in values)
-
-
 def transformed(transform: Affine2D, target: Paint) -> Paint:
     if transform == Affine2D.identity():
         return target
@@ -618,13 +607,13 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
 
     # Int16 translation?
     if (dx, dy) != (0, 0) and Affine2D.identity().translate(dx, dy) == transform:
-        if _int16_safe(dx, dy):
+        if int16_safe(dx, dy):
             return PaintTranslate(paint=target, dx=dx, dy=dy)
 
     # Scale?
     # If all we have are scale and translation this is pure scaling
     # If b,c are present this is some sort of rotation or skew
-    if (sx, sy) != (1, 1) and (b, c) == (0, 0) and _f2dot14_safe(sx, sy):
+    if (sx, sy) != (1, 1) and (b, c) == (0, 0) and f2dot14_safe(sx, sy):
         if (dx, dy) == (0, 0):
             if almost_equal(sx, sy):
                 return PaintScaleUniform(paint=target, scale=sx)
@@ -643,7 +632,7 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
                 cy = 0
                 if sy != 1:
                     cy = dy / (1 - sy)
-                if _int16_safe(cx, cy):
+                if int16_safe(cx, cy):
                     if almost_equal(sx, sy):
                         return PaintScaleUniformAroundCenter(
                             paint=target, scale=sx, center=Point(cx, cy)

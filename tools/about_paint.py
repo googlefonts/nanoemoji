@@ -7,6 +7,7 @@ from collections import defaultdict
 from itertools import groupby
 import logging
 from math import acos, asin, atan, degrees
+from nanoemoji.fixed import *
 from picosvg.svg_transform import Affine2D
 import os
 import sys
@@ -49,11 +50,6 @@ def traverse_paint(colr, callback):
             paint = new_paint
         frontier.extend((paint, c) for c in reversed(paint.getChildren(colr)))
 
-def f2dot14_safe(*values):
-    return all(value >= -2.0 and value < 2.0 for value in values)
-
-def int16_safe(*values):
-    return all(-32768 <= value < 32768 and int(value) == round(value, 3) for value in values)
 
 def _angle(arcfn, v):
     return round(degrees(arcfn(v)), 4)
