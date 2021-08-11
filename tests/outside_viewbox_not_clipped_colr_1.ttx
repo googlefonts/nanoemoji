@@ -109,7 +109,7 @@
         </Paint>
         <Glyph value="g_25fd.1"/>
       </Paint>
-      <Paint index="2" Format="12"><!-- PaintTransform -->
+      <Paint index="2" Format="22"><!-- PaintScaleUniformAroundCenter -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="2"/>
@@ -117,14 +117,9 @@
           </Paint>
           <Glyph value="g_25fd.1"/>
         </Paint>
-        <Transform>
-          <xx value="1.5"/>
-          <yx value="0.0"/>
-          <xy value="0.0"/>
-          <yy value="1.5"/>
-          <dx value="-85.0"/>
-          <dy value="-105.0"/>
-        </Transform>
+        <scale value="1.5"/>
+        <centerX value="170"/>
+        <centerY value="210"/>
       </Paint>
     </LayerList>
     <ClipList Format="1">

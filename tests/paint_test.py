@@ -147,6 +147,47 @@ def test_gettransform(input_point, paint, expected_point):
                 transform=(3.1, 0, 0, 3.1, 0, 0),
             ),
         ),
+        # PaintScaleAroundCenter
+        (
+            Affine2D(0.5, 0, 0, 1.5, 30, 40),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintScaleAroundCenter(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                scaleX=0.5,
+                scaleY=1.5,
+                center=Point(60, -80),
+            ),
+        ),
+        # PaintScaleAroundCenter whilst avoiding / 0
+        (
+            Affine2D(1, 0, 0, 0.5, 0, 100),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintScaleAroundCenter(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                scaleX=1,
+                scaleY=0.5,
+                center=Point(0, 200),
+            ),
+        ),
+        # Do NOT PaintScaleAroundCenter when translation isn't ~int
+        (
+            Affine2D(0.45, 0, 0, 1.5, 30, 40),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintTransform(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                transform=(0.45, 0, 0, 1.5, 30, 40),
+            ),
+        ),
+        # PaintScaleUniformAroundCenter
+        (
+            Affine2D(0.75, 0, 0, 0.75, -20, 40),
+            PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+            PaintScaleUniformAroundCenter(
+                paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
+                scale=0.75,
+                center=Point(-80, 160),
+            ),
+        ),
     ],
 )
 def test_transformed(transform, target, expected_result):
