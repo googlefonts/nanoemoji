@@ -117,7 +117,9 @@ class Paint:
             )
             for paint in context.paint.children():
                 frontier.append(
-                    PaintTraverseContext(context.path + (self,), paint, transform)
+                    PaintTraverseContext(
+                        context.path + (context.paint,), paint, transform
+                    )
                 )
 
     def children(self) -> Iterable["Paint"]:

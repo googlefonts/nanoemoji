@@ -246,6 +246,13 @@ def test_vertical_metrics(ascender, descender, linegap):
             "transformed_components_overlap.ttx",
             {"color_format": "glyf_colr_1"},
         ),
+        # Check we can produce a group with opacity from a Paint graph
+        # https://github.com/googlefonts/nanoemoji/issues/315
+        (
+            ("group_opacity.svg",),
+            "group_opacity_picosvg.ttx",
+            {"color_format": "picosvg", "pretty_print": True},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

@@ -377,9 +377,10 @@ def _painted_layers(
             assert {"opacity"} == set(
                 context.element.attrib.keys()
             ), f"{debug_hint} {context.path} only attribute should be opacity. Found {context.element.attrib.keys()}"
+            # insert reversed to undo the reversed at the top of loop
             paint = PaintComposite(
                 mode=CompositeMode.SRC_IN,
-                source=PaintColrLayers(tuple(nodes)),
+                source=PaintColrLayers(tuple(reversed(nodes))),
                 backdrop=PaintSolid(Color(0, 0, 0, opacity)),
             )
             nodes = [paint]

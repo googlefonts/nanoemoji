@@ -18,10 +18,12 @@ import dataclasses
 from io import BytesIO
 from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
+from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.config import FontConfig
 from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.paint import (
+    CompositeMode,
     Extend,
     Paint,
     PaintSolid,
@@ -130,10 +132,15 @@ def _inter_glyph_reuse_key(
     return InterGlyphReuseKey(view_box, paint)
 
 
-def _apply_solid_paint(svg_path: etree.Element, paint: PaintSolid):
-    svg_path.attrib["fill"] = paint.color.opaque().to_string()
+def _apply_solid_paint(el: etree.Element, paint: PaintSolid):
+    if etree.QName(el.tag).localname == "g":
+        assert paint.color.opaque() == Color.fromstring(
+            "black"
+        ), "Unexpected color choice"
+    if paint.color.opaque() != Color.fromstring("black"):
+        el.attrib["fill"] = paint.color.opaque().to_string()
     if paint.color.alpha != 1.0:
-        svg_path.attrib["opacity"] = _ntos(paint.color.alpha)
+        el.attrib["opacity"] = _ntos(paint.color.alpha)
 
 
 def _apply_gradient_paint(
@@ -281,16 +288,25 @@ def _map_gradient_coordinates(paint: Paint, affine: Affine2D) -> Paint:
     raise TypeError(type(paint))
 
 
+def _is_svg_supported_composite(paint: Paint) -> bool:
+    # Only simple group opacity for now because that's all we produce in color_glyph.py
+    return (
+        isinstance(paint, PaintComposite)
+        and paint.mode == CompositeMode.SRC_IN
+        and isinstance(paint.backdrop, PaintSolid)
+    )
+
+
 def _apply_paint(
     svg_defs: etree.Element,
-    svg_path: etree.Element,
+    el: etree.Element,
     paint: Paint,
     upem_to_vbox: Affine2D,
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
 ):
     if isinstance(paint, PaintSolid):
-        _apply_solid_paint(svg_path, paint)
+        _apply_solid_paint(el, paint)
     elif isinstance(paint, (PaintLinearGradient, PaintRadialGradient)):
         # Gradient paint coordinates are in UPEM space, we want them in SVG viewBox
         # so that they match the SVGPath.d coordinates (that we copy unmodified).
@@ -300,11 +316,11 @@ def _apply_paint(
             transform = Affine2D.compose_ltr(
                 (upem_to_vbox.inverse(), transform, upem_to_vbox)
             )
-        _apply_gradient_paint(svg_defs, svg_path, paint, reuse_cache, transform)
+        _apply_gradient_paint(svg_defs, el, paint, reuse_cache, transform)
     elif is_transform(paint):
         transform @= paint.gettransform()
         child = paint.paint  # pytype: disable=attribute-error
-        _apply_paint(svg_defs, svg_path, child, upem_to_vbox, reuse_cache, transform)
+        _apply_paint(svg_defs, el, child, upem_to_vbox, reuse_cache, transform)
     else:
         raise NotImplementedError(type(paint))
 
@@ -330,7 +346,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     upem_to_vbox = vbox_to_upem.inverse()
 
     # copy the shapes into our svg
-    el_by_paint = {}
+    el_by_path = {(): svg_g}
     complete_paths = set()
     for root in color_glyph.painted_layers:
         for context in root.breadth_first():
@@ -338,8 +354,12 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                 continue
 
             parent_el = svg_g
-            if context.path:
-                parent_el = context.path[-1]
+            path = context.path
+            while path:
+                if path in el_by_path:
+                    parent_el = el_by_path[path]
+                    break
+                path = path[:-1]
 
             if isinstance(context.paint, PaintGlyph):
                 paint_glyph = cast(PaintGlyph, context.paint)
@@ -394,7 +414,19 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     parent_el.append(el)  # pytype: disable=attribute-error
                     reuse_cache.shapes[reuse_key] = el
 
+                # don't update el_by_path because we're declaring this path complete
                 complete_paths.add(context.path + (context.paint,))
+
+            elif isinstance(context.paint, PaintColrLayers):
+                pass
+
+            elif isinstance(context.paint, PaintSolid):
+                _apply_solid_paint(parent_el, context.paint)
+
+            elif _is_svg_supported_composite(context.paint):
+                el = etree.SubElement(parent_el, f"{{{svg_meta.svgns()}}}g")
+                el_by_path[context.path + (context.paint,)] = el
+
             else:
                 raise ValueError(f"What do we do with {context}")
 

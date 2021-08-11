@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
+    <path d="M19,11 L61,11 L61,121 L19,121 Z M29,21 L29,111 L51,111 L51,21 Z" opacity="0.8"/>
+    <g opacity="0.6">
+      <path d="M10,30 L100,30 L100,120 L10,120 L10,30 Z" fill="red"/>
+      <path d="M5,25 L105,25 L105,125 L5,125 Z M15,35 L15,115 L95,115 L95,35 Z" fill="blue"/>
+    </g>
+    <path d="M105,50 Q105,67.475 100.288,80.04 Q94.678,95 85,95 Q75.322,95 69.712,80.04 Q65,67.475 65,50 Q65,32.525 69.712,19.96 Q75.322,5 85,5 Q94.678,5 100.288,19.96 Q105,32.525 105,50 Z M95,50 Q95,34.338 90.925,23.471 Q87.748,15 85,15 Q82.252,15 79.075,23.471 Q75,34.338 75,50 Q75,65.662 79.075,76.529 Q82.252,85 85,85 Q87.748,85 90.925,76.529 Q95,65.662 95,50 Z"/>
+  </g>
+</svg>
+]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>
