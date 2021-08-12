@@ -31,7 +31,6 @@ from nanoemoji.paint import (
     PaintLinearGradient,
     PaintRadialGradient,
     PaintSolid,
-    transformed,
 )
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_meta import number_or_percentage
@@ -133,48 +132,15 @@ def _parse_linear_gradient(
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
     p2 = p0 + (p1 - p0).perpendicular()
 
+    common_args = _common_gradient_parts(grad_el, shape_opacity)
+
     transform = _get_gradient_transform(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    p0 = transform.map_point(p0)
-    p1 = transform.map_point(p1)
-    p2 = transform.map_point(p2)
-
-    common_args = _common_gradient_parts(grad_el, shape_opacity)
     return PaintLinearGradient(  # pytype: disable=wrong-arg-types
         p0=p0, p1=p1, p2=p2, **common_args
-    )
-
-
-def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
-    scale, remaining_transform = transform.decompose_scale()
-    s = max(*scale.getscale())
-    # most transforms will contain a Y-flip component as result of mapping from SVG to
-    # font coordinate space. Here we keep this negative Y sign as part of the uniform
-    # transform since it does not affect the circle-ness, and also makes so that the
-    # font-mapped gradient geometry is more likely to be in the +x,+y quadrant like
-    # the path geometry it is applied to.
-    uniform_scale = Affine2D(s, 0, 0, math.copysign(s, transform.d), 0, 0)
-    remaining_transform = Affine2D.compose_ltr(
-        (uniform_scale.inverse(), scale, remaining_transform)
-    )
-
-    translate, remaining_transform = remaining_transform.decompose_translation()
-    # round away very small float-math noise, so we get clean 0s and 1s for the special
-    # case of identity matrix which implies no wrapping transform
-    remaining_transform = remaining_transform.round(9)
-
-    logging.debug(
-        "Decomposing %r:\n\tscale: %r\n\ttranslate: %r\n\tremaining: %r",
-        transform,
-        uniform_scale,
-        translate,
-        remaining_transform,
-    )
-
-    uniform_transform = Affine2D.compose_ltr((uniform_scale, translate))
-    return uniform_transform, remaining_transform
+    ).apply_transform(transform)
 
 
 def _parse_radial_gradient(
@@ -192,35 +158,16 @@ def _parse_radial_gradient(
     c1 = Point(gradient.cx, gradient.cy)
     r1 = gradient.r
 
+    gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
+    gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
+
     transform = _get_gradient_transform(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
-    # gradientTransform, we may end up with a transformation that does not keep the
-    # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
-    # PaintRadialGradient by itself can only define circles. Thus we only apply the
-    # uniform scale and translate components of the original transform to the circles,
-    # then encode any remaining non-uniform transformation as a COLRv1 transform
-    # that wraps the PaintRadialGradient (see further below).
-    uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
-
-    c0 = uniform_transform.map_point(c0)
-    c1 = uniform_transform.map_point(c1)
-
-    sx, _ = uniform_transform.getscale()
-    r0 *= sx
-    r1 *= sx
-
-    gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
-    gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
-
-    # TODO handle degenerate cases, fallback to solid, w/e
-
-    return transformed(
-        remaining_transform,
-        PaintRadialGradient(**gradient_args),  # pytype: disable=wrong-arg-types
-    )
+    return PaintRadialGradient(  # pytype: disable=wrong-arg-types
+        **gradient_args
+    ).apply_transform(transform)
 
 
 _GRADIENT_INFO = {
