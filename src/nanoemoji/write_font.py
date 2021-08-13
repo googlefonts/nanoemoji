@@ -35,6 +35,7 @@ from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.glyph import glyph_name
 from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
+    is_gradient,
     is_transform,
     transformed,
     CompositeMode,
@@ -42,8 +43,6 @@ from nanoemoji.paint import (
     PaintComposite,
     PaintColrGlyph,
     PaintGlyph,
-    PaintLinearGradient,
-    PaintRadialGradient,
     PaintSolid,
 )
 from nanoemoji.svg import make_svg_table
@@ -276,7 +275,7 @@ def _migrate_paths_to_ufo_glyphs(
             # TODO: use the most compact valid transform
             # TODO: when is it more compact to use a new transforming glyph?
             child_paint = paint.paint
-            if is_transform(child_paint) and hasattr(child_paint.paint, "apply_transform"):
+            if is_transform(child_paint) and is_gradient(child_paint.paint):
                 child_paint = child_paint.paint.apply_transform(
                     Affine2D.compose_ltr(
                         (reuse_result.transform.inverse(), child_paint.gettransform())

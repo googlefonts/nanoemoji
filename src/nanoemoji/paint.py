@@ -75,9 +75,13 @@ class CompositeMode(IntEnum):
     HSL_LUMINOSITY = 26
 
 
+def _identity(v):
+    return v
+
+
 _PAINT_FIELD_TO_OT_FIELD = {
-    "format": ("PaintFormat", None),
-    "paint": ("Paint", None),
+    "format": ("PaintFormat", _identity),
+    "paint": ("Paint", _identity),
     "transform": ("Transform", lambda t: (t.xx, t.yx, t.xy, t.yy, t.dx, t.dy)),
 }
 
@@ -137,11 +141,10 @@ class Paint:
         paint_t = globals()[ot_paint.getFormatName()]
         paint_args = []
         for f in dataclasses.fields(paint_t):
-            ot_field, converter = _PAINT_FIELD_TO_OT_FIELD.get(f.name, (f.name, None))
-            value = getattr(ot_paint, ot_field)
-            if converter:
-                value = converter(value)
-            paint_args.append(value)
+            ot_field, converter = _PAINT_FIELD_TO_OT_FIELD.get(
+                f.name, (f.name, _identity)
+            )
+            paint_args.append(converter(getattr(ot_paint, ot_field)))
         paint = paint_t(*paint_args)
         return paint
 
@@ -662,6 +665,16 @@ def is_transform(paint_or_format) -> bool:
         ot.PaintFormat.PaintTransform
         <= paint_or_format
         <= ot.PaintFormat.PaintVarSkewAroundCenter
+    )
+
+
+def is_gradient(paint_or_format) -> bool:
+    if isinstance(paint_or_format, Paint):
+        paint_or_format = paint_or_format.format
+    return (
+        ot.PaintFormat.PaintLinearGradient
+        <= paint_or_format
+        <= ot.PaintFormat.PaintVarSweepGradient
     )
 
 
