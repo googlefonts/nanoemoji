@@ -278,7 +278,7 @@ def _migrate_paths_to_ufo_glyphs(
             if is_transform(child_paint) and is_gradient(child_paint.paint):
                 child_paint = child_paint.paint.apply_transform(
                     Affine2D.compose_ltr(
-                        (reuse_result.transform.inverse(), child_paint.gettransform())
+                        (child_paint.gettransform(), reuse_result.transform.inverse())
                     )
                 )
             return transformed(

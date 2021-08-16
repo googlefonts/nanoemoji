@@ -143,12 +143,12 @@
           <Glyph value="e000.0"/>
         </Paint>
         <Transform>
-          <xx value="1.0"/>
+          <xx value="0.5"/>
           <yx value="0.0"/>
           <xy value="0.0"/>
-          <yy value="1.0"/>
-          <dx value="57.42188"/>
-          <dy value="0.0"/>
+          <yy value="0.5"/>
+          <dx value="28.711"/>
+          <dy value="50.0"/>
         </Transform>
       </Paint>
     </LayerList>
@@ -158,8 +158,8 @@
         <ClipBox Format="1">
           <xMin value="8"/>
           <yMin value="30"/>
-          <xMax value="92"/>
-          <yMax value="58"/>
+          <xMax value="46"/>
+          <yMax value="80"/>
         </ClipBox>
       </Clip>
     </ClipList>

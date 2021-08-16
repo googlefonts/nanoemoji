@@ -10,5 +10,5 @@
     <stop  offset="0" stop-color="#ED7770"/>
     <stop  offset="0.9" stop-color="#ED7770" stop-opacity="0"/>
   </radialGradient>
-  <circle opacity="0.8" fill="url(#SVGID_2_)" cx="100.75" cy="71.83" r="17.5"/>
+  <circle opacity="0.8" fill="url(#SVGID_2_)" cx="100.75" cy="71.83" r="17.5" transform="scale(0.5)"/>
 </svg>
