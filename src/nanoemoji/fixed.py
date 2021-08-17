@@ -15,13 +15,26 @@
 from picosvg.geometric_types import almost_equal
 
 
+MIN_INT16 = -(1 << 15)
+MAX_INT16 = (1 << 15) - 1
+
+MIN_UINT16 = 0
+MAX_UINT16 = (1 << 16) - 1
+
+MIN_F2DOT14 = -2.0
+MAX_F2DOT14 = MAX_INT16 / (1 << 14)
+
+MIN_FIXED = MIN_INT16
+MAX_FIXED = ((1 << 31) - 1) / (1 << 16)
+
+
 def int16_safe(*values):
-    return all(almost_equal(v, int(v)) and v <= 32767 and v >= -32768 for v in values)
+    return all(almost_equal(v, int(v)) and MIN_INT16 <= v <= MAX_INT16 for v in values)
 
 
 def f2dot14_safe(*values):
-    return all(value >= -2.0 and value < 2.0 for value in values)
+    return all(MIN_F2DOT14 <= value <= MAX_F2DOT14 for value in values)
 
 
 def f2dot14_rotation_safe(*values):
-    return all((value / 180.0) >= -2.0 and (value / 180.0) < 2.0 for value in values)
+    return all(MIN_F2DOT14 <= (value / 180.0) <= MAX_F2DOT14 for value in values)

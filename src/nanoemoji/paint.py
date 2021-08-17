@@ -22,7 +22,14 @@ from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from math import copysign, radians
 from nanoemoji.colors import Color
-from nanoemoji.fixed import int16_safe, f2dot14_safe
+from nanoemoji.fixed import (
+    int16_safe,
+    f2dot14_safe,
+    MIN_INT16,
+    MAX_INT16,
+    MIN_UINT16,
+    MAX_UINT16,
+)
 from picosvg.geometric_types import Point, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
@@ -35,12 +42,6 @@ from typing import (
     Sequence,
     Tuple,
 )
-
-
-MIN_INT16 = -(2 ** 15)
-MAX_INT16 = 2 ** 15 - 1
-MIN_UINT16 = 0
-MAX_UINT16 = 2 ** 16 - 1
 
 
 class Extend(Enum):
