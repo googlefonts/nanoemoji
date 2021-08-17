@@ -272,7 +272,6 @@ def _migrate_paths_to_ufo_glyphs(
 
         reuse_result = glyph_cache.try_reuse(path_in_font_space)
         if reuse_result is not None:
-            # TODO: use the most compact valid transform
             # TODO: when is it more compact to use a new transforming glyph?
             child_paint = paint.paint
             if is_transform(child_paint) and is_gradient(child_paint.paint):
