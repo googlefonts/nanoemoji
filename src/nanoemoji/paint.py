@@ -37,6 +37,12 @@ from typing import (
 )
 
 
+MIN_INT16 = -(2 ** 15)
+MAX_INT16 = 2 ** 15 - 1
+MIN_UINT16 = 0
+MAX_UINT16 = 2 ** 16 - 1
+
+
 class Extend(Enum):
     PAD = (0,)
     REPEAT = (1,)
@@ -229,13 +235,25 @@ class PaintLinearGradient(Paint):
             "y2": self.p2[1],
         }
 
+    def check_overflows(self) -> "PaintLinearGradient":
+        for i in range(3):
+            attr_name = f"p{i}"
+            value = getattr(self, attr_name)
+            for j in range(2):
+                if not (MIN_INT16 <= value[j] <= MAX_INT16):
+                    raise OverflowError(
+                        f"{self.__class__.__name__}.{attr_name}[{j}] ({value[j]}) is "
+                        f"out of bounds: [{MIN_INT16}...{MAX_INT16}]"
+                    )
+        return self
+
     def apply_transform(self, transform: Affine2D) -> Paint:
         return dataclasses.replace(
             self,
             p0=transform.map_point(self.p0),
             p1=transform.map_point(self.p1),
             p2=transform.map_point(self.p2),
-        )
+        ).check_overflows()
 
 
 def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
@@ -295,6 +313,29 @@ class PaintRadialGradient(Paint):
         }
         return paint
 
+    def check_overflows(self) -> "PaintRadialGradient":
+        int_bounds = {
+            "c": (MIN_INT16, MAX_INT16),
+            "r": (MIN_UINT16, MAX_UINT16),
+        }
+        attrs = []
+        for prefix in ("c", "r"):
+            for i in range(2):
+                attr_name = f"{prefix}{i}"
+                value = getattr(self, attr_name)
+                if prefix == "c":
+                    attrs.extend((f"{attr_name}[{j}]", value[j]) for j in range(2))
+                else:
+                    attrs.append((f"{attr_name}", value))
+        for attr_name, value in attrs:
+            min_value, max_value = int_bounds[attr_name[0]]
+            if not (min_value <= value <= max_value):
+                raise OverflowError(
+                    f"{self.__class__.__name__}.{attr_name} ({value}) is "
+                    f"out of bounds: [{min_value}...{max_value}]"
+                )
+        return self
+
     def apply_transform(self, transform: Affine2D) -> Paint:
         # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
         # gradientTransform, we may end up with a transformation that does not keep the
@@ -315,7 +356,7 @@ class PaintRadialGradient(Paint):
         # TODO handle degenerate cases, fallback to solid, w/e
         return transformed(
             remaining_transform,
-            dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1),
+            dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1).check_overflows(),
         )
 
 
