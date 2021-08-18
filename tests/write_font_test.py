@@ -259,6 +259,12 @@ def test_vertical_metrics(ascender, descender, linegap):
             "group_opacity_reuse_picosvg.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
+        # https://github.com/googlefonts/nanoemoji/issues/324
+        (
+            ("transformed_gradient_reuse.svg",),
+            "transformed_gradient_reuse.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

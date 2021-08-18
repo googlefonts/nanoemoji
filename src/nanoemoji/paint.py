@@ -18,10 +18,18 @@ Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradi
 """
 import dataclasses
 from enum import Enum, IntEnum
+from absl import logging
 from fontTools.ttLib.tables import otTables as ot
-from math import radians
+from math import copysign, radians
 from nanoemoji.colors import Color
-from nanoemoji.fixed import int16_safe, f2dot14_safe
+from nanoemoji.fixed import (
+    int16_safe,
+    f2dot14_safe,
+    MIN_INT16,
+    MAX_INT16,
+    MIN_UINT16,
+    MAX_UINT16,
+)
 from picosvg.geometric_types import Point, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
@@ -75,9 +83,14 @@ class CompositeMode(IntEnum):
     HSL_LUMINOSITY = 27
 
 
+def _identity(v):
+    return v
+
+
 _PAINT_FIELD_TO_OT_FIELD = {
-    "format": "PaintFormat",
-    "paint": "Paint",
+    "format": ("PaintFormat", _identity),
+    "paint": ("Paint", _identity),
+    "transform": ("Transform", lambda t: (t.xx, t.yx, t.xy, t.yy, t.dx, t.dy)),
 }
 
 
@@ -134,10 +147,12 @@ class Paint:
     @classmethod
     def from_ot(cls, ot_paint: ot.Paint) -> "Paint":
         paint_t = globals()[ot_paint.getFormatName()]
-        paint_args = tuple(
-            getattr(ot_paint, _PAINT_FIELD_TO_OT_FIELD.get(f.name, f.name))
-            for f in dataclasses.fields(paint_t)
-        )
+        paint_args = []
+        for f in dataclasses.fields(paint_t):
+            ot_field, converter = _PAINT_FIELD_TO_OT_FIELD.get(
+                f.name, (f.name, _identity)
+            )
+            paint_args.append(converter(getattr(ot_paint, ot_field)))
         paint = paint_t(*paint_args)
         return paint
 
@@ -222,6 +237,56 @@ class PaintLinearGradient(Paint):
             "y2": self.p2[1],
         }
 
+    def check_overflows(self) -> "PaintLinearGradient":
+        for i in range(3):
+            attr_name = f"p{i}"
+            value = getattr(self, attr_name)
+            for j in range(2):
+                if not (MIN_INT16 <= value[j] <= MAX_INT16):
+                    raise OverflowError(
+                        f"{self.__class__.__name__}.{attr_name}[{j}] ({value[j]}) is "
+                        f"out of bounds: [{MIN_INT16}...{MAX_INT16}]"
+                    )
+        return self
+
+    def apply_transform(self, transform: Affine2D) -> Paint:
+        return dataclasses.replace(
+            self,
+            p0=transform.map_point(self.p0),
+            p1=transform.map_point(self.p1),
+            p2=transform.map_point(self.p2),
+        ).check_overflows()
+
+
+def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
+    scale, remaining_transform = transform.decompose_scale()
+    s = max(*scale.getscale())
+    # most transforms will contain a Y-flip component as result of mapping from SVG to
+    # font coordinate space. Here we keep this negative Y sign as part of the uniform
+    # transform since it does not affect the circle-ness, and also makes so that the
+    # font-mapped gradient geometry is more likely to be in the +x,+y quadrant like
+    # the path geometry it is applied to.
+    uniform_scale = Affine2D(s, 0, 0, copysign(s, transform.d), 0, 0)
+    remaining_transform = Affine2D.compose_ltr(
+        (uniform_scale.inverse(), scale, remaining_transform)
+    )
+
+    translate, remaining_transform = remaining_transform.decompose_translation()
+    # round away very small float-math noise, so we get clean 0s and 1s for the special
+    # case of identity matrix which implies no wrapping transform
+    remaining_transform = remaining_transform.round(9)
+
+    logging.debug(
+        "Decomposing %r:\n\tscale: %r\n\ttranslate: %r\n\tremaining: %r",
+        transform,
+        uniform_scale,
+        translate,
+        remaining_transform,
+    )
+
+    uniform_transform = Affine2D.compose_ltr((uniform_scale, translate))
+    return uniform_transform, remaining_transform
+
 
 @dataclasses.dataclass(frozen=True)
 class PaintRadialGradient(Paint):
@@ -249,6 +314,52 @@ class PaintRadialGradient(Paint):
             "r1": self.r1,
         }
         return paint
+
+    def check_overflows(self) -> "PaintRadialGradient":
+        int_bounds = {
+            "c": (MIN_INT16, MAX_INT16),
+            "r": (MIN_UINT16, MAX_UINT16),
+        }
+        attrs = []
+        for prefix in ("c", "r"):
+            for i in range(2):
+                attr_name = f"{prefix}{i}"
+                value = getattr(self, attr_name)
+                if prefix == "c":
+                    attrs.extend((f"{attr_name}[{j}]", value[j]) for j in range(2))
+                else:
+                    attrs.append((f"{attr_name}", value))
+        for attr_name, value in attrs:
+            min_value, max_value = int_bounds[attr_name[0]]
+            if not (min_value <= value <= max_value):
+                raise OverflowError(
+                    f"{self.__class__.__name__}.{attr_name} ({value}) is "
+                    f"out of bounds: [{min_value}...{max_value}]"
+                )
+        return self
+
+    def apply_transform(self, transform: Affine2D) -> Paint:
+        # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
+        # gradientTransform, we may end up with a transformation that does not keep the
+        # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
+        # PaintRadialGradient by itself can only define circles. Thus we only apply the
+        # uniform scale and translate components of the original transform to the circles,
+        # then encode any remaining non-uniform transformation as a COLRv1 transform
+        # that wraps the PaintRadialGradient (see further below).
+        uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
+
+        c0 = uniform_transform.map_point(self.c0)
+        c1 = uniform_transform.map_point(self.c1)
+
+        sx, _ = uniform_transform.getscale()
+        r0 = self.r0 * sx
+        r1 = self.r1 * sx
+
+        # TODO handle degenerate cases, fallback to solid, w/e
+        return transformed(
+            remaining_transform,
+            dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1).check_overflows(),
+        )
 
 
 # TODO PaintSweepGradient
@@ -597,6 +708,16 @@ def is_transform(paint_or_format) -> bool:
         ot.PaintFormat.PaintTransform
         <= paint_or_format
         <= ot.PaintFormat.PaintVarSkewAroundCenter
+    )
+
+
+def is_gradient(paint_or_format) -> bool:
+    if isinstance(paint_or_format, Paint):
+        paint_or_format = paint_or_format.format
+    return (
+        ot.PaintFormat.PaintLinearGradient
+        <= paint_or_format
+        <= ot.PaintFormat.PaintVarSweepGradient
     )
 
 

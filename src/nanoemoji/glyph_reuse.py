@@ -23,10 +23,7 @@ from typing import (
     NamedTuple,
     Optional,
 )
-
-
-MIN_FIXED = -32768
-MAX_FIXED = 0x7FFFFFFF / (1 << 16)
+from .fixed import MIN_FIXED, MAX_FIXED
 
 
 class ReuseResult(NamedTuple):

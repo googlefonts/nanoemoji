@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+   viewBox="0 0 128 128">
+  <radialGradient id="SVGID_1_" cx="25.7006" cy="68.0232" r="19.4444" gradientTransform="matrix(0.9791 0 0 0.9301 2.0871 8.5603)" gradientUnits="userSpaceOnUse">
+    <stop  offset="0" stop-color="#ED7770"/>
+    <stop  offset="0.9" stop-color="#ED7770" stop-opacity="0"/>
+  </radialGradient>
+  <circle opacity="0.8" fill="url(#SVGID_1_)" cx="27.25" cy="71.83" r="17.5"/>
+  <radialGradient id="SVGID_2_" cx="100.7714" cy="68.0232" r="19.4444" gradientTransform="matrix(0.9791 0 0 0.9301 2.0871 8.5603)" gradientUnits="userSpaceOnUse">
+    <stop  offset="0" stop-color="#ED7770"/>
+    <stop  offset="0.9" stop-color="#ED7770" stop-opacity="0"/>
+  </radialGradient>
+  <circle opacity="0.8" fill="url(#SVGID_2_)" cx="100.75" cy="71.83" r="17.5" transform="scale(0.5)"/>
+</svg>

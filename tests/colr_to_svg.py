@@ -27,6 +27,7 @@ from nanoemoji.paint import (
     PaintComposite,
     PaintColrLayers,
     is_transform,
+    _decompose_uniform_transform,
 )
 from nanoemoji.svg import (
     _svg_matrix,
@@ -156,7 +157,7 @@ def _apply_gradient_ot_paint(
     coord_transform = Affine2D.compose_ltr((transform, font_to_vbox))
     remaining_transform = Affine2D.identity()
     if paint.format == PaintRadialGradient.format:
-        coord_transform, remaining_transform = color_glyph._decompose_uniform_transform(
+        coord_transform, remaining_transform = _decompose_uniform_transform(
             coord_transform
         )
     paint = _map_gradient_coordinates(paint, coord_transform)

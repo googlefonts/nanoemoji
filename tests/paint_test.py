@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from fontTools.ttLib.tables import otTables as ot
-from nanoemoji.paint import Color
+from nanoemoji.paint import Color, _decompose_uniform_transform
 from nanoemoji.paint import *
 import pytest
 
@@ -192,3 +192,42 @@ def test_gettransform(input_point, paint, expected_point):
 )
 def test_transformed(transform, target, expected_result):
     assert transformed(transform, target) == expected_result
+
+
+@pytest.mark.parametrize(
+    "transform, expected_uniform_transform, expected_remaining_transform",
+    [
+        (
+            Affine2D(2, 0, 0, 1, 0, 0),
+            Affine2D(2, 0, 0, 2, 0, 0),
+            Affine2D(1, 0, 0, 0.5, 0, 0),
+        ),
+        (
+            Affine2D(8, 0, 0, -8, 0, 1024),
+            Affine2D(8, 0, 0, -8, 0, 1024),
+            Affine2D(1, 0, 0, 1, 0, 0),
+        ),
+        (
+            Affine2D.fromstring("rotate(-90) translate(50, -100)"),
+            Affine2D(1, 0, 0, 1, 50, -100),
+            Affine2D(0, -1.0, 1.0, 0, 0, 0),
+        ),
+        (
+            Affine2D.fromstring("rotate(90) scale(2)"),
+            Affine2D(2, 0, 0, 2, 0, 0),
+            Affine2D(0, 1.0, -1.0, 0, 0, 0),
+        ),
+        (
+            Affine2D.fromstring("translate(50, -100) scale(2) rotate(90)"),
+            Affine2D(2, 0, 0, 2, -100, -50),
+            Affine2D(0, 1.0, -1.0, 0, 0, 0),
+        ),
+    ],
+)
+def test_decompose_uniform_transform(
+    transform, expected_uniform_transform, expected_remaining_transform
+):
+    assert _decompose_uniform_transform(transform) == (
+        expected_uniform_transform,
+        expected_remaining_transform,
+    )
