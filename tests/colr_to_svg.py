@@ -17,6 +17,7 @@ from nanoemoji import color_glyph
 from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
     ColorStop,
+    CompositeMode,
     Extend,
     Paint,
     PaintSolid,
@@ -190,26 +191,34 @@ def _colr_v0_glyph_to_svg(
 def _colr_v1_paint_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: Mapping[str, Any],
-    svg_root: etree.Element,
+    parent_el: etree.Element,
+    svg_defs: etree.Element,
     font_to_vbox: Affine2D,
     ot_paint: otTables.Paint,
     reuse_cache: ReuseCache,
-    svg_path: Optional[etree.Element] = None,
     transform: Affine2D = Affine2D.identity(),
 ):
+    def descend(parent: etree.Element, paint: otTables.Paint):
+        _colr_v1_paint_to_svg(
+            ttfont,
+            glyph_set,
+            parent,
+            svg_defs,
+            font_to_vbox,
+            paint,
+            reuse_cache,
+            transform=transform,
+        )
+
     if ot_paint.Format == PaintSolid.format:
-        assert svg_path is not None
-        _apply_solid_ot_paint(svg_path, ttfont, ot_paint)
+        _apply_solid_ot_paint(parent_el, ttfont, ot_paint)
     elif ot_paint.Format in _GRADIENT_PAINT_FORMATS:
-        assert svg_path is not None
-        svg_defs = svg_root[0]
         _apply_gradient_ot_paint(
-            svg_defs, svg_path, ttfont, font_to_vbox, ot_paint, reuse_cache, transform
+            svg_defs, parent_el, ttfont, font_to_vbox, ot_paint, reuse_cache, transform
         )
     elif ot_paint.Format == PaintGlyph.format:
-        assert svg_path is None, "recursive PaintGlyph is unsupported"
         layer_glyph = ot_paint.Glyph
-        svg_path = etree.SubElement(svg_root, "path")
+        svg_path = etree.SubElement(parent_el, "path")
 
         # This only occurs if path is reused; we could wire up use. But for now ... not.
         if transform != Affine2D.identity():
@@ -218,46 +227,37 @@ def _colr_v1_paint_to_svg(
             )
             svg_path.attrib["transform"] = _svg_matrix(svg_transform)
 
-        _colr_v1_paint_to_svg(
-            ttfont,
-            glyph_set,
-            svg_root,
-            font_to_vbox,
-            ot_paint.Paint,
-            reuse_cache,
-            svg_path,
-        )
+        descend(svg_path, ot_paint.Paint)
 
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
     elif is_transform(ot_paint.Format):
         paint = Paint.from_ot(ot_paint)
         transform @= paint.gettransform()
-        _colr_v1_paint_to_svg(
-            ttfont,
-            glyph_set,
-            svg_root,
-            font_to_vbox,
-            ot_paint.Paint,
-            reuse_cache,
-            svg_path,
-            transform=transform,
-        )
+        descend(parent_el, ot_paint.Paint)
     elif ot_paint.Format == PaintColrLayers.format:
         layerList = ttfont["COLR"].table.LayerList.Paint
         assert layerList, "Paint layers without a layer list :("
         for child_paint in layerList[
             ot_paint.FirstLayerIndex : ot_paint.FirstLayerIndex + ot_paint.NumLayers
         ]:
-            _colr_v1_paint_to_svg(
-                ttfont,
-                glyph_set,
-                svg_root,
-                font_to_vbox,
-                child_paint,
-                reuse_cache,
-                svg_path,
-                transform=transform,
-            )
+            descend(parent_el, child_paint)
+
+    elif ot_paint.Format == PaintComposite.format and (
+        ot_paint.CompositeMode == CompositeMode.SRC_IN
+        and ot_paint.BackdropPaint.Format == PaintSolid.format
+    ):
+        # Only simple group opacity for now
+        color = _color(
+            ttfont,
+            ot_paint.BackdropPaint.PaletteIndex,
+            ot_paint.BackdropPaint.Alpha,
+        )
+        if color[:3] != (0, 0, 0):
+            raise NotImplementedError(color)
+        g = etree.SubElement(parent_el, "g")
+        g.attrib["opacity"] = ntos(color.alpha)
+        descend(g, ot_paint.SourcePaint)
+
     else:
         raise NotImplementedError(ot_paint.Format)
 
@@ -271,12 +271,13 @@ def _colr_v1_glyph_to_svg(
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
+    svg_defs = svg_root[0]
     ascender = ttfont["OS/2"].sTypoAscender
     descender = ttfont["OS/2"].sTypoDescender
     width = ttfont["hmtx"][glyph.BaseGlyph][0]
     font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
     _colr_v1_paint_to_svg(
-        ttfont, glyph_set, svg_root, font_to_vbox, glyph.Paint, reuse_cache
+        ttfont, glyph_set, svg_root, svg_defs, font_to_vbox, glyph.Paint, reuse_cache
     )
     return svg_root
 

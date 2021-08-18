@@ -38,6 +38,12 @@ from colr_to_svg import colr_to_svg
             "radial_gradient_rect_from_colr_1.svg",
             {"color_format": "glyf_colr_1"},
         ),
+        # https://github.com/googlefonts/nanoemoji/issues/327: PaintComposite
+        (
+            "group_opacity.svg",
+            "group_opacity_from_colr_1.svg",
+            {"color_format": "glyf_colr_1"},
+        ),
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
