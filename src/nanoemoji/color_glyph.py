@@ -296,11 +296,9 @@ def _painted_layers(
 
     # Reverse to get leaves first because that makes building Paint's easier
     # shapes *must* be leaves per picosvg
-    nodes = []
     for context in reversed(tuple(picosvg.depth_first())):
         if context.depth() == 0:
             continue  # svg root
-
         # picosvg will deliver us exactly one defs
         if context.path == "/svg[0]/defs[0]":
             assert not defs_seen
@@ -308,18 +306,25 @@ def _painted_layers(
             continue  # defs are pulled in by the consuming paints
 
         if context.is_shape():
-            nodes.append(
+            while len(layers) < context.depth():
+                layers.append([])
+            assert len(layers) == context.depth()
+            layers[context.depth() - 1].append(
                 _paint_glyph(debug_hint, config, picosvg, context, glyph_width)
             )
 
         if context.is_group():
-            # flush the current shapes into a new group
+            # flush child shapes into a new group
             opacity = float(context.element.get("opacity"))
             assert (
                 0.0 < opacity < 1.0
             ), f"{debug_hint} {context.path} should be transparent"
             assert (
-                len(nodes) > 1
+                len(layers) == context.depth() + 1
+            ), "Should have a list of child nodes"
+            child_nodes = layers.pop(context.depth())
+            assert (
+                len(child_nodes) > 1
             ), f"{debug_hint} {context.path} should have 2+ children"
             assert {"opacity"} == set(
                 context.element.attrib.keys()
@@ -327,16 +332,20 @@ def _painted_layers(
             # insert reversed to undo the reversed at the top of loop
             paint = PaintComposite(
                 mode=CompositeMode.SRC_IN,
-                source=PaintColrLayers(tuple(reversed(nodes))),
+                source=PaintColrLayers(tuple(reversed(child_nodes))),
                 backdrop=PaintSolid(Color(0, 0, 0, opacity)),
             )
-            nodes = [paint]
-
-        if context.depth() == 1:
-            # insert reversed to undo the reversed at the top of loop
-            layers.insert(0, nodes.pop())
+            layers[context.depth() - 1].append(paint)
 
     assert defs_seen, f"{debug_hint} we never saw defs, what's up with that?!"
+
+    if not layers:
+        return ()
+
+    assert len(layers) == 1, f"Unexpected layers: {[len(l) for l in layers]}"
+    # undo the reversed at the top of loop
+    layers = reversed(layers[0])
+
     return tuple(layers)
 
 
