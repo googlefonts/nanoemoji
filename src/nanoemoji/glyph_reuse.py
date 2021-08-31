@@ -84,16 +84,6 @@ class GlyphReuseCache:
             norm_path = normalize(SVGPath(d=glyph_path), self._normalize_tolerance).d
         else:
             norm_path = glyph_path
-        print(
-            "normalized",
-            glyph_name,
-            "from",
-            glyph_path,
-            "to",
-            norm_path,
-            "norm_tol",
-            self._normalize_tolerance,
-        )
         self._reusable_paths[norm_path] = (glyph_name, glyph_path)
         self._known_glyphs.add(glyph_name)
 
