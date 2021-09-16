@@ -25,6 +25,9 @@ from nanoemoji.colors import Color
 from nanoemoji.fixed import (
     int16_safe,
     f2dot14_safe,
+    fixed_safe,
+    MIN_FIXED,
+    MAX_FIXED,
     MIN_INT16,
     MAX_INT16,
     MIN_UINT16,
@@ -768,4 +771,24 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
 
     # TODO optimize, skew, rotate around center
 
-    return PaintTransform(paint=target, transform=tuple(transform))
+    # break up non-Fixed-safe affine into equivalent chain of safe affines
+    # https://github.com/googlefonts/nanoemoji/issues/313
+    transform_chain = [transform]
+    while not fixed_safe(*transform_chain[-1]):
+        transform = transform_chain.pop()
+        t1 = Affine2D(
+            *(
+                MIN_FIXED if v < MIN_FIXED else MAX_FIXED if v > MAX_FIXED else v
+                for v in transform
+            )
+        )
+        t2 = t1.inverse() @ transform
+        assert t1 @ t2 == transform
+        transform_chain.extend([t1, t2])
+
+    assert all(fixed_safe(*t) for t in transform_chain)
+
+    paint = target
+    for transform in reversed(transform_chain):
+        paint = PaintTransform(paint=paint, transform=tuple(transform))
+    return paint

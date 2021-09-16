@@ -36,5 +36,9 @@ def f2dot14_safe(*values):
     return all(MIN_F2DOT14 <= value <= MAX_F2DOT14 for value in values)
 
 
+def fixed_safe(*values):
+    return all(MIN_FIXED <= value <= MAX_FIXED for value in values)
+
+
 def f2dot14_rotation_safe(*values):
     return all(MIN_F2DOT14 <= (value / 180.0) <= MAX_F2DOT14 for value in values)
