@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.0"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000.0" width="100" lsb="39"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000.0" xMin="39" yMin="39" xMax="61" yMax="61">
+      <contour>
+        <pt x="61" y="50" on="1"/>
+        <pt x="61" y="54" on="0"/>
+        <pt x="54" y="61" on="0"/>
+        <pt x="50" y="61" on="1"/>
+        <pt x="46" y="61" on="0"/>
+        <pt x="39" y="54" on="0"/>
+        <pt x="39" y="50" on="1"/>
+        <pt x="39" y="46" on="0"/>
+        <pt x="46" y="39" on="0"/>
+        <pt x="50" y="39" on="1"/>
+        <pt x="54" y="39" on="0"/>
+        <pt x="61" y="46" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+  </glyf>
+
+  <COLR>
+    <Version value="1"/>
+    <!-- BaseGlyphRecordCount=0 -->
+    <!-- LayerRecordCount=0 -->
+    <BaseGlyphList>
+      <!-- BaseGlyphCount=1 -->
+      <BaseGlyphPaintRecord index="0">
+        <BaseGlyph value="e000"/>
+        <Paint Format="1"><!-- PaintColrLayers -->
+          <NumLayers value="3"/>
+          <FirstLayerIndex value="0"/>
+        </Paint>
+      </BaseGlyphPaintRecord>
+    </BaseGlyphList>
+    <LayerList>
+      <!-- LayerCount=3 -->
+      <Paint index="0" Format="10"><!-- PaintGlyph -->
+        <Paint Format="6"><!-- PaintRadialGradient -->
+          <ColorLine>
+            <Extend value="pad"/>
+            <!-- StopCount=3 -->
+            <ColorStop index="0">
+              <StopOffset value="0.0139"/>
+              <PaletteIndex value="10"/>
+              <Alpha value="1.0"/>
+            </ColorStop>
+            <ColorStop index="1">
+              <StopOffset value="0.6259"/>
+              <PaletteIndex value="9"/>
+              <Alpha value="1.0"/>
+            </ColorStop>
+            <ColorStop index="2">
+              <StopOffset value="1.0"/>
+              <PaletteIndex value="8"/>
+              <Alpha value="1.0"/>
+            </ColorStop>
+          </ColorLine>
+          <x0 value="47"/>
+          <y0 value="52"/>
+          <r0 value="0"/>
+          <x1 value="47"/>
+          <y1 value="52"/>
+          <r1 value="11"/>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="6"><!-- PaintRadialGradient -->
+            <ColorLine>
+              <Extend value="pad"/>
+              <!-- StopCount=4 -->
+              <ColorStop index="0">
+                <StopOffset value="0.0051"/>
+                <PaletteIndex value="3"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="1">
+                <StopOffset value="0.2014"/>
+                <PaletteIndex value="2"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="2">
+                <StopOffset value="0.7194"/>
+                <PaletteIndex value="1"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="3">
+                <StopOffset value="1.0"/>
+                <PaletteIndex value="0"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+            </ColorLine>
+            <x0 value="47"/>
+            <y0 value="53"/>
+            <r0 value="0"/>
+            <x1 value="47"/>
+            <y1 value="53"/>
+            <r1 value="11"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="1.0"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="1.0"/>
+          <dx value="0.0"/>
+          <dy value="-28.85938"/>
+        </Transform>
+      </Paint>
+      <Paint index="2" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="6"><!-- PaintRadialGradient -->
+            <ColorLine>
+              <Extend value="pad"/>
+              <!-- StopCount=4 -->
+              <ColorStop index="0">
+                <StopOffset value="0.0"/>
+                <PaletteIndex value="7"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="1">
+                <StopOffset value="0.1973"/>
+                <PaletteIndex value="6"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="2">
+                <StopOffset value="0.718"/>
+                <PaletteIndex value="5"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+              <ColorStop index="3">
+                <StopOffset value="1.0"/>
+                <PaletteIndex value="4"/>
+                <Alpha value="1.0"/>
+              </ColorStop>
+            </ColorLine>
+            <x0 value="47"/>
+            <y0 value="53"/>
+            <r0 value="0"/>
+            <x1 value="47"/>
+            <y1 value="53"/>
+            <r1 value="11"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="1.0"/>
+          <yx value="0.0"/>
+          <xy value="0.0"/>
+          <yy value="1.0"/>
+          <dx value="0.0"/>
+          <dy value="28.85156"/>
+        </Transform>
+      </Paint>
+    </LayerList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="e000"/>
+        <ClipBox Format="1">
+          <xMin value="38"/>
+          <yMin value="10"/>
+          <xMax value="62"/>
+          <yMax value="90"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
+  </COLR>
+
+  <CPAL>
+    <version value="0"/>
+    <numPaletteEntries value="11"/>
+    <palette index="0">
+      <color index="0" value="#43A047FF"/>
+      <color index="1" value="#50A854FF"/>
+      <color index="2" value="#72BE76FF"/>
+      <color index="3" value="#81C784FF"/>
+      <color index="4" value="#E53935FF"/>
+      <color index="5" value="#E54542FF"/>
+      <color index="6" value="#E56564FF"/>
+      <color index="7" value="#E57373FF"/>
+      <color index="8" value="#FBC02DFF"/>
+      <color index="9" value="#FCCD31FF"/>
+      <color index="10" value="#FFEB3BFF"/>
+    </palette>
+  </CPAL>
+
+</ttFont>

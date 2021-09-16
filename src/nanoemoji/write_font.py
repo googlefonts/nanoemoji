@@ -273,19 +273,25 @@ def _migrate_paths_to_ufo_glyphs(
         reuse_result = glyph_cache.try_reuse(path_in_font_space)
         if reuse_result is not None:
             # TODO: when is it more compact to use a new transforming glyph?
+            child_transform = Affine2D.identity()
             child_paint = paint.paint
-            if is_transform(child_paint) and is_gradient(child_paint.paint):
-                # We have a transformed gradient so we need to reverse the effect of the
+            if is_transform(child_paint):
+                child_transform = child_paint.gettransform()
+                child_paint = child_paint.paint
+
+            if is_gradient(child_paint):
+                # We have a gradient so we need to reverse the effect of the
                 # reuse_result.transform. First we try to apply the combined transform
                 # to the gradient's geometry; but this may overflow OT integer bounds,
                 # in which case we pass through gradient unscaled
                 transform = Affine2D.compose_ltr(
-                    (child_paint.gettransform(), reuse_result.transform.inverse())
+                    (child_transform, reuse_result.transform.inverse())
                 )
                 try:
-                    child_paint = child_paint.paint.apply_transform(transform)
+                    child_paint = child_paint.apply_transform(transform)
                 except OverflowError:
-                    child_paint = transformed(transform, child_paint.paint)
+                    child_paint = transformed(transform, child_paint)
+
             return transformed(
                 reuse_result.transform,
                 PaintGlyph(

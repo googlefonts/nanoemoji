@@ -226,6 +226,11 @@ def _colr_v1_paint_to_svg(
                 (font_to_vbox.inverse(), transform, font_to_vbox)
             )
             svg_path.attrib["transform"] = _svg_matrix(svg_transform)
+            # we must reset the current user space when setting the 'transform'
+            # attribute on a <path>, since that already affects the gradients used
+            # and we don't want the transform to be applied twice to gradients:
+            # https://github.com/googlefonts/nanoemoji/issues/334
+            transform = Affine2D.identity()
 
         descend(svg_path, ot_paint.Paint)
 

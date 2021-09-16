@@ -44,6 +44,22 @@ from colr_to_svg import colr_to_svg
             "group_opacity_from_colr_1.svg",
             {"color_format": "glyf_colr_1"},
         ),
+        # Roundtrip SVG containing reused shapes with gradients
+        # https://github.com/googlefonts/nanoemoji/issues/334
+        (
+            "reused_shape_with_gradient.svg",
+            "reused_shape_with_gradient_from_colr_1.svg",
+            {
+                "color_format": "glyf_colr_1",
+                # test_helper's default upem=100 is too coarse for glyf integer
+                # coordinates to approximate circles with quadratic beziers, hence
+                # we make it bigger below
+                "upem": 1024,
+                "width": 1275,
+                "ascender": 950,
+                "descender": -250,
+            },
+        ),
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
