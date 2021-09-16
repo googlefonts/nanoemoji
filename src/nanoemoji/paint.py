@@ -783,7 +783,9 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
             )
         )
         t2 = t1.inverse() @ transform
-        assert (t1 @ t2).almost_equals(transform, tolerance=1e-3)
+        assert (
+            (t1 @ t2).almost_equals(transform, tolerance=1e-3)
+        ), f"{t1} @ {t2} != {transform}"
         transform_chain.extend([t1, t2])
 
     assert all(fixed_safe(*t) for t in transform_chain)
