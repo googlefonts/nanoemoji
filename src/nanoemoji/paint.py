@@ -773,24 +773,43 @@ def transformed(transform: Affine2D, target: Paint) -> Paint:
 
     # break up non-Fixed-safe affine into equivalent chain of safe affines
     # https://github.com/googlefonts/nanoemoji/issues/313
-    transform_chain = [transform]
-    while not fixed_safe(*transform_chain[-1]):
-        transform = transform_chain.pop()
-        t1 = Affine2D(
-            *(
-                MIN_FIXED if v < MIN_FIXED else MAX_FIXED if v > MAX_FIXED else v
-                for v in transform
-            )
-        )
-        t2 = t1.inverse() @ transform
-        assert (
-            (t1 @ t2).almost_equals(transform, tolerance=1e-3)
-        ), f"{t1} @ {t2} != {transform}"
-        transform_chain.extend([t1, t2])
-
-    assert all(fixed_safe(*t) for t in transform_chain)
-
     paint = target
-    for transform in reversed(transform_chain):
-        paint = PaintTransform(paint=paint, transform=tuple(transform))
+    for t in fixed_safe_transform_chain(transform):
+        paint = PaintTransform(paint=paint, transform=tuple(t))
     return paint
+
+
+def fixed_safe_transform_chain(transform):
+    if fixed_safe(*transform):
+        yield transform
+        return
+
+    translation, m2x2 = transform.decompose_translation()
+    if not translation.almost_equals(Affine2D.identity()) and not m2x2.almost_equals(
+        Affine2D.identity()
+    ):
+        translation_chain = tuple(fixed_safe_transform_chain(translation))
+        m2x2_chain = tuple(fixed_safe_transform_chain(m2x2))
+        transform_chain = translation_chain + m2x2_chain
+        mid = Affine2D.compose_ltr((translation_chain[-1], m2x2_chain[0]))
+        if fixed_safe(*mid):
+            transform_chain = translation_chain[:-1] + (mid,) + m2x2_chain[1:]
+        yield from transform_chain
+    else:
+        transform = translation if m2x2.almost_equals(Affine2D.identity()) else m2x2
+
+        transform_chain = [transform]
+        while not fixed_safe(*transform_chain[-1]):
+            transform = transform_chain.pop()
+            t1 = Affine2D(
+                *(
+                    MIN_FIXED if v < MIN_FIXED else MAX_FIXED if v > MAX_FIXED else v
+                    for v in transform
+                )
+            )
+            t2 = t1.inverse() @ transform
+            assert (t1 @ t2).almost_equals(
+                transform, tolerance=1e-3
+            ), f"{t1} @ {t2} != {transform}"
+            transform_chain.extend([t1, t2])
+        yield from reversed(transform_chain)
