@@ -32,6 +32,7 @@ from nanoemoji import codepoints, config
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.fixed import fixed_safe
 from nanoemoji.glyph import glyph_name
 from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
@@ -279,6 +280,8 @@ def _migrate_paths_to_ufo_glyphs(
                 child_transform = child_paint.gettransform()
                 child_paint = child_paint.paint
 
+            assert fixed_safe(*reuse_result.transform)
+            overflows = False
             if is_gradient(child_paint):
                 # We have a gradient so we need to reverse the effect of the
                 # reuse_result.transform. First we try to apply the combined transform
@@ -287,18 +290,22 @@ def _migrate_paths_to_ufo_glyphs(
                 transform = Affine2D.compose_ltr(
                     (child_transform, reuse_result.transform.inverse())
                 )
-                try:
-                    child_paint = child_paint.apply_transform(transform)
-                except OverflowError:
-                    child_paint = transformed(transform, child_paint)
+                # skip reuse if combined transform overflows OT int bounds
+                overflows = not fixed_safe(*transform)
+                if not overflows:
+                    try:
+                        child_paint = child_paint.apply_transform(transform)
+                    except OverflowError:
+                        child_paint = transformed(transform, child_paint)
 
-            return transformed(
-                reuse_result.transform,
-                PaintGlyph(
-                    glyph=reuse_result.glyph_name,
-                    paint=child_paint,
-                ),
-            )
+            if not overflows:
+                return transformed(
+                    reuse_result.transform,
+                    PaintGlyph(
+                        glyph=reuse_result.glyph_name,
+                        paint=child_paint,
+                    ),
+                )
 
         glyph = _create_glyph(color_glyph, paint, path_in_font_space)
         glyph_cache.add_glyph(glyph.name, path_in_font_space)
