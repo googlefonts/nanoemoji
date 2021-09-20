@@ -312,6 +312,16 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
             {},
             None,
         ),
+        (
+            # this SVG contains two triangles flipped vertically around the middle,
+            # with each triangle's bbox half-viewbox wide; the union of their bboxes
+            # encompasses the full extent of the upem/viewbox.
+            # Reflection may play tricks if the bbox doesn't get normalized, cf.
+            # https://github.com/googlefonts/nanoemoji/issues/335
+            ("flipped_reused_shape.svg",),
+            {},
+            (0, 0, 100, 100),
+        ),
     ],
 )
 def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
