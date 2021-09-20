@@ -226,6 +226,11 @@ def _colr_v1_paint_to_svg(
                 (font_to_vbox.inverse(), transform, font_to_vbox)
             )
             svg_path.attrib["transform"] = _svg_matrix(svg_transform)
+            # we must reset the current user space when setting the 'transform'
+            # attribute on a <path>, since that already affects the gradients used
+            # and we don't want the transform to be applied twice to gradients:
+            # https://github.com/googlefonts/nanoemoji/issues/334
+            transform = Affine2D.identity()
 
         descend(svg_path, ot_paint.Paint)
 
@@ -309,10 +314,22 @@ def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
     }
 
 
-def colr_to_svg(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+def colr_to_svg(
+    view_box: Rect,
+    ttfont: ttLib.TTFont,
+    rounding_ndigits: Optional[int] = None,
+) -> Dict[str, SVG]:
     """For testing only, don't use for real!"""
     assert len(ttfont["CPAL"].palettes) == 1, "We assume one palette"
 
-    if ttfont["COLR"].version == 0:
-        return _colr_v0_to_svgs(view_box, ttfont)
-    return _colr_v1_to_svgs(view_box, ttfont)
+    colr_version = ttfont["COLR"].version
+    if colr_version == 0:
+        svgs = _colr_v0_to_svgs(view_box, ttfont)
+    elif colr_version == 1:
+        svgs = _colr_v1_to_svgs(view_box, ttfont)
+    else:
+        raise NotImplementedError(colr_version)
+
+    if rounding_ndigits is None:
+        return svgs
+    return {g: svg.round_floats(rounding_ndigits) for g, svg in svgs.items()}

@@ -23,7 +23,7 @@ from typing import (
     NamedTuple,
     Optional,
 )
-from .fixed import MIN_FIXED, MAX_FIXED
+from .fixed import fixed_safe
 
 
 class ReuseResult(NamedTuple):
@@ -70,7 +70,7 @@ class GlyphReuseCache:
             return None
 
         # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
-        if not all(MIN_FIXED <= v <= MAX_FIXED for v in affine):
+        if not fixed_safe(*affine):
             logging.warning(
                 "affine_between overflows Fixed: %s %s, %s", glyph_path, path, affine
             )

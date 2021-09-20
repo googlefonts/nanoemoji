@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="g1" cx="60" cy="61.12" r="13.547" gradientUnits="userSpaceOnUse">
+      <stop offset="0.014" stop-color="#FFEB3B"/>
+      <stop offset="0.626" stop-color="#FCCD31"/>
+      <stop offset="1" stop-color="#FBC02D"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="59.787" cy="60.693" r="13.547" gradientUnits="userSpaceOnUse">
+      <stop offset="0.005" stop-color="#81C784"/>
+      <stop offset="0.201" stop-color="#72BE76"/>
+      <stop offset="0.719" stop-color="#50A854"/>
+      <stop offset="1" stop-color="#43A047"/>
+    </radialGradient>
+    <radialGradient id="g3" cx="59.787" cy="60.48" r="13.547" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E57373"/>
+      <stop offset="0.197" stop-color="#E56564"/>
+      <stop offset="0.718" stop-color="#E54542"/>
+      <stop offset="1" stop-color="#E53935"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#g1)" d="M77.6,64 Q77.6,60.267 75.733,57.173 Q73.867,54.08 70.827,52.267 Q67.787,50.453 64.053,50.453 Q60.213,50.453 57.173,52.267 Q54.133,54.08 52.267,57.173 Q50.4,60.267 50.4,64 Q50.4,67.733 52.267,70.827 Q54.133,73.92 57.173,75.733 Q60.213,77.547 64.053,77.547 Q67.787,77.547 70.827,75.733 Q73.867,73.92 75.733,70.827 Q77.6,67.733 77.6,64 Z"/>
+  <path fill="url(#g2)" transform="translate(0, 36.94)" d="M77.6,64 Q77.6,60.267 75.733,57.173 Q73.867,54.08 70.827,52.267 Q67.787,50.453 64.053,50.453 Q60.213,50.453 57.173,52.267 Q54.133,54.08 52.267,57.173 Q50.4,60.267 50.4,64 Q50.4,67.733 52.267,70.827 Q54.133,73.92 57.173,75.733 Q60.213,77.547 64.053,77.547 Q67.787,77.547 70.827,75.733 Q73.867,73.92 75.733,70.827 Q77.6,67.733 77.6,64 Z"/>
+  <path fill="url(#g3)" transform="translate(0, -36.93)" d="M77.6,64 Q77.6,60.267 75.733,57.173 Q73.867,54.08 70.827,52.267 Q67.787,50.453 64.053,50.453 Q60.213,50.453 57.173,52.267 Q54.133,54.08 52.267,57.173 Q50.4,60.267 50.4,64 Q50.4,67.733 52.267,70.827 Q54.133,73.92 57.173,75.733 Q60.213,77.547 64.053,77.547 Q67.787,77.547 70.827,75.733 Q73.867,73.92 75.733,70.827 Q77.6,67.733 77.6,64 Z"/>
+</svg>

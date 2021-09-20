@@ -44,6 +44,22 @@ from colr_to_svg import colr_to_svg
             "group_opacity_from_colr_1.svg",
             {"color_format": "glyf_colr_1"},
         ),
+        # Roundtrip SVG containing reused shapes with gradients
+        # https://github.com/googlefonts/nanoemoji/issues/334
+        (
+            "reused_shape_with_gradient.svg",
+            "reused_shape_with_gradient_from_colr_1.svg",
+            {
+                "color_format": "glyf_colr_1",
+                # test_helper's default upem=100 is too coarse for glyf integer
+                # coordinates to approximate circles with quadratic beziers, hence
+                # we make it bigger below
+                "upem": 1024,
+                "width": 1275,
+                "ascender": 950,
+                "descender": -250,
+            },
+        ),
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
@@ -53,7 +69,9 @@ def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = SVG.parse(str(test_helper.locate_test_file(svg_in)))
-    svgs_from_font = tuple(colr_to_svg(svg_before.view_box(), ttfont).values())
+    svgs_from_font = tuple(
+        colr_to_svg(svg_before.view_box(), ttfont, rounding_ndigits=3).values()
+    )
     assert len(svgs_from_font) == 1
     svg_expected = SVG.parse(str(test_helper.locate_test_file(expected_svg_out)))
     test_helper.svg_diff(svgs_from_font[0], svg_expected)

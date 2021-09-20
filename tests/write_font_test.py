@@ -210,6 +210,13 @@ def test_vertical_metrics(ascender, descender, linegap):
             "reused_shape_glyf.ttx",
             {"color_format": "glyf"},
         ),
+        # Check gradient coordinates are correctly transformed after shape reuse
+        # https://github.com/googlefonts/nanoemoji/issues/334
+        (
+            ("reused_shape_with_gradient.svg",),
+            "reused_shape_with_gradient.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
         # Confirm we can apply a user transform, override some basic metrics
         (
             ("one_rect.svg",),
