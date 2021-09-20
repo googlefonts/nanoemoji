@@ -69,7 +69,9 @@ def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = SVG.parse(str(test_helper.locate_test_file(svg_in)))
-    svgs_from_font = tuple(colr_to_svg(svg_before.view_box(), ttfont).values())
+    svgs_from_font = tuple(
+        colr_to_svg(svg_before.view_box(), ttfont, rounding_ndigits=3).values()
+    )
     assert len(svgs_from_font) == 1
     svg_expected = SVG.parse(str(test_helper.locate_test_file(expected_svg_out)))
     test_helper.svg_diff(svgs_from_font[0], svg_expected)
