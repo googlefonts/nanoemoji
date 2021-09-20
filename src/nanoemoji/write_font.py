@@ -23,7 +23,7 @@ import csv
 import dataclasses
 import math
 from fontTools import ttLib
-from fontTools.misc.arrayTools import rectArea, unionRect
+from fontTools.misc.arrayTools import rectArea, normRect, unionRect
 from fontTools.misc.roundTools import otRound
 from fontTools.ttLib.tables import otTables as ot
 from itertools import chain
@@ -475,8 +475,12 @@ def _bounds(
             glyph_bbox = glyph.getControlBounds(color_glyph.ufo)
             if glyph_bbox is None:
                 continue
-            glyph_bbox = tuple(context.transform.map_point(glyph_bbox[:2])) + tuple(
-                context.transform.map_point(glyph_bbox[2:])
+            # transform may flip x and/or y thus we need to normalize the bounding
+            # rectangle such that {x,y}Min <= {x,y}Max holds true
+            # https://github.com/googlefonts/nanoemoji/issues/335
+            glyph_bbox = normRect(
+                tuple(context.transform.map_point(glyph_bbox[:2]))
+                + tuple(context.transform.map_point(glyph_bbox[2:]))
             )
             if bounds is None:
                 bounds = glyph_bbox
