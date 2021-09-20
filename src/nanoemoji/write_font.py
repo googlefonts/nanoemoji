@@ -280,8 +280,12 @@ def _migrate_paths_to_ufo_glyphs(
                 child_transform = child_paint.gettransform()
                 child_paint = child_paint.paint
 
+            # sanity check: GlyphReuseCache.try_reuse would return None if overflowed
             assert fixed_safe(*reuse_result.transform)
             overflows = False
+
+            # TODO: handle gradient anywhere in subtree, not only as direct child of
+            # PaintGlyph or PaintTransform
             if is_gradient(child_paint):
                 # We have a gradient so we need to reverse the effect of the
                 # reuse_result.transform. First we try to apply the combined transform
