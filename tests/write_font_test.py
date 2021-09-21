@@ -292,13 +292,13 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
             ("one_rect.svg",),
             {},
             # original rect's (xMin, yMin, xMax, yMax) with no user-transform
-            (20, 60, 80, 80),
+            [(20, 60, 80, 80)],
         ),
         (
             ("one_rect.svg",),
             # rotate 90 degrees clockwise around (20, 60)
             {"transform": Affine2D.fromstring("rotate(-90, 20, 60)")},
-            (20, 0, 40, 60),
+            [(20, 0, 40, 60)],
         ),
         (
             ("one_rect.svg",),
@@ -320,7 +320,15 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
             # https://github.com/googlefonts/nanoemoji/issues/335
             ("flipped_reused_shape.svg",),
             {},
-            (0, 0, 100, 100),
+            [(0, 0, 100, 100)],
+        ),
+        (
+            # Check that we correctly compute the bounds of a rectangle that
+            # is reused in a following glyph with a 45 degree rotation:
+            # https://github.com/googlefonts/nanoemoji/issues/341
+            ("rotated_bounds_1.svg", "rotated_bounds_2.svg"),
+            {},
+            [(10, 10, 90, 90), (22, 22, 78, 78)],
         ),
     ],
 )
@@ -329,15 +337,18 @@ def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
     config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     ufo, _ = write_font._generate_color_font(config, glyph_inputs)
 
-    base_glyph_name = "e000"
-    assert len(ufo[base_glyph_name]) == 0
+    base_glyph_names = [f"e{str(i).zfill(3)}" for i in range(len(svgs))]
+    for base_glyph_name in base_glyph_names:
+        assert len(ufo[base_glyph_name]) == 0
 
     if expected is not None:
         clip_boxes = ufo.lib[COLR_CLIP_BOXES_KEY]
-        assert len(clip_boxes) == 1
+        assert len(clip_boxes) == len(svgs) == len(expected)
 
-        glyphs, bounds = clip_boxes[0]
-        assert glyphs == [base_glyph_name]
-        assert bounds == pytest.approx(expected)
+        for base_glyph_name, (glyphs, bounds), expected_bounds in zip(
+            base_glyph_names, clip_boxes, expected
+        ):
+            assert glyphs == [base_glyph_name]
+            assert bounds == pytest.approx(expected_bounds)
     else:
         assert COLR_CLIP_BOXES_KEY not in ufo.lib
