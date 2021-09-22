@@ -26,6 +26,8 @@ from fontTools import ttLib
 from fontTools.misc.arrayTools import rectArea, normRect, unionRect
 from fontTools.misc.roundTools import otRound
 from fontTools.ttLib.tables import otTables as ot
+from fontTools.pens.boundsPen import ControlBoundsPen
+from fontTools.pens.transformPen import TransformPen
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import codepoints, config
@@ -461,6 +463,17 @@ def _quantize_bounding_rect(
     )
 
 
+def _transformed_glyph_bounds(
+    ufo: ufoLib2.Font, glyph_name: str, transform: Affine2D
+) -> Optional[Tuple[float, float, float, float]]:
+    glyph = ufo[glyph_name]
+    pen = bounds_pen = ControlBoundsPen(ufo)
+    if transform != Affine2D.identity():
+        pen = TransformPen(bounds_pen, transform)
+    glyph.draw(pen)
+    return bounds_pen.bounds
+
+
 def _bounds(
     color_glyph: ColorGlyph, quantize_factor: int = 1
 ) -> Optional[Tuple[int, int, int, int]]:
@@ -470,18 +483,11 @@ def _bounds(
             if not isinstance(context.paint, PaintGlyph):
                 continue
             paint_glyph: PaintGlyph = cast(PaintGlyph, context.paint)
-            glyph = color_glyph.ufo.get(paint_glyph.glyph)
-            assert glyph is not None, f"{paint_glyph.glyph} not in UFO"
-            glyph_bbox = glyph.getControlBounds(color_glyph.ufo)
+            glyph_bbox = _transformed_glyph_bounds(
+                color_glyph.ufo, paint_glyph.glyph, context.transform
+            )
             if glyph_bbox is None:
                 continue
-            # transform may flip x and/or y thus we need to normalize the bounding
-            # rectangle such that {x,y}Min <= {x,y}Max holds true
-            # https://github.com/googlefonts/nanoemoji/issues/335
-            glyph_bbox = normRect(
-                tuple(context.transform.map_point(glyph_bbox[:2]))
-                + tuple(context.transform.map_point(glyph_bbox[2:]))
-            )
             if bounds is None:
                 bounds = glyph_bbox
             else:

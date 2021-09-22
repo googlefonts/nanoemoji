@@ -1,0 +1,5 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 1000">
+  <g transform="matrix(0.707107 0.707107 -0.707107 0.707107 500 -207.106781)">
+    <path d="M100,500 L500,100 L900,500 L500,900 Z" fill="red" opacity="0.5"/>
+  </g>
+</svg>
