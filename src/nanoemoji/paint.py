@@ -91,6 +91,7 @@ _PAINT_FIELD_TO_OT_FIELD = {
     "format": ("PaintFormat", _identity),
     "paint": ("Paint", _identity),
     "transform": ("Transform", lambda t: (t.xx, t.yx, t.xy, t.yy, t.dx, t.dy)),
+    "center": (("centerX", "centerY"), _identity),
 }
 
 
@@ -152,7 +153,11 @@ class Paint:
             ot_field, converter = _PAINT_FIELD_TO_OT_FIELD.get(
                 f.name, (f.name, _identity)
             )
-            paint_args.append(converter(getattr(ot_paint, ot_field)))
+            if isinstance(ot_field, tuple):
+                arg = tuple(converter(getattr(ot_paint, f)) for f in ot_field)
+            else:
+                arg = converter(getattr(ot_paint, ot_field))
+            paint_args.append(arg)
         paint = paint_t(*paint_args)
         return paint
 

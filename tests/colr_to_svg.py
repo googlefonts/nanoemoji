@@ -272,7 +272,6 @@ def _colr_v1_glyph_to_svg(
     glyph_set: ttLib.ttFont._TTGlyphSet,
     view_box: Rect,
     glyph: otTables.BaseGlyphRecord,
-    reuse_cache: ReuseCache,
 ) -> etree.Element:
     glyph_set = ttfont.getGlyphSet()
     svg_root = _svg_root(view_box)
@@ -281,6 +280,7 @@ def _colr_v1_glyph_to_svg(
     descender = ttfont["OS/2"].sTypoDescender
     width = ttfont["hmtx"][glyph.BaseGlyph][0]
     font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+    reuse_cache = _new_reuse_cache()
     _colr_v1_paint_to_svg(
         ttfont, glyph_set, svg_root, svg_defs, font_to_vbox, glyph.Paint, reuse_cache
     )
@@ -303,12 +303,9 @@ def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
 
 def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
-    reuse_cache = _new_reuse_cache()
     return {
         g.BaseGlyph: SVG.fromstring(
-            etree.tostring(
-                _colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g, reuse_cache)
-            )
+            etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
         )
         for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
