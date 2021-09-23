@@ -286,7 +286,7 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
 
 
 @pytest.mark.parametrize(
-    "svgs, config_overrides, expected",
+    "svgs, config_overrides, expected_clip_boxes",
     [
         (
             ("one_rect.svg",),
@@ -332,7 +332,7 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
         ),
     ],
 )
-def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
+def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected_clip_boxes):
     config_overrides = {"output": "ufo", **config_overrides}
     config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     ufo, _ = write_font._generate_color_font(config, glyph_inputs)
@@ -341,12 +341,12 @@ def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected):
     for base_glyph_name in base_glyph_names:
         assert len(ufo[base_glyph_name]) == 0
 
-    if expected is not None:
+    if expected_clip_boxes is not None:
         clip_boxes = ufo.lib[COLR_CLIP_BOXES_KEY]
-        assert len(clip_boxes) == len(svgs) == len(expected)
+        assert len(clip_boxes) == len(svgs) == len(expected_clip_boxes)
 
         for base_glyph_name, (glyphs, bounds), expected_bounds in zip(
-            base_glyph_names, clip_boxes, expected
+            base_glyph_names, clip_boxes, expected_clip_boxes
         ):
             assert glyphs == [base_glyph_name]
             assert bounds == pytest.approx(expected_bounds)

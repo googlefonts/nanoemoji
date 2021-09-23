@@ -468,7 +468,7 @@ def _transformed_glyph_bounds(
 ) -> Optional[Tuple[float, float, float, float]]:
     glyph = ufo[glyph_name]
     pen = bounds_pen = ControlBoundsPen(ufo)
-    if transform != Affine2D.identity():
+    if not transform.almost_equals(Affine2D.identity()):
         pen = TransformPen(bounds_pen, transform)
     glyph.draw(pen)
     return bounds_pen.bounds
