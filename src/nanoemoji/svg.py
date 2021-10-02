@@ -16,6 +16,7 @@
 
 import dataclasses
 from io import BytesIO
+from itertools import groupby
 from fontTools import ttLib
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
@@ -42,7 +43,16 @@ from picosvg import svg_meta
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
-from typing import cast, MutableMapping, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import (
+    cast,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Set,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 
 # topicosvg()'s default
@@ -312,6 +322,10 @@ def _is_svg_supported_composite(paint: Paint) -> bool:
     )
 
 
+_XLINK_HREF_ATTR_NAME = f"{{{svg_meta.xlinkns()}}}href"
+_PAINT_ATTRIB_APPLY_PAINT_MAY_SET = {"fill", "opacity"}
+
+
 def _apply_paint(
     svg_defs: etree.Element,
     el: etree.Element,
@@ -320,6 +334,7 @@ def _apply_paint(
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
 ):
+    # If you modify the attributes _apply_paint can set also modify _PAINT_ATTRIB_APPLY_PAINT_MAY_SET
     if isinstance(paint, PaintSolid):
         _apply_solid_paint(el, paint)
     elif isinstance(paint, (PaintLinearGradient, PaintRadialGradient)):
@@ -340,7 +355,57 @@ def _apply_paint(
         raise NotImplementedError(type(paint))
 
 
-_XLINK_HREF_ATTR_NAME = f"{{{svg_meta.xlinkns()}}}href"
+def _attrib_apply_paint_uses(el: etree.Element) -> Set[str]:
+    # Per https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use
+    # only a few attributes of target can be overriden by <use>. However, we need
+    # only concern ourselves with the subset of those that _apply_paint might set.
+    return set(el.attrib) & _PAINT_ATTRIB_APPLY_PAINT_MAY_SET
+
+
+def _migrate_to_defs(
+    svg: SVG,
+    reused_el: etree.Element,
+    reuse_cache: ReuseCache,
+    reuse_result: ReuseResult,
+):
+    svg_defs = svg.xpath_one("//svg:defs")
+
+    if reused_el in svg_defs:
+        return  # nop
+
+    svg_use = etree.Element("use", nsmap=svg.svg_root.nsmap)
+    svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f"#{reuse_result.glyph_name}"
+    # if reused_el hasn't been given a parent yet just let the <use> replace it
+    # otherwise move it from current to new parent
+    if reused_el.getparent() is None:
+        reuse_cache.glyph_elements[reuse_result.glyph_name] = svg_use
+    else:
+        reused_el.addnext(svg_use)
+
+    svg_defs.append(reused_el)  # append moves
+
+    # sorted for diff stability
+    for attr_name in sorted(_attrib_apply_paint_uses(reused_el)):
+        svg_use.attrib[attr_name] = reused_el.attrib.pop(attr_name)
+
+    return svg_use
+
+
+def _create_use_element(
+    svg: SVG, parent_el: etree.Element, reuse_result: ReuseResult
+) -> etree.Element:
+    svg_use = etree.SubElement(parent_el, "use", nsmap=svg.svg_root.nsmap)
+    svg_use.attrib[_XLINK_HREF_ATTR_NAME] = f"#{reuse_result.glyph_name}"
+    transform = reuse_result.transform
+    tx, ty = transform.gettranslate()
+    if tx:
+        svg_use.attrib["x"] = _ntos(tx)
+    if ty:
+        svg_use.attrib["y"] = _ntos(ty)
+    transform = transform.translate(-tx, -ty)
+    if transform != Affine2D.identity():
+        svg_use.attrib["transform"] = _svg_matrix(transform)
+    return svg_use
 
 
 def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
@@ -390,47 +455,20 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     reused_el = reuse_cache.glyph_elements[reuse_result.glyph_name]
                     reused_el.attrib[
                         "id"
-                    ] = reuse_result.glyph_name  # we need to refer to you
+                    ] = (
+                        reuse_result.glyph_name
+                    )  # we need to refer to you, it's important you have identity
 
                     # if reuse spans glyphs then tag the reused element for migration to the outer
                     # <defs> and replace its first occurrence with a <use>. Adobe Illustrator
                     # doesn't support direct references between glyphs:
                     # https://github.com/googlefonts/nanoemoji/issues/264#issuecomment-820518808
-                    if color_glyph.glyph_name != _color_glyph_name(
-                        reuse_result.glyph_name
-                    ):
-                        if reused_el not in svg_defs:
-                            svg_use = etree.Element("use", nsmap=svg.svg_root.nsmap)
-                            svg_use.attrib[
-                                _XLINK_HREF_ATTR_NAME
-                            ] = f"#{reuse_result.glyph_name}"
-                            # if reused_el hasn't been given a parent yet just let the <use> replace it
-                            # otherwise move it from current to new parent
-                            if reused_el.getparent() is None:
-                                reuse_cache.glyph_elements[
-                                    reuse_result.glyph_name
-                                ] = svg_use
-                            else:
-                                reused_el.addnext(svg_use)
-
-                            svg_defs.append(reused_el)  # append moves
-
-                    svg_use = etree.SubElement(
-                        parent_el, "use", nsmap=svg.svg_root.nsmap
+                    migrate_reused_to_defs = (
+                        color_glyph.glyph_name
+                        != _color_glyph_name(reuse_result.glyph_name)
                     )
-                    svg_use.attrib[
-                        _XLINK_HREF_ATTR_NAME
-                    ] = f"#{reuse_result.glyph_name}"
-                    transform = reuse_result.transform
-                    tx, ty = transform.gettranslate()
-                    if tx:
-                        svg_use.attrib["x"] = _ntos(tx)
-                    if ty:
-                        svg_use.attrib["y"] = _ntos(ty)
-                    transform = transform.translate(-tx, -ty)
-                    if transform != Affine2D.identity():
-                        svg_use.attrib["transform"] = _svg_matrix(transform)
 
+                    svg_use = _create_use_element(svg, parent_el, reuse_result)
                     _apply_paint(
                         svg_defs,
                         svg_use,
@@ -438,6 +476,15 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                         upem_to_vbox,
                         reuse_cache,
                     )
+
+                    # If the reused_el has attributes use cannot override push it to defs
+                    # which will transfer them from reused_el to use
+                    # https://github.com/googlefonts/nanoemoji/issues/337
+                    if _attrib_apply_paint_uses(reused_el):
+                        migrate_reused_to_defs = True
+
+                    if migrate_reused_to_defs:
+                        _migrate_to_defs(svg, reused_el, reuse_cache, reuse_result)
 
                 else:
                     el = reuse_cache.glyph_elements[glyph_name]
@@ -468,8 +515,6 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
 
             else:
                 raise ValueError(f"What do we do with {context}")
-
-    #
 
 
 def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
@@ -529,12 +574,20 @@ def _ensure_groups_grouped_in_glyph_order(
     ttfont.setGlyphOrder(glyph_order)
 
 
-def _tidy_use_elements(svg: SVG):
-    for use_el in svg.xpath("//use"):
-        ref = use_el.attrib.get(f"{{{svg_meta.xlinkns()}}}href", "")
-        assert ref.startswith("#"), f"Only use #fragment supported, reject {ref}"
+def _use_href(use_el):
+    ref = use_el.attrib[_XLINK_HREF_ATTR_NAME]
+    assert ref.startswith("#"), f"Only use #fragment supported, reject {ref}"
+    return ref[1:]
 
-        reused_el = svg.xpath_one(f'//svg:*[@id="{ref[1:]}"]')
+
+def _tidy_use_elements(svg: SVG):
+    use_els = sorted(svg.xpath("//use"), key=_use_href)
+    targets = {}
+
+    for use_el in use_els:
+        ref = _use_href(use_el)
+        reused_el = svg.xpath_one(f'//svg:*[@id="{ref}"]')
+        targets[ref] = reused_el
 
         duplicate_attrs = {
             attr_name
@@ -544,6 +597,18 @@ def _tidy_use_elements(svg: SVG):
         }
         for duplicate_attr in duplicate_attrs:
             del use_el.attrib[duplicate_attr]
+
+    # If all <use> have the same paint attr migrate it from use to target
+    for ref, uses in groupby(use_els, key=_use_href):
+        uses = list(uses)
+        target = targets[ref]
+        for attr_name in sorted(_PAINT_ATTRIB_APPLY_PAINT_MAY_SET):
+            values = [use.attrib[attr_name] for use in uses if attr_name in use.attrib]
+            unique_values = set(values)
+            if len(values) == len(uses) and len(unique_values) == 1:
+                target.attrib[attr_name] = values[0]
+                for use in uses:
+                    del use.attrib[attr_name]
 
 
 def _picosvg_docs(
@@ -577,6 +642,9 @@ def _picosvg_docs(
 
         # tidy use elements, they may emerge from _add_glyph with unnecessary attributes
         _tidy_use_elements(svg)
+
+        # sort <defs> by @id to increase diff stability
+        defs[:] = sorted(defs, key=lambda e: e.attrib["id"])
 
         # strip <defs/> if empty
         if len(defs) == 0:
