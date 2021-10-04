@@ -47,9 +47,12 @@
 
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+  <defs>
+    <path d="M74.545,71.818 A15 21.818 0 1 1 44.545,71.818 A15 21.818 0 1 1 74.545,71.818 Z" id="e000.1" fill="#7E4418"/>
+  </defs>
   <g id="glyph2" transform="matrix(0.5 0 0 0.5 0 -100)">
     <path d="M200,100 A100 100 0 1 1 0,100 A100 100 0 1 1 200,100 Z" fill="#F49924"/>
-    <path d="M74.545,71.818 A15 21.818 0 1 1 44.545,71.818 A15 21.818 0 1 1 74.545,71.818 Z" fill="#7E4418" id="e000.1"/>
+    <use xlink:href="#e000.1"/>
     <use xlink:href="#e000.1" x="80.91"/>
   </g>
 </svg>
