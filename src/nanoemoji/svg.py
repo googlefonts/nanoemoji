@@ -452,21 +452,24 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                 reuse_result = reuse_cache.reuse_results.get(glyph_name, None)
 
                 if reuse_result:
-                    reused_el = reuse_cache.glyph_elements[reuse_result.glyph_name]
-                    reused_el.attrib[
-                        "id"
-                    ] = (
-                        reuse_result.glyph_name
-                    )  # we need to refer to you, it's important you have identity
-
-                    # if reuse spans glyphs then tag the reused element for migration to the outer
-                    # <defs> and replace its first occurrence with a <use>. Adobe Illustrator
-                    # doesn't support direct references between glyphs:
-                    # https://github.com/googlefonts/nanoemoji/issues/264#issuecomment-820518808
-                    migrate_reused_to_defs = (
-                        color_glyph.glyph_name
-                        != _color_glyph_name(reuse_result.glyph_name)
-                    )
+                    reused_glyph_name = reuse_result.glyph_name
+                    reused_el = reuse_cache.glyph_elements[reused_glyph_name]
+                    reused_el_tag = etree.QName(reused_el.tag).localname
+                    if reused_el_tag == "use":
+                        # if reused_el is a <use> it means _migrate_to_defs has already
+                        # replaced a parent-less <path> with a <use> pointing to it, and
+                        # has appended the reused path to <defs>. Assert that's the case
+                        assert _use_href(reused_el) == reused_glyph_name
+                        reused_el = svg.xpath(
+                            f'//svg:path[@id="{reused_glyph_name}"]',
+                            el=svg_defs,
+                            expected_result_range=range(1, 2),
+                        )[0]
+                    elif reused_el_tag == "path":
+                        # we need to refer to you, it's important you have identity
+                        reused_el.attrib["id"] = reused_glyph_name
+                    else:
+                        raise AssertionError(reused_el_tag)
 
                     svg_use = _create_use_element(svg, parent_el, reuse_result)
                     _apply_paint(
@@ -477,13 +480,16 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                         reuse_cache,
                     )
 
-                    # If the reused_el has attributes use cannot override push it to defs
-                    # which will transfer them from reused_el to use
-                    # https://github.com/googlefonts/nanoemoji/issues/337
-                    if _attrib_apply_paint_uses(reused_el):
-                        migrate_reused_to_defs = True
-
-                    if migrate_reused_to_defs:
+                    # In two cases, we need to push the reused element to the outer
+                    # <defs> and replace its first occurence with a <use>:
+                    # 1) If reuse spans multiple glyphs, as Adobe Illustrator
+                    #    doesn't support direct references between glyphs:
+                    #    https://github.com/googlefonts/nanoemoji/issues/264
+                    # 2) If the reused_el has attributes <use> cannot override
+                    #    https://github.com/googlefonts/nanoemoji/issues/337
+                    if color_glyph.glyph_name != _color_glyph_name(
+                        reused_glyph_name
+                    ) or _attrib_apply_paint_uses(reused_el):
                         _migrate_to_defs(svg, reused_el, reuse_cache, reuse_result)
 
                 else:
