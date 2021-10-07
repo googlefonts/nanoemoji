@@ -133,3 +133,21 @@ def test_build_untouchedsvg_font():
         "rect",
         "ellipse",
     ), svg_content
+
+
+def test_the_curious_case_of_the_parentless_reused_el():
+    # https://github.com/googlefonts/nanoemoji/issues/346
+    tmp_dir = _run(
+        (
+            "--color_format=picosvg",
+            "--pretty_print",
+            "--keep_glyph_names",
+            *(
+                locate_test_file(f"parentless_reused_el/emoji_u{codepoints}.svg")
+                for codepoints in ("0023_20e3", "1f170", "1f171")
+            ),
+        )
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+    assert "SVG " in font
