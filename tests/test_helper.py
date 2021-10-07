@@ -84,14 +84,21 @@ def _save_actual_ttx(expected_ttx, ttx_content):
     return tmp_file
 
 
-def assert_expected_ttx(svgs, ttfont, expected_ttx):
+def assert_expected_ttx(
+    svgs,
+    ttfont,
+    expected_ttx,
+    include_tables=None,
+    skip_tables=("head", "hhea", "maxp", "name", "post", "OS/2"),
+):
     actual_ttx = io.StringIO()
     # Timestamps inside files #@$@#%@#
     # force consistent Unix newlines (the expected test files use \n too)
     ttfont.saveXML(
         actual_ttx,
         newlinestr="\n",
-        skipTables=["head", "hhea", "maxp", "name", "post", "OS/2"],
+        tables=include_tables,
+        skipTables=skip_tables,
     )
 
     # Elide ttFont attributes because ttLibVersion may change
