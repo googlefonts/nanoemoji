@@ -463,11 +463,9 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                         # replaced a parent-less <path> with a <use> pointing to it, and
                         # has appended the reused path to <defs>. Assert that's the case
                         assert _use_href(reused_el) == reused_glyph_name
-                        reused_el = svg.xpath(
-                            f'//svg:path[@id="{reused_glyph_name}"]',
-                            el=svg_defs,
-                            expected_result_range=range(1, 2),
-                        )[0]
+                        reused_el = svg.xpath_one(
+                            f'//svg:defs/svg:path[@id="{reused_glyph_name}"]',
+                        )
                     elif reused_el_tag == "path":
                         # we need to refer to you, it's important you have identity
                         reused_el.attrib["id"] = reused_glyph_name
