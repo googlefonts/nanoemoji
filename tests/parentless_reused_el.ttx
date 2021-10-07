@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="g_20e3"/>
+    <GlyphID id="3" name="g_23"/>
+    <GlyphID id="4" name="g_1f170"/>
+    <GlyphID id="5" name="g_1f171"/>
+    <GlyphID id="6" name="g_23_20e3"/>
+  </GlyphOrder>
+
+  <SVG>
+
+    <svgDoc endGlyphID="6" startGlyphID="4">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+  <defs>
+    <path d="M0,0 L64,0 L64,64 L0,64 L0,0 Z" id="g_23_20e3.0"/>
+  </defs>
+  <g id="glyph4" transform="matrix(9.375 0 0 9.375 37.5 -950)">
+    <use xlink:href="#g_23_20e3.0" x="32" y="32" fill="red"/>
+  </g>
+  <g id="glyph5" transform="matrix(9.375 0 0 9.375 37.5 -950)">
+    <use xlink:href="#g_23_20e3.0" x="64" y="64" fill="blue"/>
+  </g>
+  <g id="glyph6" transform="matrix(9.375 0 0 9.375 37.5 -950)">
+    <use xlink:href="#g_23_20e3.0" fill="yellow"/>
+  </g>
+</svg>
+]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>
