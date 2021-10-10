@@ -192,7 +192,7 @@ def _additional_log(font, paint):
         glyph_set = font.getGlyphSet()
         svg_pen = SVGPathPen(glyph_set)
         glyph_set[glyph_name].draw(svg_pen)
-        return " " + f"<path d=\"{svg_pen.getCommands()}\" />"
+        return " " + f'<path d="{svg_pen.getCommands()}" />'
     return ""
 
 

@@ -47,7 +47,7 @@ class GlyphReuseCache:
         """Try to reproduce path as the transformation of another glyph.
 
         Returns (glyph name, transform) if possible, None if not.
-        """        
+        """
         assert (
             not path in self._known_glyphs
         ), f"{path} isn't a path, it's a glyph name we've seen before"
@@ -68,18 +68,24 @@ class GlyphReuseCache:
                 SVGPath(d=glyph_path), SVGPath(d=path), self._reuse_tolerance
             )
 
-            # TEMPORARY
-            if affine is None:
-                affine = None
+            if affine == Affine2D.identity():
+                logging.info(f"We can reuse {glyph_name} unmodified!")
 
             if affine is None:
-                logging.warning("affine_between failed: \n\t<path d=\"%s\"/>\n\t<path d=\"%s\"/> ", glyph_path, path)
+                logging.warning(
+                    'affine_between failed: \n\t<path d="%s"/>\n\t<path d="%s"/> ',
+                    glyph_path,
+                    path,
+                )
                 continue
 
             # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
             if not fixed_safe(*affine):
                 logging.warning(
-                    "affine_between overflows Fixed: \n\t<path d=\"%s\"/>\n\t<path d=\"%s\"/>\n\t%s", glyph_path, path, affine
+                    'affine_between overflows Fixed: \n\t<path d="%s"/>\n\t<path d="%s"/>\n\t%s',
+                    glyph_path,
+                    path,
+                    affine,
                 )
                 continue
 

@@ -727,8 +727,10 @@ def is_gradient(paint_or_format) -> bool:
 
 
 def transformed(transform: Affine2D, target: Paint) -> Paint:
-    if transform == Affine2D.identity():
+    if Affine2D.identity().almost_equals(transform):
+        logging.info("  transform is nop")
         return target
+    logging.info("  transform is real %s", transform)
 
     sx, b, c, sy, dx, dy = transform
 
