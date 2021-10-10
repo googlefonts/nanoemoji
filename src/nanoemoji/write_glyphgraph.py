@@ -156,6 +156,14 @@ def _paint_node(glyph_order, palette, paint) -> Node:
             paint.Glyph,
         )
         return Node(node_id="_".join(id_parts))
+    if paint.Format == ot.PaintFormat.PaintTranslate:
+        id_parts = (
+            "Translate",
+            f"dx {paint.dx}",
+            f"dy {paint.dy}",
+            _paint_node(glyph_order, palette, paint.Paint).node_id,
+        )
+        return Node(node_id="_".join(id_parts))
     if paint.Format == ot.PaintFormat.PaintTransform:
         id_parts = (
             "Transform",
@@ -222,6 +230,8 @@ def _paint(dag, parent, font, paint, depth):
         # adding format 5 edges makes the result a horrible mess
         # elif paint.Format == 5:
         #   _glyph(dag, node_id, font, _only(_base_glyphs(font, lambda g: g.BaseGlyph == paint.Glyph)), depth + 1)
+        elif paint.Format == ot.PaintFormat.PaintTranslate:
+            _paint(dag, node_id, font, paint.Paint, depth + 1)
         elif paint.Format == ot.PaintFormat.PaintTransform:
             _paint(dag, node_id, font, paint.Paint, depth + 1)
         elif paint.Format == ot.PaintFormat.PaintComposite:

@@ -269,12 +269,22 @@ def _migrate_paths_to_ufo_glyphs(
             return paint
 
         assert paint.glyph.startswith("M"), f"{paint.glyph} doesn't look like a path"
+        path_in_svg_space = paint.glyph
         path_in_font_space = (
-            SVGPath(d=paint.glyph).apply_transform(svg_units_to_font_units).d
+            SVGPath(d=path_in_svg_space).apply_transform(svg_units_to_font_units).d
         )
 
-        reuse_result = glyph_cache.try_reuse(path_in_font_space)
+        print("REUSE IN SVG SPACE")
+        print("  ", path_in_svg_space)
+        print("  ", path_in_font_space)
+        # The odds of finding reuse in svg space seems to be much higher. Not completely sure why.
+        reuse_result = glyph_cache.try_reuse(path_in_svg_space)
         if reuse_result is not None:
+            reuse_transform = Affine2D.compose_ltr((
+                svg_units_to_font_units.inverse(),
+                reuse_result.transform,
+                svg_units_to_font_units,
+            ))
             # TODO: when is it more compact to use a new transforming glyph?
             child_transform = Affine2D.identity()
             child_paint = paint.paint
@@ -283,7 +293,7 @@ def _migrate_paths_to_ufo_glyphs(
                 child_paint = child_paint.paint
 
             # sanity check: GlyphReuseCache.try_reuse would return None if overflowed
-            assert fixed_safe(*reuse_result.transform)
+            assert fixed_safe(*reuse_transform)
             overflows = False
 
             # TODO: handle gradient anywhere in subtree, not only as direct child of
@@ -294,7 +304,7 @@ def _migrate_paths_to_ufo_glyphs(
                 # to the gradient's geometry; but this may overflow OT integer bounds,
                 # in which case we pass through gradient unscaled
                 transform = Affine2D.compose_ltr(
-                    (child_transform, reuse_result.transform.inverse())
+                    (child_transform, reuse_transform.inverse())
                 )
                 # skip reuse if combined transform overflows OT int bounds
                 overflows = not fixed_safe(*transform)
@@ -306,7 +316,7 @@ def _migrate_paths_to_ufo_glyphs(
 
             if not overflows:
                 return transformed(
-                    reuse_result.transform,
+                    reuse_transform,
                     PaintGlyph(
                         glyph=reuse_result.glyph_name,
                         paint=child_paint,
@@ -314,7 +324,7 @@ def _migrate_paths_to_ufo_glyphs(
                 )
 
         glyph = _create_glyph(color_glyph, paint, path_in_font_space)
-        glyph_cache.add_glyph(glyph.name, path_in_font_space)
+        glyph_cache.add_glyph(glyph.name, path_in_svg_space)
 
         return dataclasses.replace(paint, glyph=glyph.name)
 

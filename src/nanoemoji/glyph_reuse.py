@@ -16,6 +16,7 @@
 
 
 from absl import logging
+from collections import defaultdict
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
@@ -35,7 +36,7 @@ class GlyphReuseCache:
     def __init__(self, reuse_tolerance: float):
         self._reuse_tolerance = reuse_tolerance
         self._known_glyphs = set()
-        self._reusable_paths = {}
+        self._reusable_paths = defaultdict(list)
 
         # normalize tries to remap first two significant vectors to [1 0], [0 1]
         # reuse tolerence is relative to viewbox, which is typically much larger
@@ -45,38 +46,48 @@ class GlyphReuseCache:
     def try_reuse(self, path: str) -> Optional[ReuseResult]:
         """Try to reproduce path as the transformation of another glyph.
 
-        Path is expected to be in font units.
-
         Returns (glyph name, transform) if possible, None if not.
-        """
+        """        
         assert (
             not path in self._known_glyphs
         ), f"{path} isn't a path, it's a glyph name we've seen before"
         assert path.startswith("M"), f"{path} doesn't look like a path"
 
         if self._reuse_tolerance == -1:
+            print("try_reuse", path, "=>", None)
             return None
 
         norm_path = normalize(SVGPath(d=path), self._normalize_tolerance).d
-        if norm_path not in self._reusable_paths:
-            return None
+        print("  norm:", norm_path)
 
-        glyph_name, glyph_path = self._reusable_paths[norm_path]
-        affine = affine_between(
-            SVGPath(d=glyph_path), SVGPath(d=path), self._reuse_tolerance
-        )
-        if affine is None:
-            logging.warning("affine_between failed: %s %s ", glyph_path, path)
-            return None
-
-        # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
-        if not fixed_safe(*affine):
-            logging.warning(
-                "affine_between overflows Fixed: %s %s, %s", glyph_path, path, affine
+        # Normalizing the same is, annoyingly, a poor predictor of affine_between working
+        # Until such time as that is fixed, store everything that normalizes the same together
+        # and take whatever matches first, if anything
+        for (glyph_name, glyph_path) in self._reusable_paths[norm_path]:
+            affine = affine_between(
+                SVGPath(d=glyph_path), SVGPath(d=path), self._reuse_tolerance
             )
-            return None
 
-        return ReuseResult(glyph_name, affine)
+            # TEMPORARY
+            if affine is None:
+                affine = None
+
+            if affine is None:
+                logging.warning("affine_between failed: \n\t<path d=\"%s\"/>\n\t<path d=\"%s\"/> ", glyph_path, path)
+                continue
+
+            # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
+            if not fixed_safe(*affine):
+                logging.warning(
+                    "affine_between overflows Fixed: \n\t<path d=\"%s\"/>\n\t<path d=\"%s\"/>\n\t%s", glyph_path, path, affine
+                )
+                continue
+
+            print("try_reuse", path, "=>", affine)
+            return ReuseResult(glyph_name, affine)
+
+        print("try_reuse", path, "=>", None)
+        return None
 
     def add_glyph(self, glyph_name, glyph_path):
         assert glyph_path.startswith("M"), f"{glyph_path} doesn't look like a path"
@@ -84,7 +95,7 @@ class GlyphReuseCache:
             norm_path = normalize(SVGPath(d=glyph_path), self._normalize_tolerance).d
         else:
             norm_path = glyph_path
-        self._reusable_paths[norm_path] = (glyph_name, glyph_path)
+        self._reusable_paths[norm_path].append((glyph_name, glyph_path))
         self._known_glyphs.add(glyph_name)
 
     def is_known_glyph(self, glyph_name):
