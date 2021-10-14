@@ -79,6 +79,9 @@ import ufo2ft
 FLAGS = flags.FLAGS
 
 
+flags.DEFINE_string("config_file", None, "Config filename.")
+
+
 class InputGlyph(NamedTuple):
     filename: Path
     codepoints: Tuple[int, ...]
@@ -671,7 +674,10 @@ def _codepoint_map(codepoint_csv):
 
 
 def main(argv):
-    font_config = config.load()
+    config_file = None
+    if FLAGS.config_file:
+        config_file = Path(FLAGS.config_file)
+    font_config = config.load(config_file)
     if len(font_config.masters) != 1:
         raise ValueError("write_font expects only one master")
 

@@ -17,17 +17,28 @@
 Based on https://gist.github.com/anthrotype/c11515065a4aa6549f9d5f2dfdcf8f23"""
 
 from absl import app
+from absl import flags
 from absl import logging
 from fontTools import designspaceLib
 from nanoemoji import config
+from pathlib import Path
 import ufo2ft
 import ufoLib2
+
+
+FLAGS = flags.FLAGS
+
+
+flags.DEFINE_string("config_file", None, "Config filename.")
 
 
 def main(argv):
     ufos = tuple(a for a in argv[1:] if a.endswith(".ufo"))
 
-    font_config = config.load()
+    config_file = None
+    if FLAGS.config_file:
+        config_file = Path(FLAGS.config_file)
+    font_config = config.load(config_file)
 
     designspace = designspaceLib.DesignSpaceDocument()
 
