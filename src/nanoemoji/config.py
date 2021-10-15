@@ -49,7 +49,6 @@ _COLOR_FORMATS = [
 
 # we use None as a sentinel for flag not set; FontConfig class has the actual defaults.
 # CLI flags override config file (which overrides default FontConfig).
-flags.DEFINE_string("config", None, "Config file.")
 flags.DEFINE_integer("upem", None, "Units per em.")
 flags.DEFINE_integer("width", None, "Width.")
 flags.DEFINE_integer("ascender", None, "Ascender")
@@ -100,6 +99,8 @@ flags.DEFINE_bool(
     None,
     "Whether to prefer pretty printed content whenever possible (for testing).",
 )
+flags.DEFINE_string("fea_file", None, "Feature file.")
+flags.DEFINE_string("codepointmap_file", None, "Codepoint map file.")
 
 
 class Axis(NamedTuple):
@@ -196,6 +197,8 @@ def write(dest: Path, config: FontConfig):
         "clip_to_viewbox": config.clip_to_viewbox,
         "clipbox_quantization": config.clipbox_quantization,
         "pretty_print": config.pretty_print,
+        "fea_file": config.fea_file,
+        "codepointmap_file": config.codepointmap_file,
         "output": config.output,
         "axis": {
             a.axisTag: {
@@ -220,12 +223,9 @@ def _resolve_config(
     config_file: Optional[Path] = None,
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
-        if FLAGS.config is None:
-            with resources.path("nanoemoji.data", _DEFAULT_CONFIG_FILE) as config_file:
-                # no config_dir in this context; bad input if we need it
-                return None, toml.load(config_file)
-        else:
-            config_file = Path(FLAGS.config)
+        with resources.path("nanoemoji.data", _DEFAULT_CONFIG_FILE) as config_file:
+            # no config_dir in this context; bad input if we need it
+            return None, toml.load(config_file)
     return config_file.parent, toml.load(config_file)
 
 
@@ -282,6 +282,8 @@ def load(
     clip_to_viewbox = _pop_flag(config, "clip_to_viewbox")
     clipbox_quantization = _pop_flag(config, "clipbox_quantization")
     pretty_print = _pop_flag(config, "pretty_print")
+    fea_file = _pop_flag(config, "fea_file")
+    codepointmap_file = _pop_flag(config, "codepointmap_file")
     output = _pop_flag(config, "output")
 
     axes = []
@@ -360,9 +362,22 @@ def load(
         clipbox_quantization=clipbox_quantization,
         pretty_print=pretty_print,
         output=output,
-        fea_file=_DEFAULT_CONFIG.fea_file,
-        codepointmap_file=_DEFAULT_CONFIG.codepointmap_file,
+        fea_file=fea_file,
+        codepointmap_file=codepointmap_file,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),
     ).validate()
+
+
+def load_configs(
+    config_files: Sequence[Path], additional_srcs: Optional[Tuple[Path]] = None
+) -> Tuple[FontConfig]:
+    configs = tuple(load(f, additional_srcs) for f in config_files)
+    output_files = {c.output_file for c in configs}
+    assert len(configs) == len(
+        output_files
+    ), f"{len(output_files)} for {len(configs)} configs. Outputs:\n" + "\n".join(
+        sorted(output_files)
+    )
+    return configs

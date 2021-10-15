@@ -65,7 +65,7 @@ def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
     config.write(config_file, font_config)
     print(config_file, font_config)
 
-    _run(("--config", str(config_file)), tmp_dir=config_file.parent)
+    _run((str(config_file),), tmp_dir=config_file.parent)
     font = TTFont(config_file.parent / "Font.ttf")
     assert_expected_ttx(svgs, font, expected_ttx)
 
@@ -87,24 +87,14 @@ def test_build_static_font_unclipped():
 
 
 def test_build_variable_font():
-    tmp_dir = _run(
-        (
-            "--config",
-            locate_test_file("minimal_vf/config.toml"),
-        )
-    )
+    tmp_dir = _run((locate_test_file("minimal_vf/config.toml"),))
 
     font = TTFont(tmp_dir / "MinimalVF.ttf")
     assert "fvar" in font
 
 
 def test_build_picosvg_font():
-    tmp_dir = _run(
-        (
-            "--config",
-            locate_test_file("minimal_static/config_picosvg.toml"),
-        )
-    )
+    tmp_dir = _run((locate_test_file("minimal_static/config_picosvg.toml"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
     # fill=none ellipse dropped, rect became path, everything is under a group
@@ -113,12 +103,7 @@ def test_build_picosvg_font():
 
 
 def test_build_untouchedsvg_font():
-    tmp_dir = _run(
-        (
-            "--config",
-            locate_test_file("minimal_static/config_untouchedsvg.toml"),
-        )
-    )
+    tmp_dir = _run((locate_test_file("minimal_static/config_untouchedsvg.toml"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
     assert "SVG " in font
