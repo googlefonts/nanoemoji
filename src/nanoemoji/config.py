@@ -65,9 +65,6 @@ flags.DEFINE_enum(
     sorted(_COLOR_FORMATS),
     "Type of font to generate.",
 )
-flags.DEFINE_enum(
-    "output", None, ["ufo", "font"], "Whether to output a font binary or a UFO."
-)
 flags.DEFINE_bool(
     "keep_glyph_names", None, "Whether or not to store glyph names in the font."
 )
@@ -140,7 +137,6 @@ class FontConfig(NamedTuple):
     keep_glyph_names: bool = False
     clip_to_viewbox: bool = True
     clipbox_quantization: Optional[int] = None
-    output: str = "font"
     fea_file: str = "features.fea"
     codepointmap_file: str = "codepointmap.csv"
     pretty_print: bool = False
@@ -199,7 +195,6 @@ def write(dest: Path, config: FontConfig):
         "pretty_print": config.pretty_print,
         "fea_file": config.fea_file,
         "codepointmap_file": config.codepointmap_file,
-        "output": config.output,
         "axis": {
             a.axisTag: {
                 "name": a.name,
@@ -284,7 +279,6 @@ def load(
     pretty_print = _pop_flag(config, "pretty_print")
     fea_file = _pop_flag(config, "fea_file")
     codepointmap_file = _pop_flag(config, "codepointmap_file")
-    output = _pop_flag(config, "output")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -361,7 +355,6 @@ def load(
         clip_to_viewbox=clip_to_viewbox,
         clipbox_quantization=clipbox_quantization,
         pretty_print=pretty_print,
-        output=output,
         fea_file=fea_file,
         codepointmap_file=codepointmap_file,
         axes=tuple(axes),

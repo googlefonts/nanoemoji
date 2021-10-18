@@ -340,7 +340,7 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
     ],
 )
 def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected_clip_boxes):
-    config_overrides = {"output": "ufo", **config_overrides}
+    config_overrides = {"output_file": "font.ufo", **config_overrides}
     config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
     ufo, _ = write_font._generate_color_font(config, glyph_inputs)
 

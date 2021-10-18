@@ -356,9 +356,7 @@ def _update_sources(font_config: FontConfig) -> FontConfig:
 def write_ufo_build(
     nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
 ):
-    ufo_config = font_config._replace(
-        output_file=master.output_ufo, output="ufo", masters=(master,)
-    )
+    ufo_config = font_config._replace(output_file=master.output_ufo, masters=(master,))
     ufo_config = _update_sources(ufo_config)
     config.write(build_dir() / _ufo_config(font_config, master), ufo_config)
     nw.build(
