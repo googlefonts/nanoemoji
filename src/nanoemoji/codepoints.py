@@ -26,10 +26,13 @@ def from_filename(filename):
     return tuple(int(s, 16) for s in match.captures(1))
 
 
+def string(codepoints):
+    return ",".join("%04x" % c for c in codepoints)
+
+
 def csv_line(filename):
     filename = os.path.basename(filename)
-    codepoints = ",".join("%04x" % c for c in from_filename(filename))
-    return f"{filename},{codepoints}"
+    return f"{filename},{string(from_filename(filename))}"
 
 
 def parse_csv_line(line):
@@ -39,4 +42,4 @@ def parse_csv_line(line):
 
 def parse_csv(filename):
     with open(filename) as f:
-        return [parse_csv_line(l) for l in f]
+        return tuple(parse_csv_line(l) for l in f)

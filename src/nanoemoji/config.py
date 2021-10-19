@@ -97,7 +97,11 @@ flags.DEFINE_bool(
     "Whether to prefer pretty printed content whenever possible (for testing).",
 )
 flags.DEFINE_string("fea_file", None, "Feature file.")
-flags.DEFINE_string("codepointmap_file", None, "Codepoint map file.")
+flags.DEFINE_string(
+    "glyphmap_generator",
+    None,
+    "A program that takes a list of filenames and outputs a file csv whose rows contain filename, codepoint(s), glyph name.",
+)
 
 
 class Axis(NamedTuple):
@@ -138,7 +142,7 @@ class FontConfig(NamedTuple):
     clip_to_viewbox: bool = True
     clipbox_quantization: Optional[int] = None
     fea_file: str = "features.fea"
-    codepointmap_file: str = "codepointmap.csv"
+    glyphmap_generator: str = "nanoemoji.write_glyphmap"
     pretty_print: bool = False
     axes: Tuple[Axis, ...] = ()
     masters: Tuple[MasterConfig, ...] = ()
@@ -194,7 +198,7 @@ def write(dest: Path, config: FontConfig):
         "clipbox_quantization": config.clipbox_quantization,
         "pretty_print": config.pretty_print,
         "fea_file": config.fea_file,
-        "codepointmap_file": config.codepointmap_file,
+        "glyphmap_generator": config.glyphmap_generator,
         "axis": {
             a.axisTag: {
                 "name": a.name,
@@ -278,7 +282,7 @@ def load(
     clipbox_quantization = _pop_flag(config, "clipbox_quantization")
     pretty_print = _pop_flag(config, "pretty_print")
     fea_file = _pop_flag(config, "fea_file")
-    codepointmap_file = _pop_flag(config, "codepointmap_file")
+    glyphmap_generator = _pop_flag(config, "glyphmap_generator")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -356,7 +360,7 @@ def load(
         clipbox_quantization=clipbox_quantization,
         pretty_print=pretty_print,
         fea_file=fea_file,
-        codepointmap_file=codepointmap_file,
+        glyphmap_generator=glyphmap_generator,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="custom_name_0"/>
+    <GlyphID id="3" name="custom_name_1"/>
+    <GlyphID id="4" name="custom_name_0.0"/>
+    <GlyphID id="5" name="custom_name_0.1"/>
+  </GlyphOrder>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0x25fd" name="custom_name_0"/><!-- WHITE MEDIUM SMALL SQUARE -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0x25fd" name="custom_name_0"/><!-- WHITE MEDIUM SMALL SQUARE -->
+    </cmap_format_4>
+  </cmap>
+
+</ttFont>

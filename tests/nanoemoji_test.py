@@ -141,3 +141,28 @@ def test_the_curious_case_of_the_parentless_reused_el():
     assert_expected_ttx(
         svgs, font, "parentless_reused_el.ttx", include_tables=["GlyphOrder", "SVG "]
     )
+
+
+def test_glyphmap_games():
+    # https://github.com/googlefonts/nanoemoji/issues/354
+    # We want to see both glyphs but only one cmap'd, and the use of our special naming scheme
+    svgs = [
+        "emoji_u25fd.svg",
+        "emoji_u42.svg",
+    ]
+
+    tmp_dir = _run(
+        (
+            "--color_format=glyf_colr_1",
+            "--keep_glyph_names",
+            "--glyphmap_generator=nanoemoji.write_test_glyphmap",
+            *(locate_test_file(svg) for svg in svgs),
+        )
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+
+    # We don't really need glyf but ... perhaps it's informative
+    assert_expected_ttx(
+        svgs, font, "glyphmap_games.ttx", include_tables=["GlyphOrder", "cmap"]
+    )

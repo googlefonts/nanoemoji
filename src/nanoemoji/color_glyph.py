@@ -19,7 +19,6 @@ from itertools import chain, groupby, combinations
 from lxml import etree  # type: ignore
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
-from nanoemoji import glyph
 from nanoemoji.paint import (
     Extend,
     ColorStop,
@@ -409,11 +408,11 @@ class ColorGlyph(NamedTuple):
         ufo: ufoLib2.Font,
         filename: str,
         glyph_id: int,
-        codepoints: Tuple[int],
+        glyph_name: str,
+        codepoints: Tuple[int, ...],
         svg: SVG,
     ) -> "ColorGlyph":
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
-        glyph_name = glyph.glyph_name(codepoints)
         base_glyph = ufo.newGlyph(glyph_name)
 
         # non-square aspect ratio == proportional width; square == monospace

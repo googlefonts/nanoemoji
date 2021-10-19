@@ -30,12 +30,13 @@ from fontTools.pens.boundsPen import ControlBoundsPen
 from fontTools.pens.transformPen import TransformPen
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
-from nanoemoji import codepoints, config
+from nanoemoji import codepoints, config, glyphmap
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.fixed import fixed_safe
 from nanoemoji.glyph import glyph_name
+from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji.glyph_reuse import GlyphReuseCache
 from nanoemoji.paint import (
     is_gradient,
@@ -80,11 +81,14 @@ FLAGS = flags.FLAGS
 
 
 flags.DEFINE_string("config_file", None, "Config filename.")
+flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
 
 
+# A GlyphMapping plus an SVG, typically a picosvg
 class InputGlyph(NamedTuple):
-    filename: Path
+    svg_file: Path
     codepoints: Tuple[int, ...]
+    glyph_name: str
     svg: SVG  # picosvg except for untouched formats
 
 
@@ -609,10 +613,12 @@ def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     """
     all_codepoints = set()
     direct_mapped_codepoints = set()
-    for _, codepoints, _ in glyph_inputs:
-        if len(codepoints) == 1:
-            direct_mapped_codepoints.update(codepoints)
-        all_codepoints.update(codepoints)
+    for glyph_input in glyph_inputs:
+        if not glyph_input.codepoints:
+            continue
+        if len(glyph_input.codepoints) == 1:
+            direct_mapped_codepoints.update(glyph_input.codepoints)
+        all_codepoints.update(glyph_input.codepoints)
 
     need_blanks = all_codepoints - direct_mapped_codepoints
     logging.debug("%d codepoints require blanks", len(need_blanks))
@@ -632,8 +638,16 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
     base_gid = len(ufo.glyphOrder)
     color_glyphs = [
-        ColorGlyph.create(config, ufo, filename, base_gid + idx, codepoints, svg)
-        for idx, (filename, codepoints, svg) in enumerate(inputs)
+        ColorGlyph.create(
+            config,
+            ufo,
+            str(glyph_input.svg_file),
+            base_gid + idx,
+            glyph_input.glyph_name,
+            glyph_input.codepoints,
+            glyph_input.svg,
+        )
+        for idx, glyph_input in enumerate(inputs)
     ]
     # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
     # values are placed next to one another in continuous ranges, to minimize number
@@ -656,21 +670,14 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
 
 def _inputs(
-    codepoints: Mapping[str, Tuple[int, ...]], svg_files: Iterable[Path]
+    glyph_mappings: Sequence[GlyphMapping],
 ) -> Generator[InputGlyph, None, None]:
-    for svg_file in svg_files:
-        rgi = codepoints.get(svg_file.name, None)
-        if not rgi:
-            raise ValueError(f"No codepoint sequence for {svg_file}")
+    for g in glyph_mappings:
         try:
-            picosvg = SVG.parse(str(svg_file))
+            picosvg = SVG.parse(str(g.svg_file))
         except etree.ParseError as e:
-            raise IOError(f"Unable to parse {svg_file}") from e
-        yield InputGlyph(svg_file, rgi, picosvg)
-
-
-def _codepoint_map(codepoint_csv):
-    return {name: rgi for name, rgi in codepoints.parse_csv(codepoint_csv)}
+            raise IOError(f"Unable to parse {g.svg_file}") from e
+        yield InputGlyph(g.svg_file, g.codepoints, g.glyph_name, picosvg)
 
 
 def main(argv):
@@ -681,8 +688,7 @@ def main(argv):
     if len(font_config.masters) != 1:
         raise ValueError("write_font expects only one master")
 
-    codepoints = _codepoint_map(font_config.codepointmap_file)
-    inputs = list(_inputs(codepoints, font_config.masters[0].sources))
+    inputs = list(_inputs(glyphmap.parse_csv(FLAGS.glyphmap_file)))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(font_config, inputs)
