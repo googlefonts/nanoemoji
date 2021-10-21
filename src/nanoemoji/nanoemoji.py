@@ -217,15 +217,6 @@ def write_preamble(nw):
     )
     nw.newline()
 
-    module_rule(
-        nw,
-        "write_codepoints",
-        "--output_file $out @$out.rsp",
-        rspfile="$out.rsp",
-        rspfile_content="$in",
-    )
-    nw.newline()
-
     module_rule(nw, "write_fea", "--output_file $out $in")
     nw.newline()
 
@@ -395,6 +386,14 @@ def write_glyphmap_build(
     nw.newline()
 
 
+def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[str]:
+    return [
+        str(rel_build(_config_file(font_config))),
+        str(rel_build(_fea_file(font_config))),
+        str(rel_build(_glyphmap_file(font_config, master))),
+    ] + _input_svgs(font_config, master)
+
+
 def write_ufo_build(
     nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
 ):
@@ -404,7 +403,7 @@ def write_ufo_build(
     nw.build(
         master.output_ufo,
         _ufo_rule(font_config, master),
-        _input_svgs(font_config, master),
+        _inputs_to_font_build(font_config, master),
     )
     nw.newline()
 
@@ -414,11 +413,7 @@ def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [
-            str(rel_build(_config_file(font_config))),
-            str(rel_build(_glyphmap_file(font_config, font_config.masters[0]))),
-        ]
-        + _input_svgs(font_config, font_config.masters[0]),
+        _inputs_to_font_build(font_config, font_config.default()),
     )
     nw.newline()
 
@@ -427,7 +422,7 @@ def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [m.output_ufo for m in font_config.masters],
+        [str(rel_build(_fea_file(font_config)))] + [m.output_ufo for m in font_config.masters],
     )
     nw.newline()
 
