@@ -126,7 +126,7 @@ class MasterConfig(NamedTuple):
         position = [ap.position for ap in self.position if ap.axisTag == axisTag]
         assert (
             len(position) == 1
-        ), f"Unable to find 1 positin for {axisTag}, got {position}"
+        ), f"Unable to find 1 position for {axisTag}, got {position}"
         return position[0]
 
 
