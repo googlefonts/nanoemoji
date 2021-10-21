@@ -22,6 +22,7 @@ from fontTools import ttLib
 from nanoemoji import codepoints
 from nanoemoji import config
 from nanoemoji import features
+from nanoemoji.glyph import glyph_name
 from nanoemoji import write_font
 from pathlib import Path
 from picosvg.svg import SVG
@@ -65,7 +66,12 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
         )
         ._replace(**config_overrides),
         [
-            write_font.InputGlyph(os.path.relpath(svg), (0xE000 + idx,), picosvg(svg))
+            write_font.InputGlyph(
+                os.path.relpath(svg),
+                (0xE000 + idx,),
+                glyph_name((0xE000 + idx,)),
+                picosvg(svg),
+            )
             for idx, svg in enumerate(svgs)
         ],
     )

@@ -37,6 +37,7 @@ from nanoemoji.util import fs_root, rel, only
 from ninja import ninja_syntax
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 from typing import List, NamedTuple, Optional, Tuple, Set, Sequence
@@ -95,10 +96,6 @@ def _source_name_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".source_names.txt")
 
 
-def _codepoint_map_file(font_config: FontConfig) -> Path:
-    return _per_config_file(font_config, ".codepointmap.csv")
-
-
 def _fea_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".fea")
 
@@ -124,34 +121,76 @@ def _ufo_config(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, "." + master.output_ufo + ".toml")
 
 
+def _glyphmap_rule(font_config: FontConfig, master: MasterConfig) -> str:
+    master_part = ""
+    if _is_vf(font_config):
+        master_part = "_" + master.style_name.lower()
+    return "write_" + Path(font_config.output_file).stem + master_part + "_glyphmap"
+
+
+def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
+    master_part = ""
+    if _is_vf(font_config):
+        master_part = "." + master.output_ufo
+    return _per_config_file(font_config, master_part + ".glyphmap")
+
+
 def module_rule(
-    nw, mod_name, arg_pattern, rspfile=None, rspfile_content=None, rule_name=None
+    nw,
+    mod_name,
+    arg_pattern,
+    rspfile=None,
+    rspfile_content=None,
+    rule_name=None,
+    allow_external=False,
 ):
     if not rule_name:
         rule_name = mod_name
+    if not allow_external:
+        mod_name = "nanoemoji." + mod_name
     nw.rule(
         rule_name,
-        f"{sys.executable} -m nanoemoji.{mod_name} -v {FLAGS.verbosity} {arg_pattern}",
+        f"{sys.executable} -m {mod_name} -v {FLAGS.verbosity} {arg_pattern}",
         rspfile=rspfile,
         rspfile_content=rspfile_content,
     )
 
 
-def write_font_rule(nw, font_config: FontConfig, master: Optional[MasterConfig] = None):
-    if master is None:
-        rule_name = _font_rule(font_config)
-        config_file = _config_file(font_config)
-    else:
+def write_font_rule(nw, font_config: FontConfig, master: MasterConfig):
+    if _is_vf(font_config):
         rule_name = _ufo_rule(font_config, master)
         config_file = _ufo_config(font_config, master)
+    else:
+        rule_name = _font_rule(font_config)
+        config_file = _config_file(font_config)
 
     module_rule(
         nw,
         "write_font",
-        f" --config_file {rel_build(config_file)} --fea_file {rel_build(_fea_file(font_config))} --codepointmap_file {rel_build(_codepoint_map_file(font_config))} @$out.rsp",
+        " ".join(
+            (
+                f"--config_file {rel_build(config_file)}",
+                f"--fea_file {rel_build(_fea_file(font_config))}",
+                f"--glyphmap_file {rel_build(_glyphmap_file(font_config, master))}",
+                "@$out.rsp",
+            )
+        ),
         rspfile="$out.rsp",
         rspfile_content="$in",
         rule_name=rule_name,
+    )
+    nw.newline()
+
+
+def write_glyphmap_rule(nw, font_config: FontConfig, master: MasterConfig):
+    module_rule(
+        nw,
+        font_config.glyphmap_generator,
+        f"--output_file $out $in",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
+        rule_name=_glyphmap_rule(font_config, master),
+        allow_external=True,
     )
     nw.newline()
 
@@ -178,25 +217,14 @@ def write_preamble(nw):
     )
     nw.newline()
 
-    module_rule(
-        nw,
-        "write_codepoints",
-        "--output_file $out @$out.rsp",
-        rspfile="$out.rsp",
-        rspfile_content="$in",
-    )
-    nw.newline()
-
     module_rule(nw, "write_fea", "--output_file $out $in")
     nw.newline()
 
 
 def write_config_preamble(nw, font_config: FontConfig):
-    if len(font_config.masters) == 1:
-        write_font_rule(nw, font_config)
-    else:
-        for master in font_config.masters:
-            write_font_rule(nw, font_config, master)
+    for master in font_config.masters:
+        write_font_rule(nw, font_config, master)
+    if _is_vf(font_config):
         module_rule(
             nw,
             "write_variable_font",
@@ -278,20 +306,12 @@ def write_source_names(font_config: FontConfig):
             f.write("\n")
 
 
-def write_codepointmap_build(nw: ninja_syntax.Writer, font_config: FontConfig):
-    nw.build(
-        str(rel_build(_codepoint_map_file(font_config))),
-        "write_codepoints",
-        [str(rel_build(_source_name_file(font_config)))],
-    )
-    nw.newline()
-
-
 def write_fea_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+
     nw.build(
         str(rel_build(_fea_file(font_config))),
         "write_fea",
-        str(rel_build(_codepoint_map_file(font_config))),
+        str(rel_build(_glyphmap_file(font_config, font_config.default()))),
     )
     nw.newline()
 
@@ -353,6 +373,27 @@ def _update_sources(font_config: FontConfig) -> FontConfig:
     )
 
 
+def write_glyphmap_build(
+    nw: ninja_syntax.Writer,
+    font_config: FontConfig,
+    master: MasterConfig,
+):
+    nw.build(
+        str(rel_build(_glyphmap_file(font_config, master))),
+        _glyphmap_rule(font_config, master),
+        _input_svgs(font_config, master),
+    )
+    nw.newline()
+
+
+def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[str]:
+    return [
+        str(rel_build(_config_file(font_config))),
+        str(rel_build(_fea_file(font_config))),
+        str(rel_build(_glyphmap_file(font_config, master))),
+    ] + _input_svgs(font_config, master)
+
+
 def write_ufo_build(
     nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
 ):
@@ -362,7 +403,7 @@ def write_ufo_build(
     nw.build(
         master.output_ufo,
         _ufo_rule(font_config, master),
-        _input_svgs(font_config, master),
+        _inputs_to_font_build(font_config, master),
     )
     nw.newline()
 
@@ -372,8 +413,7 @@ def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [str(_config_file(font_config))]
-        + _input_svgs(font_config, font_config.masters[0]),
+        _inputs_to_font_build(font_config, font_config.default()),
     )
     nw.newline()
 
@@ -382,17 +422,10 @@ def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [m.output_ufo for m in font_config.masters],
+        [str(rel_build(_fea_file(font_config)))]
+        + [m.output_ufo for m in font_config.masters],
     )
     nw.newline()
-
-
-def _update_config_for_build(font_config: FontConfig) -> FontConfig:
-    font_config = font_config._replace(
-        fea_file=str(rel_build(_fea_file(font_config))),
-        codepointmap_file=str(rel_build(_codepoint_map_file(font_config))),
-    )
-    return font_config
 
 
 def _write_config_for_build(font_config: FontConfig):
@@ -439,8 +472,6 @@ def _run(argv):
 
     logging.info(f"Proceeding with {len(font_configs)} config(s)")
 
-    font_configs = tuple(_update_config_for_build(c) for c in font_configs)
-
     for font_config in font_configs:
         if _is_vf(font_config) and _is_svg(font_config):
             raise ValueError("svg formats cannot have multiple masters")
@@ -453,14 +484,21 @@ def _run(argv):
             nw = ninja_syntax.Writer(f)
             write_preamble(nw)
 
+            # Separate loops for separate content to keep related rules together
+
+            for font_config in font_configs:
+                for master in font_config.masters:
+                    write_glyphmap_rule(nw, font_config, master)
+
             for font_config in font_configs:
                 write_config_preamble(nw, font_config)
 
             for font_config in font_configs:
-                write_codepointmap_build(nw, font_config)
+                write_fea_build(nw, font_config)
 
             for font_config in font_configs:
-                write_fea_build(nw, font_config)
+                for master in font_config.masters:
+                    write_glyphmap_build(nw, font_config, master)
 
             picosvg_builds = set()
             for font_config in font_configs:

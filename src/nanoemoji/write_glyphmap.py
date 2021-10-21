@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,28 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Prints a csv of filename,codepoint sequence"""
+"""Default glyphmap writer. Writes rows like:
+
+
+picosvg/regular/clipped/emoji_u270d_1f3fb.svg, "270d,1f3fb", g_270d_1f3fb
+
+"""
+
 
 from absl import app
 from absl import flags
+from nanoemoji.glyph import glyph_name
+from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import codepoints
+from nanoemoji import features
 from nanoemoji import util
-
+from pathlib import Path
+from typing import Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
+def _glyphmappings(svg_files: Sequence[str]) -> Tuple[GlyphMapping]:
+    return tuple(
+        GlyphMapping(Path(svg_file), cps, glyph_name(cps))
+        for svg_file, cps in zip(
+            svg_files, tuple(codepoints.from_filename(Path(f).name) for f in svg_files)
+        )
+    )
+
+
 def main(argv):
     with util.file_printer(FLAGS.output_file) as print:
-        for filename in util.expand_ninja_response_files(argv[1:]):
-            if filename.endswith(".txt"):
-                with open(filename) as f:
-                    for l in f:
-                        print(codepoints.csv_line(l.strip()))
-            else:
-                print(codepoints.csv_line(filename))
+        for gm in _glyphmappings(argv[1:]):
+            # filename, codepoint(s), glyph name
+            print(gm.csv_line())
 
 
 if __name__ == "__main__":
