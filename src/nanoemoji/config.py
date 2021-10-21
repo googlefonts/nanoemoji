@@ -122,6 +122,13 @@ class MasterConfig(NamedTuple):
     position: Tuple[AxisPosition, ...]
     sources: Tuple[Path, ...]
 
+    def pos(self, axisTag: str) -> float:
+        position = [ap.position for ap in self.position if ap.axisTag == axisTag]
+        assert (
+            len(position) == 1
+        ), f"Unable to find 1 positin for {axisTag}, got {position}"
+        return position[0]
+
 
 class FontConfig(NamedTuple):
     family: str = "An Emoji Family"
@@ -176,6 +183,12 @@ class FontConfig(NamedTuple):
             raise ValueError("If set, 'clipbox_quantization' must be 1 or positive")
 
         return self
+
+    def default(self) -> MasterConfig:
+        for master in self.masters:
+            if all(master.pos(axis.axisTag) == axis.default for axis in self.axes):
+                return master
+        raise ValueError("Must have a default master")
 
 
 def write(dest: Path, config: FontConfig):

@@ -96,11 +96,8 @@ def _source_name_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".source_names.txt")
 
 
-def _fea_file(font_config: FontConfig, master: MasterConfig) -> Path:
-    master_part = ""
-    if _is_vf(font_config):
-        master_part = "." + master.output_ufo
-    return _per_config_file(font_config, master_part + ".fea")
+def _fea_file(font_config: FontConfig) -> Path:
+    return _per_config_file(font_config, ".fea")
 
 
 def _font_rule(font_config: FontConfig) -> str:
@@ -173,7 +170,7 @@ def write_font_rule(nw, font_config: FontConfig, master: MasterConfig):
         " ".join(
             (
                 f"--config_file {rel_build(config_file)}",
-                f"--fea_file {rel_build(_fea_file(font_config, master))}",
+                f"--fea_file {rel_build(_fea_file(font_config))}",
                 f"--glyphmap_file {rel_build(_glyphmap_file(font_config, master))}",
                 "@$out.rsp",
             )
@@ -318,13 +315,12 @@ def write_source_names(font_config: FontConfig):
             f.write("\n")
 
 
-def write_fea_build(
-    nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
-):
+def write_fea_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+
     nw.build(
-        str(rel_build(_fea_file(font_config, master))),
+        str(rel_build(_fea_file(font_config))),
         "write_fea",
-        str(rel_build(_glyphmap_file(font_config, master))),
+        str(rel_build(_glyphmap_file(font_config, font_config.default()))),
     )
     nw.newline()
 
@@ -502,8 +498,7 @@ def _run(argv):
                 write_config_preamble(nw, font_config)
 
             for font_config in font_configs:
-                for master in font_config.masters:
-                    write_fea_build(nw, font_config, master)
+                write_fea_build(nw, font_config)
 
             for font_config in font_configs:
                 for master in font_config.masters:
