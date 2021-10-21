@@ -44,16 +44,17 @@ def _run(cmd, tmp_dir=None):
         str(tmp_dir),
     ) + tuple(str(c) for c in cmd)
     print("subprocess:", " ".join(cmd))  # very useful on failure
-    subprocess.run(
-        cmd,
-        check=True,
-        env={
-            # We need to find nanoemoji
-            "PATH": os.pathsep.join((str(Path(shutil.which("nanoemoji")).parent),)),
-            # We may need to find test modules
-            "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
-        },
-    )
+    env = {
+        # We need to find nanoemoji
+        "PATH": os.pathsep.join((str(Path(shutil.which("nanoemoji")).parent),)),
+        # We may need to find test modules
+        "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
+    }
+    # Needed for windows CI to function; ref https://github.com/appveyor/ci/issues/1995
+    if "SYSTEMROOT" in os.environ:
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+
+    subprocess.run(cmd, check=True, env=env)
 
     tmp_dir = Path(tmp_dir)
     assert (tmp_dir / "build.ninja").is_file()
