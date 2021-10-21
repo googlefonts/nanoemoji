@@ -17,9 +17,11 @@
 from fontTools.ttLib import TTFont
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
+import os
 from pathlib import Path
 from picosvg.svg import SVG
 import pytest
+import shutil
 import subprocess
 import tempfile
 from test_helper import assert_expected_ttx, color_font_config, locate_test_file
@@ -42,7 +44,16 @@ def _run(cmd, tmp_dir=None):
         str(tmp_dir),
     ) + tuple(str(c) for c in cmd)
     print("subprocess:", " ".join(cmd))  # very useful on failure
-    subprocess.run(cmd, check=True)
+    subprocess.run(
+        cmd,
+        check=True,
+        env={
+            # We need to find nanoemoji
+            "PATH": os.pathsep.join((str(Path(shutil.which("nanoemoji")).parent),)),
+            # We may need to find test modules
+            "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
+        },
+    )
 
     tmp_dir = Path(tmp_dir)
     assert (tmp_dir / "build.ninja").is_file()
@@ -155,7 +166,7 @@ def test_glyphmap_games():
         (
             "--color_format=glyf_colr_1",
             "--keep_glyph_names",
-            "--glyphmap_generator=nanoemoji.write_test_glyphmap",
+            "--glyphmap_generator=write_test_glyphmap",
             *(locate_test_file(svg) for svg in svgs),
         )
     )
