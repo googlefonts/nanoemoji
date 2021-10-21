@@ -422,7 +422,8 @@ def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [str(rel_build(_fea_file(font_config)))] + [m.output_ufo for m in font_config.masters],
+        [str(rel_build(_fea_file(font_config)))]
+        + [m.output_ufo for m in font_config.masters],
     )
     nw.newline()
 
