@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import collections
+from typing import Optional, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -173,11 +174,11 @@ def css_colors():
     return _CSS_COLORS
 
 
-def css_color(name):
+def css_color(name) -> Optional[Tuple[int, int, int]]:
     return _CSS_COLORS.get(name, None)
 
 
-def color_name(rgb):
+def color_name(rgb) -> Optional[str]:
     for name, value in _CSS_COLORS.items():
         if value == rgb:
             return name
@@ -186,7 +187,7 @@ def color_name(rgb):
 
 class Color(collections.namedtuple("Color", "red green blue alpha")):
     @classmethod
-    def fromstring(cls, s, alpha=1.0):
+    def fromstring(cls, s, alpha=1.0) -> "Color":
         # https://www.w3.org/TR/css-color-4/#hex-notation
         s = s.strip()
         if s.startswith("#"):
@@ -218,7 +219,7 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             raise ValueError(f"invalid or unsupported color string: {s!r}")
         return cls(red, green, blue, alpha)
 
-    def to_ufo_color(self):
+    def to_ufo_color(self) -> Tuple[float, float, float, float]:
         # UFO stores colors as RGBA tuples of decimal [0..1] floats. Here we round to 3
         # decimal digits, which are sufficient to round-trip Fixed0.8 numbers
         return (
@@ -228,10 +229,10 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             self.alpha,
         )
 
-    def opaque(self):
+    def opaque(self) -> "Color":
         return self._replace(alpha=1.0)
 
-    def to_string(self):
+    def to_string(self) -> str:
         # A CSS or SVG friendly string
         rgb = self[0:3]
         string = None
