@@ -279,6 +279,11 @@ def test_vertical_metrics(ascender, descender, linegap):
             "reuse_shape_varying_fill.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
+        (
+            ("rect.svg",),
+            "rect_glyf_colr_1_and_picosvgz.ttx",
+            {"color_format": "glyf_colr_1_and_picosvgz", "pretty_print": True},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

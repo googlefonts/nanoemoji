@@ -34,6 +34,7 @@ _COLOR_FORMATS = [
     "glyf",
     "glyf_colr_0",
     "glyf_colr_1",
+    "glyf_colr_1_and_picosvgz",
     "cff_colr_0",
     "cff_colr_1",
     "cff2_colr_0",

@@ -100,9 +100,9 @@ class InputGlyph(NamedTuple):
 # If the output file is .ufo then apply_ttfont is not called.
 # Where possible code to the ufo and let apply_ttfont be a nop.
 class ColorGenerator(NamedTuple):
-    apply_ufo: Callable[[FontConfig, ufoLib2.Font, MutableSequence[ColorGlyph]], None]
+    apply_ufo: Callable[[FontConfig, ufoLib2.Font, Tuple[ColorGlyph, ...]], None]
     apply_ttfont: Callable[
-        [FontConfig, ufoLib2.Font, MutableSequence[ColorGlyph], ttLib.TTFont], None
+        [FontConfig, ufoLib2.Font, Tuple[ColorGlyph, ...], ttLib.TTFont], None
     ]
     font_ext: str  # extension for font binary, .ttf or .otf
 
@@ -155,6 +155,13 @@ _COLOR_FORMAT_GENERATORS = {
     "sbix": ColorGenerator(
         lambda *args: _not_impl("apply_ufo", "sbix", *args),
         lambda *args: _not_impl("apply_ttfont", "sbix", *args),
+        ".ttf",
+    ),
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg & colr; max compatibility
+    # Meant to be subset if used for network delivery
+    "glyf_colr_1_and_picosvgz": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args),
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
         ".ttf",
     ),
 }
@@ -349,8 +356,11 @@ def _draw_glyph_extents(
 
 
 def _glyf_ufo(
-    config: FontConfig, ufo: ufoLib2.Font, color_glyphs: MutableSequence[ColorGlyph]
+    config: FontConfig, ufo: ufoLib2.Font, color_glyphs: Tuple[ColorGlyph, ...]
 ):
+    # We want to mutate our view of color_glyphs
+    color_glyphs = list(color_glyphs)
+
     # glyphs by reuse_key
     glyph_cache = GlyphReuseCache(config.reuse_tolerance)
     glyph_uses = Counter()
@@ -510,7 +520,9 @@ def _bounds(
     return bounds
 
 
-def _ufo_colr_layers(colr_version, colors, color_glyph):
+def _ufo_colr_layers(
+    colr_version: int, colors: Sequence[Color], color_glyph: ColorGlyph
+):
     # The value for a COLOR_LAYERS_KEY entry per
     # https://github.com/googlefonts/ufo2ft/pull/359
     colr_layers = []
@@ -533,7 +545,15 @@ def _ufo_colr_layers(colr_version, colors, color_glyph):
     return colr_layers
 
 
-def _colr_ufo(colr_version, config, ufo, color_glyphs):
+def _colr_ufo(
+    colr_version: int,
+    config: FontConfig,
+    ufo: ufoLib2.Font,
+    color_glyphs: Tuple[ColorGlyph, ...],
+):
+    # We want to mutate our view of color glyphs
+    color_glyphs = list(color_glyphs)
+
     # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
@@ -599,7 +619,12 @@ def _colr_ufo(colr_version, config, ufo, color_glyphs):
 
 
 def _svg_ttfont(
-    config: FontConfig, _, color_glyphs, ttfont, picosvg=True, compressed=False
+    config: FontConfig,
+    _,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+    picosvg: bool = True,
+    compressed: bool = False,
 ):
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
 
@@ -637,7 +662,7 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     ufo = _ufo(config)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
     base_gid = len(ufo.glyphOrder)
-    color_glyphs = [
+    color_glyphs = tuple(
         ColorGlyph.create(
             config,
             ufo,
@@ -648,7 +673,7 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
             glyph_input.svg,
         )
         for idx, glyph_input in enumerate(inputs)
-    ]
+    )
     # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
     # values are placed next to one another in continuous ranges, to minimize number
     # of COLRv1 ClipRecords
