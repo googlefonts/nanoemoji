@@ -45,6 +45,7 @@ from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 from typing import (
     cast,
+    Mapping,
     MutableMapping,
     NamedTuple,
     Optional,
@@ -557,27 +558,34 @@ def _ensure_groups_grouped_in_glyph_order(
 
     # The glyph names in the TTFont may have been dropped (post table 3.0), so the
     # names we see after decompiling the TTFont are made up and likely different
-    # from the input color glyph names. We only want to reorder the glyphs while
-    # keeping the existing names, we can't change order and rename at the same time
+    # from the input color glyph names. We only want to reorder the base color glyphs
+    # while keeping the current names: we can't change order and rename at the same time
     # or else tables that contain mappings keyed by glyph name would blow up.
     # Thus, we need to match the old and current names by their position in the
-    # font's current glyph order: i.e. we assume all color glyphs are placed at the
-    # END of the glyph order.
+    # font's current glyph order: i.e. we assume all color glyphs are placed in a
+    # continuous block starting at the first color glyph.
     current_glyph_order = ttfont.getGlyphOrder()
-    current_color_glyph_names = current_glyph_order[-len(color_glyphs) :]
+    first_color_gid = min(g.glyph_id for g in color_glyphs.values())
+    current_color_glyph_names = current_glyph_order[
+        first_color_gid : first_color_gid + len(color_glyph_order)
+    ]
     assert len(color_glyph_order) == len(current_color_glyph_names)
     rename_map = {
         color_glyph_order[i]: current_color_glyph_names[i]
         for i in range(len(color_glyph_order))
     }
 
-    glyph_order = current_glyph_order[: -len(color_glyphs)]
+    glyph_order = current_glyph_order[:first_color_gid]
     gid = len(glyph_order)
     for group in reuse_groups:
         for glyph_name in group:
             color_glyphs[glyph_name] = color_glyphs[glyph_name]._replace(glyph_id=gid)
             gid += 1
         glyph_order.extend(rename_map[g] for g in group)
+    # don't forget any extra glyphs at the end (e.g. layers in mixed COLR+SVG font)
+    if len(glyph_order) < len(current_glyph_order):
+        glyph_order.extend(current_glyph_order[len(glyph_order) :])
+    assert len(glyph_order) == len(current_glyph_order)
     ttfont.setGlyphOrder(glyph_order)
 
 

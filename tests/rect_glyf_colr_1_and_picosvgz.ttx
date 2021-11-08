@@ -112,12 +112,12 @@
   </CPAL>
 
   <SVG>
-    <svgDoc endGlyphID="3" startGlyphID="3">
+    <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
     <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e000.0" fill="blue"/>
   </defs>
-  <g id="glyph3" transform="matrix(10 0 0 10 0 -100)">
+  <g id="glyph2" transform="matrix(10 0 0 10 0 -100)">
     <use xlink:href="#e000.0"/>
     <use xlink:href="#e000.0" x="2" y="2" opacity="0.8"/>
   </g>
