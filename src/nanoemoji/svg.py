@@ -652,7 +652,8 @@ def _picosvg_docs(
         svg = SVG(root)
 
         for color_glyph in (color_glyphs[g] for g in group):
-            _add_glyph(svg, color_glyph, reuse_cache)
+            if color_glyph.painted_layers:
+                _add_glyph(svg, color_glyph, reuse_cache)
 
         # tidy use elements, they may emerge from _add_glyph with unnecessary attributes
         _tidy_use_elements(svg)
@@ -663,6 +664,9 @@ def _picosvg_docs(
         # strip <defs/> if empty
         if len(defs) == 0:
             root.remove(defs)
+
+        if len(root) == 0:
+            continue
 
         gids = tuple(color_glyphs[g].glyph_id for g in group)
         doc_list.append(
