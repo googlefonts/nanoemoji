@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="B"/>
+    <GlyphID id="3" name="g_200c"/>
+    <GlyphID id="4" name="B.0"/>
+  </GlyphOrder>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0x42" name="B"/><!-- LATIN CAPITAL LETTER B -->
+      <map code="0x200c" name="g_200c"/><!-- ZERO WIDTH NON-JOINER -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0x42" name="B"/><!-- LATIN CAPITAL LETTER B -->
+      <map code="0x200c" name="g_200c"/><!-- ZERO WIDTH NON-JOINER -->
+    </cmap_format_4>
+  </cmap>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="B"/><!-- contains no outline data -->
+
+    <TTGlyph name="B.0" xMin="518" yMin="-10" xMax="998" yMax="470">
+      <contour>
+        <pt x="518" y="470" on="1"/>
+        <pt x="518" y="-10" on="1"/>
+        <pt x="998" y="-10" on="1"/>
+        <pt x="998" y="470" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="g_200c"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <COLR>
+    <Version value="1"/>
+    <!-- BaseGlyphRecordCount=0 -->
+    <!-- LayerRecordCount=0 -->
+    <BaseGlyphList>
+      <!-- BaseGlyphCount=1 -->
+      <BaseGlyphPaintRecord index="0">
+        <BaseGlyph value="B"/>
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Paint>
+          <Glyph value="B.0"/>
+        </Paint>
+      </BaseGlyphPaintRecord>
+    </BaseGlyphList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="B"/>
+        <ClipBox Format="1">
+          <xMin value="500"/>
+          <yMin value="-20"/>
+          <xMax value="1000"/>
+          <yMax value="480"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
+  </COLR>
+
+  <SVG>
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <g id="glyph2" transform="matrix(120 0 0 120 37.5 -950)">
+    <path d="M4,4 L8,4 L8,8 L4,8 L4,4 Z" fill="orange"/>
+  </g>
+</svg>
+]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>

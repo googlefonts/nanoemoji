@@ -592,10 +592,11 @@ def _colr_ufo(
             color_glyph, glyph_cache
         )
 
-        # write out the ufo structures for COLR
-        ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
-            colr_version, colors, color_glyph
-        )
+        if color_glyph.painted_layers:
+            # write out the ufo structures for COLR
+            ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
+                colr_version, colors, color_glyph
+            )
         bounds = _bounds(color_glyph, quantization)
         if bounds is not None:
             clipBoxes.setdefault(bounds, []).append(color_glyph.glyph_name)
