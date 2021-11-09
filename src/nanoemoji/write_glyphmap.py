@@ -45,8 +45,9 @@ def _glyphmappings(svg_files: Sequence[str]) -> Tuple[GlyphMapping]:
 
 
 def main(argv):
+    svg_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(argv[1:]):
+        for gm in _glyphmappings(svg_files):
             # filename, codepoint(s), glyph name
             print(gm.csv_line())
 
