@@ -189,6 +189,7 @@ def test_omit_empty_color_glyphs():
     tmp_dir = _run(
         (
             "--color_format=glyf_colr_1_and_picosvgz",
+            "--pretty_print",
             "--keep_glyph_names",
             *(locate_test_file(svg) for svg in svgs),
         )
@@ -201,3 +202,10 @@ def test_omit_empty_color_glyphs():
 
     svg = font["SVG "]
     assert len(svg.docList) == 1
+
+    assert_expected_ttx(
+        svgs,
+        font,
+        "omit_empty_color_glyphs.ttx",
+        include_tables=["GlyphOrder", "cmap", "glyf", "COLR", "SVG "],
+    )
