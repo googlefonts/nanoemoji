@@ -565,17 +565,16 @@ def _ensure_groups_grouped_in_glyph_order(
     # font's current glyph order: i.e. we assume all color glyphs are placed in a
     # continuous block starting at the first color glyph.
     current_glyph_order = ttfont.getGlyphOrder()
-    first_color_gid = min(g.glyph_id for g in color_glyphs.values())
-    current_color_glyph_names = current_glyph_order[
-        first_color_gid : first_color_gid + len(color_glyph_order)
-    ]
+    min_color_gid = min(g.glyph_id for g in color_glyphs.values())
+    max_color_gid = max(g.glyph_id for g in color_glyphs.values())
+    current_color_glyph_names = current_glyph_order[min_color_gid : max_color_gid + 1]
     assert len(color_glyph_order) == len(current_color_glyph_names)
     rename_map = {
         color_glyph_order[i]: current_color_glyph_names[i]
         for i in range(len(color_glyph_order))
     }
 
-    glyph_order = current_glyph_order[:first_color_gid]
+    glyph_order = current_glyph_order[:min_color_gid]
     gid = len(glyph_order)
     for group in reuse_groups:
         for glyph_name in group:
