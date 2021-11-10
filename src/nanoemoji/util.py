@@ -45,7 +45,7 @@ def expand_ninja_response_files(argv: List[str]) -> List[str]:
         if arg.startswith("@"):
             with open(arg[1:], "r") as rspfile:
                 rspfile_content = rspfile.read()
-            result.extend(shlex.split(rspfile_content))
+            result.extend(shlex.split(rspfile_content, posix=os.name == "posix"))
         else:
             result.append(arg)
     return result

@@ -186,7 +186,7 @@ def write_glyphmap_rule(nw, font_config: FontConfig, master: MasterConfig):
     module_rule(
         nw,
         font_config.glyphmap_generator,
-        f"--output_file $out $in",
+        f"--output_file $out @$out.rsp",
         rspfile="$out.rsp",
         rspfile_content="$in",
         rule_name=_glyphmap_rule(font_config, master),
