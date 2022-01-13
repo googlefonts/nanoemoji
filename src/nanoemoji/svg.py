@@ -241,19 +241,9 @@ def _define_linear_gradient(
     gradient = etree.SubElement(svg_defs, "linearGradient")
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
 
-    p0, p1, p2 = paint.p0, paint.p1, paint.p2
-    # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
-    # Below we compute P3 which is the orthogonal projection of P1 onto a line passing
-    # through P0 and perpendicular to the "normal" or "rotation vector" from P0 and P2.
-    # The vector P3-P0 is the "effective" linear gradient vector after this rotation.
-    # When vector P2-P0 is perpendicular to the gradient vector P1-P0, then P3
-    # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
-    # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
-    # and the gradient degenerates to a solid paint (the last color stop).
-    p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
-
-    x1, y1 = p0
-    x2, y2 = p3
+    paint = paint.normalize()
+    x1, y1 = paint.p0
+    x2, y2 = paint.p1
     gradient.attrib["x1"] = _ntos(x1)
     gradient.attrib["y1"] = _ntos(y1)
     gradient.attrib["x2"] = _ntos(x2)

@@ -283,7 +283,7 @@ def _round_coords(paint, prec=5):
                             ColorStop(stopOffset=1.0, color=Color.fromstring("red")),
                         ),
                         p0=Point(x=0, y=1000),
-                        p1=Point(x=1000, y=1000),
+                        p1=Point(x=500, y=500),
                         p2=Point(x=-1000, y=0),
                     ),
                 ),

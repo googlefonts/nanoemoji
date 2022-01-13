@@ -262,6 +262,20 @@ class PaintLinearGradient(Paint):
             p2=transform.map_point(self.p2),
         ).check_overflows()
 
+    def normalize(self):
+        """Return functionally equivalent gradient without rotation."""
+        p0, p1, p2 = self.p0, self.p1, self.p2
+        # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
+        # Below we compute P3 which is the orthogonal projection of P1 onto a line passing
+        # through P0 and perpendicular to the "normal" or "rotation vector" from P0 and P2.
+        # The vector P3-P0 is the "effective" linear gradient vector after this rotation.
+        # When vector P2-P0 is perpendicular to the gradient vector P1-P0, then P3
+        # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
+        # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
+        # and the gradient degenerates to a solid paint (the last color stop).
+        p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
+        return dataclasses.replace(self, p1=p3)
+
 
 def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
     scale, remaining_transform = transform.decompose_scale()

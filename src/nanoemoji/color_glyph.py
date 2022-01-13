@@ -137,9 +137,17 @@ def _parse_linear_gradient(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    return PaintLinearGradient(  # pytype: disable=wrong-arg-types
+    paint = PaintLinearGradient(  # pytype: disable=wrong-arg-types
         p0=p0, p1=p1, p2=p2, **common_args
     ).apply_transform(transform)
+
+    # At some point, skewed linear gradients stopped working in Skia,
+    # P2 having no effect: https://bugs.chromium.org/p/skia/issues/detail?id=12822
+    # For a bit, we'll play safe and 'rectify' the gradient such that the gradient
+    # look the same whether or not P2 is taken into account.
+    # TODO(anthrotype): Remove this once the bug fix has rolled out in Chrome.
+    assert isinstance(paint, PaintLinearGradient)
+    return paint.normalize()
 
 
 def _parse_radial_gradient(
