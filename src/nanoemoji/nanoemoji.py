@@ -255,14 +255,30 @@ def write_config_preamble(nw, font_config: FontConfig):
     nw.newline()
 
 
-def picosvg_dir(master_name: str) -> Path:
-    return build_dir() / "picosvg" / master_name
+def picosvg_dir() -> Path:
+    return build_dir() / "picosvg"
 
 
-def picosvg_dest(master_name: str, clipped: bool, input_svg: Path) -> str:
-    out_dir = picosvg_dir(master_name)
+def picosvg_dest(clipped: bool, input_svg: Path) -> str:
+    if not hasattr(picosvg_dest, "names_seen"):
+        picosvg_dest.names_seen = {}
+
+    # If  many different inputs have the same name disambiguate 1..N
+    # by including N in picosvg path
+    input_svg = input_svg.resolve()
+    nth_of_name = 0
+    while (
+        picosvg_dest.names_seen.get((nth_of_name, input_svg.name), input_svg)
+        != input_svg
+    ):
+        nth_of_name += 1
+    picosvg_dest.names_seen[(nth_of_name, input_svg.name)] = input_svg
+
+    out_dir = picosvg_dir()
     if clipped:
         out_dir = out_dir / "clipped"
+    if nth_of_name > 0:
+        out_dir = out_dir / str(nth_of_name)
     return str(rel_build(out_dir / input_svg.name))
 
 
@@ -282,7 +298,7 @@ def diff_png_dest(input_svg: Path) -> str:
 
 
 def write_picosvg_builds(
-    picosvg_builds: Set[str],
+    picosvg_builds: Set[Path],
     nw: ninja_syntax.Writer,
     clipped: bool,
     master: MasterConfig,
@@ -290,12 +306,12 @@ def write_picosvg_builds(
     rule_name = "picosvg_unclipped"
     if clipped:
         rule_name = "picosvg_clipped"
-    os.makedirs(str(picosvg_dir(master.name)), exist_ok=True)
     for svg_file in master.sources:
-        dest = picosvg_dest(master.name, clipped, svg_file)
-        if dest in picosvg_builds:
+        svg_file = svg_file.resolve()
+        dest = picosvg_dest(clipped, svg_file)
+        if svg_file in picosvg_builds:
             continue
-        picosvg_builds.add(dest)
+        picosvg_builds.add(svg_file)
         nw.build(dest, rule_name, str(rel_build(svg_file)))
 
 
@@ -349,8 +365,7 @@ def write_svg_font_diff_build(
 def _input_svgs(font_config: FontConfig, master: MasterConfig) -> List[str]:
     if font_config.has_picosvgs:
         svg_files = [
-            picosvg_dest(master.name, font_config.clip_to_viewbox, f)
-            for f in master.sources
+            picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
         ]
     else:
         svg_files = [str(f.resolve()) for f in master.sources]
@@ -364,7 +379,7 @@ def _update_sources(font_config: FontConfig) -> FontConfig:
         masters=tuple(
             master._replace(
                 sources=tuple(
-                    Path(picosvg_dest(master.name, font_config.clip_to_viewbox, s))
+                    Path(picosvg_dest(font_config.clip_to_viewbox, s))
                     for s in master.sources
                 )
             )
@@ -528,6 +543,7 @@ def _run(argv):
 
     ninja_cmd = ["ninja", "-C", os.path.dirname(build_file)]
     if FLAGS.exec_ninja:
+        os.makedirs(str(picosvg_dir()), exist_ok=True)
         logging.info(" ".join(ninja_cmd))
         subprocess.run(ninja_cmd, check=True)
     else:
