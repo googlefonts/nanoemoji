@@ -35,19 +35,20 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def _glyphmappings(svg_files: Sequence[str]) -> Tuple[GlyphMapping]:
+def _glyphmappings(input_files: Sequence[str]) -> Tuple[GlyphMapping]:
     return tuple(
-        GlyphMapping(Path(svg_file), cps, glyph_name(cps))
-        for svg_file, cps in zip(
-            svg_files, tuple(codepoints.from_filename(Path(f).name) for f in svg_files)
+        GlyphMapping(Path(input_file), cps, glyph_name(cps))
+        for input_file, cps in zip(
+            input_files,
+            tuple(codepoints.from_filename(Path(f).name) for f in input_files),
         )
     )
 
 
 def main(argv):
-    svg_files = util.expand_ninja_response_files(argv[1:])
+    input_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(svg_files):
+        for gm in _glyphmappings(input_files):
             # filename, codepoint(s), glyph name
             print(gm.csv_line())
 

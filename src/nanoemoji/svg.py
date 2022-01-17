@@ -110,7 +110,7 @@ def _ensure_has_id(el: etree.Element):
 
 
 def _paint_glyph_name(color_glyph: ColorGlyph, nth: int) -> str:
-    return f"{color_glyph.glyph_name}.{nth}"
+    return f"{color_glyph.ufo_glyph_name}.{nth}"
 
 
 def _color_glyph_name(glyph_name: str) -> str:
@@ -124,7 +124,7 @@ def _glyph_groups(
 
     reuse_groups = DisjointSet()  # ensure glyphs sharing shapes are in the same doc
     for color_glyph in color_glyphs:
-        reuse_groups.make_set(color_glyph.glyph_name)
+        reuse_groups.make_set(color_glyph.ufo_glyph_name)
         nth_paint_glyph = 0
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
@@ -140,7 +140,7 @@ def _glyph_groups(
                 if reuse_result:
                     # This entire color glyph and the one we share a shape with go in one svg doc
                     reuse_groups.union(
-                        color_glyph.glyph_name,
+                        color_glyph.ufo_glyph_name,
                         _color_glyph_name(reuse_result.glyph_name),
                     )
 
@@ -489,7 +489,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     #    https://github.com/googlefonts/nanoemoji/issues/264
                     # 2) If the reused_el has attributes <use> cannot override
                     #    https://github.com/googlefonts/nanoemoji/issues/337
-                    if color_glyph.glyph_name != _color_glyph_name(
+                    if color_glyph.ufo_glyph_name != _color_glyph_name(
                         reused_glyph_name
                     ) or _attrib_apply_paint_uses(reused_el):
                         _migrate_to_defs(svg, reused_el, reuse_cache, reuse_result)
@@ -632,8 +632,8 @@ def _picosvg_docs(
         config.reuse_tolerance, GlyphReuseCache(config.reuse_tolerance)
     )
     reuse_groups = _glyph_groups(config, color_glyphs, reuse_cache)
-    color_glyph_order = [c.glyph_name for c in color_glyphs]
-    color_glyphs = {c.glyph_name: c for c in color_glyphs}
+    color_glyph_order = [c.ufo_glyph_name for c in color_glyphs]
+    color_glyphs = {c.ufo_glyph_name: c for c in color_glyphs}
     _ensure_groups_grouped_in_glyph_order(
         color_glyphs, color_glyph_order, ttfont, reuse_groups
     )

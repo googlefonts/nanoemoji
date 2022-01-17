@@ -153,6 +153,7 @@ class FontConfig(NamedTuple):
     clipbox_quantization: Optional[int] = None
     fea_file: str = "features.fea"
     glyphmap_generator: str = "nanoemoji.write_glyphmap"
+    bitmap_resolution = 128
     pretty_print: bool = False
     axes: Tuple[Axis, ...] = ()
     masters: Tuple[MasterConfig, ...] = ()
@@ -163,8 +164,18 @@ class FontConfig(NamedTuple):
         return Path(self.output_file).suffix
 
     @property
+    def has_bitmaps(self):
+        return self.color_format.startswith("sbix") or self.color_format.startswith(
+            "cbdt"
+        )
+
+    @property
     def has_picosvgs(self):
-        return not self.color_format.startswith("untouchedsvg")
+        return not (self.color_format.startswith("untouchedsvg") or self.has_bitmaps)
+
+    @property
+    def has_svgs(self):
+        return not self.has_bitmaps
 
     def validate(self):
         for attr_name in (

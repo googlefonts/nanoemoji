@@ -127,7 +127,7 @@ def test_transform_and_width(
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
-    assert ufo[color_glyph.glyph_name].width == expected_width
+    assert ufo[color_glyph.ufo_glyph_name].width == expected_width
 
 
 def _round_coords(paint, prec=5):

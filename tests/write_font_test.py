@@ -279,10 +279,24 @@ def test_vertical_metrics(ascender, descender, linegap):
             "reuse_shape_varying_fill.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
+        # Generate both COLRv1 AND SVG
         (
             ("rect.svg",),
             "rect_glyf_colr_1_and_picosvgz.ttx",
             {"color_format": "glyf_colr_1_and_picosvgz", "pretty_print": True},
+        ),
+        # Generate simple cbdt
+        (
+            ("rect2.svg",),
+            "rect_cbdt.ttx",
+            # we end up with out of bounds line metrics with default ascender/descender
+            {"color_format": "cbdt", "ascender": 90, "descender": -20},
+        ),
+        # Generate simple sbix
+        (
+            ("rect2.svg",),
+            "rect_sbix.ttx",
+            {"color_format": "sbix"},
         ),
     ],
 )

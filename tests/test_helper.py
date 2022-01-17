@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import difflib
+import io
 import os
 import re
 import sys
@@ -105,6 +105,7 @@ def assert_expected_ttx(
         newlinestr="\n",
         tables=include_tables,
         skipTables=skip_tables,
+        bitmapGlyphDataFormat="extfile",
     )
 
     # Elide ttFont attributes because ttLibVersion may change

@@ -1,0 +1,230 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Helps with bitmap tables."""
+from fontTools import ttLib
+from fontTools.ttLib.tables.BitmapGlyphMetrics import BigGlyphMetrics, SmallGlyphMetrics
+from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
+from fontTools.ttLib.tables.sbixStrike import Strike as SbixStrike
+from fontTools.ttLib.tables.E_B_L_C_ import (
+    Strike as CblcStrike,
+    SbitLineMetrics as CblcSbitLineMetrics,
+    eblc_index_sub_table_1 as CblcIndexSubTable1,
+    eblc_index_sub_table_2 as CblcIndexSubTable2,
+)
+from fontTools.ttLib.tables.C_B_D_T_ import cbdt_bitmap_format_17 as CbdtBitmapFormat17
+from functools import reduce
+from nanoemoji.config import FontConfig
+from nanoemoji.color_glyph import ColorGlyph
+from typing import (
+    List,
+    Sequence,
+    Tuple,
+)
+import sys
+
+
+_INT8_RANGE = range(-128, 127 + 1)
+_UINT8_RANGE = range(0, 255 + 1)
+
+# https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt#table-structure
+_CBDT_HEADER_SIZE = 4
+
+# https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt#format-17-small-metrics-png-image-data
+_CBDT_SMALL_METRIC_PNGS = 17
+
+# SmallGlyphMetrics(5) + dataLen(4)
+_CBDT_SMALL_METRIC_PNG_HEADER_SIZE = 5 + 4
+
+
+# https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L53
+def _ppem(config: FontConfig, advance: int) -> int:
+    return int(config.bitmap_resolution * config.upem / advance)
+
+
+def _advance(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> int:
+    # let's go ahead and fail miserably if advances are not all the same
+    # proportional bitmaps can wait for a second pass :)
+    advances = {
+        ttfont["hmtx"].metrics[ttfont.getGlyphName(c.glyph_id)][0] for c in color_glyphs
+    }
+    assert len(advances) == 1, "Proportional bitmaps not supported yet"
+    return next(iter(advances))
+
+
+def _image_bytes(color_glyph: ColorGlyph) -> bytes:
+    with open(color_glyph.filename, "rb") as f:
+        return f.read()
+
+
+def _cbdt_record_size(image_format: int, image_data: bytes) -> int:
+    assert image_format == _CBDT_SMALL_METRIC_PNGS, "Unrecognized format"
+    return _CBDT_SMALL_METRIC_PNG_HEADER_SIZE + len(image_data)
+
+
+def _cbdt_bitmapdata_offsets(
+    image_format: int, color_glyphs: Sequence[ColorGlyph]
+) -> List[Tuple[int, int]]:
+    # TODO is this right? - feels dumb. But ... compile crashes if locations are unknown.
+    offsets = []
+    offset = _CBDT_HEADER_SIZE
+    for color_glyph in color_glyphs:
+        offsets.append(offset)
+        offset += _cbdt_record_size(image_format, _image_bytes(color_glyph))
+    offsets.append(offset)  # capture end of stream
+    return list(zip(offsets, offsets[1:]))
+
+
+def _cbdt_bitmap_data(
+    bitmap_resolution: int, bearing_x: int, advance: int, image_data: bytes
+) -> CbdtBitmapFormat17:
+    # The FontTools errors when values are out of bounds are a bit nasty
+    # so check here for earlier and more helpful termination
+    assert (
+        bitmap_resolution in _UINT8_RANGE
+    ), f"bitmap_resolution out of bounds: {bitmap_resolution}"
+    assert bearing_x in _INT8_RANGE, f"bearing_x out of bounds: {bearing_x}"
+    assert advance in _UINT8_RANGE, f"advance out of bounds: {advance}"
+    bitmap_data = CbdtBitmapFormat17(b"", None)
+    bitmap_data.metrics = SmallGlyphMetrics()
+    bitmap_data.metrics.height = bitmap_resolution
+    bitmap_data.metrics.width = bitmap_resolution
+    bitmap_data.metrics.BearingX = 0
+    bitmap_data.metrics.BearingY = bearing_x
+    bitmap_data.metrics.Advance = advance
+    bitmap_data.imageData = image_data
+    return bitmap_data
+
+
+def make_sbix_table(
+    config: FontConfig,
+    ttfont: ttLib.TTFont,
+    color_glyphs: Sequence[ColorGlyph],
+):
+
+    sbix = ttLib.newTable("sbix")
+    ttfont[sbix.tableTag] = sbix
+
+    sbix.ppem = _ppem(config, _advance(ttfont, color_glyphs))
+    # TODO what goes here
+    sbix.ppi = 96
+
+    strike = SbixStrike()
+    strike.ppem = sbix.ppem
+    strike.resolution = config.bitmap_resolution
+    sbix.strikes[strike.ppem] = strike
+
+    for color_glyph in color_glyphs:
+        # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
+        image_data = _image_bytes(color_glyph)
+
+        glyph_name = ttfont.getGlyphName(color_glyph.glyph_id)
+        glyph = SbixGlyph(
+            graphicType="png",
+            glyphName=glyph_name,
+            imageData=image_data,
+            # TODO compute
+            originOffsetY=30,
+        )
+        strike.glyphs[glyph_name] = glyph
+
+
+# Ref https://github.com/googlefonts/noto-emoji/blob/main/third_party/color_emoji/emoji_builder.py
+def make_cbdt_table(
+    config: FontConfig,
+    ttfont: ttLib.TTFont,
+    color_glyphs: Sequence[ColorGlyph],
+):
+
+    min_gid, max_gid = reduce(
+        lambda a, c: (min(a[0], c.glyph_id), max(a[1], c.glyph_id)),
+        color_glyphs,
+        (sys.maxsize, -1),
+    )
+    assert max_gid - min_gid + 1 == len(
+        color_glyphs
+    ), "Below assumes color gyphs gids are consecutive"
+
+    advance = _advance(ttfont, color_glyphs)
+    ppem = _ppem(config, advance)
+
+    cbdt = ttLib.newTable("CBDT")
+    ttfont[cbdt.tableTag] = cbdt
+
+    cblc = ttLib.newTable("CBLC")
+    ttfont[cblc.tableTag] = cblc
+
+    cblc.version = cbdt.version = 3.0
+
+    strike = CblcStrike()
+    strike.bitmapSizeTable.startGlyphIndex = min_gid
+    strike.bitmapSizeTable.endGlyphIndex = max_gid
+    strike.bitmapSizeTable.ppemX = ppem
+    strike.bitmapSizeTable.ppemY = ppem
+    strike.bitmapSizeTable.colorRef = 0
+    strike.bitmapSizeTable.bitDepth = 32
+    # https://docs.microsoft.com/en-us/typography/opentype/spec/eblc#bitmapFlags
+    strike.bitmapSizeTable.flags = 1  # HORIZONTAL_METRICS
+
+    line_metrics = CblcSbitLineMetrics()
+    line_metrics.caretSlopeNumerator = 0
+    line_metrics.caretSlopeDenominator = 0
+    line_metrics.caretSlopeDenominator = 0
+    line_metrics.caretOffset = 0
+    line_metrics.minOriginSB = 0
+    line_metrics.minAdvanceSB = 0
+    line_metrics.maxBeforeBL = 0
+    line_metrics.minAfterBL = 0
+    line_metrics.pad1 = 0
+    line_metrics.pad2 = 0
+
+    # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L282
+    line_height = int((config.ascender + -config.descender) * ppem / config.upem)
+    line_metrics.ascender = int(config.ascender * ppem / config.upem)
+    line_metrics.descender = -(line_height - line_metrics.ascender)
+    line_metrics.widthMax = config.bitmap_resolution
+    strike.bitmapSizeTable.hori = line_metrics
+    strike.bitmapSizeTable.vert = line_metrics
+
+    # Simplifying assumption: identical metrics
+    # https://docs.microsoft.com/en-us/typography/opentype/spec/eblc#indexsubtables
+
+    # Apparently you cannot build a CBLC index subtable w/o providing bytes & font?!
+    # If we build from empty bytes and fill in the fields all is well
+    index_subtable = CblcIndexSubTable1(b"", ttfont)
+    # CBLC image format matches https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt#glyph-bitmap-data-formats
+    # We are using small metrics and PNG images exclusively for now
+    index_subtable.indexFormat = 1
+    index_subtable.imageFormat = _CBDT_SMALL_METRIC_PNGS
+    index_subtable.imageSize = config.bitmap_resolution
+    index_subtable.names = [ttfont.getGlyphName(c.glyph_id) for c in color_glyphs]
+    index_subtable.locations = _cbdt_bitmapdata_offsets(
+        index_subtable.imageFormat, color_glyphs
+    )
+
+    strike.indexSubTables = [index_subtable]
+    cblc.strikes = [strike]
+
+    # Now register all the data
+    cbdt.strikeData = [
+        {
+            ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
+                config.bitmap_resolution,
+                line_metrics.ascender,
+                int(advance * ppem / config.upem),
+                _image_bytes(c),
+            )
+            for c in color_glyphs
+        }
+    ]
