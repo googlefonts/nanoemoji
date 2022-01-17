@@ -222,6 +222,15 @@ def write_preamble(nw):
 
 
 def write_config_preamble(nw, font_config: FontConfig):
+    if font_config.has_bitmaps:
+        # TODO bitmap support for non-square svgs? - baby steps
+        res = font_config.bitmap_resolution
+        nw.rule(
+            "write_bitmap",
+            f"resvg -h {res}  -w {res} $in $out",
+        )
+        nw.newline()
+
     for master in font_config.masters:
         write_font_rule(nw, font_config, master)
     if _is_vf(font_config):
@@ -246,7 +255,7 @@ def write_config_preamble(nw, font_config: FontConfig):
         module_rule(
             nw,
             "write_diffreport",
-            f"--lhs_dir resvg_png --rhs_dir skia_png --output_file $out @$out.rsp",
+            f"--lhs_dir {resvg_bitmap_dir()} --rhs_dir {skia_bitmap_dir()} --output_file $out @$out.rsp",
             rspfile="$out.rsp",
             rspfile_content="$in",
         )
@@ -259,42 +268,61 @@ def picosvg_dir() -> Path:
     return build_dir() / "picosvg"
 
 
-def picosvg_dest(clipped: bool, input_svg: Path) -> str:
-    if not hasattr(picosvg_dest, "names_seen"):
-        picosvg_dest.names_seen = {}
+def bitmap_dir() -> Path:
+    return build_dir() / "bitmap"
+
+
+def resvg_bitmap_dir() -> Path:
+    return build_dir() / "imagediff" / "resvg"
+
+
+def skia_bitmap_dir() -> Path:
+    return build_dir() / "imagediff" / "skia"
+
+
+def diff_bitmap_dir() -> Path:
+    return build_dir() / "imagediff" / "diff"
+
+
+def _dest_for_src(scope_fn, out_dir: Path, input_svg: Path, suffix: str) -> Path:
+    if not hasattr(scope_fn, "names_seen"):
+        scope_fn.names_seen = {}
+    names_seen = scope_fn.names_seen
 
     # If  many different inputs have the same name disambiguate 1..N
     # by including N in picosvg path
     input_svg = abspath(input_svg)
     nth_of_name = 0
-    while (
-        picosvg_dest.names_seen.get((nth_of_name, input_svg.name), input_svg)
-        != input_svg
-    ):
+    while names_seen.get((nth_of_name, input_svg.name), input_svg) != input_svg:
         nth_of_name += 1
-    picosvg_dest.names_seen[(nth_of_name, input_svg.name)] = input_svg
+    names_seen[(nth_of_name, input_svg.name)] = input_svg
 
+    if nth_of_name > 0:
+        out_dir = out_dir / str(nth_of_name)
+    return rel_build(out_dir / input_svg.name).with_suffix(suffix)
+
+
+def picosvg_dest(clipped: bool, input_svg: Path) -> Path:
     out_dir = picosvg_dir()
     if clipped:
         out_dir = out_dir / "clipped"
-    if nth_of_name > 0:
-        out_dir = out_dir / str(nth_of_name)
-    return str(rel_build(out_dir / input_svg.name))
+    return _dest_for_src(picosvg_dest, out_dir, input_svg, ".svg")
 
 
-def resvg_png_dest(input_svg: Path) -> str:
-    dest_file = input_svg.stem + ".png"
-    return os.path.join("resvg_png", dest_file)
+def bitmap_dest(input_svg: Path) -> Path:
+    return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, ".png")
 
 
-def skia_png_dest(input_svg: Path) -> str:
-    dest_file = input_svg.stem + ".png"
-    return os.path.join("skia_png", dest_file)
+def resvg_png_dest(input_svg: Path) -> Path:
+    return _dest_for_src(resvg_png_dest, resvg_bitmap_dir(), input_svg, ".png")
 
 
-def diff_png_dest(input_svg: Path) -> str:
-    dest_file = input_svg.stem + ".png"
-    return os.path.join("diff_png", dest_file)
+def skia_png_dest(input_svg: Path) -> Path:
+    return _dest_for_src(skia_png_dest, skia_bitmap_dir(), input_svg, ".png")
+
+
+def diff_png_dest(input_svg: Path) -> Path:
+    return _dest_for_src(skia_png_dest, diff_bitmap_dir(), input_svg, ".png")
 
 
 def write_picosvg_builds(
@@ -312,7 +340,22 @@ def write_picosvg_builds(
         if svg_file in picosvg_builds:
             continue
         picosvg_builds.add(svg_file)
-        nw.build(dest, rule_name, str(rel_build(svg_file)))
+        nw.build(str(dest), rule_name, str(rel_build(svg_file)))
+
+
+def write_bitmap_builds(
+    bitmap_builds: Set[Path],
+    nw: ninja_syntax.Writer,
+    clipped: bool,
+    master: MasterConfig,
+):
+    os.makedirs(str(bitmap_dir()), exist_ok=True)
+    for svg_file in master.sources:
+        dest = bitmap_dest(svg_file)
+        if dest in bitmap_builds:
+            continue
+        bitmap_builds.add(dest)
+        nw.build(str(dest), "write_bitmap", str(rel_build(svg_file)))
 
 
 def write_source_names(font_config: FontConfig):
@@ -362,14 +405,17 @@ def write_svg_font_diff_build(
     nw.build("diffs.html", "write_diffreport", [diff_png_dest(f) for f in svg_files])
 
 
-def _input_svgs(font_config: FontConfig, master: MasterConfig) -> List[str]:
-    if font_config.has_picosvgs:
-        svg_files = [
-            picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
+def _input_files(font_config: FontConfig, master: MasterConfig) -> List[str]:
+    if font_config.has_bitmaps:
+        input_files = [str(bitmap_dest(f)) for f in master.sources]
+    elif font_config.has_picosvgs:
+        input_files = [
+            str(picosvg_dest(font_config.clip_to_viewbox, f)) for f in master.sources
         ]
     else:
-        svg_files = [str(abspath(f)) for f in master.sources]
-    return svg_files
+
+        input_files = [str(abspath(f)) for f in master.sources]
+    return input_files
 
 
 def _update_sources(font_config: FontConfig) -> FontConfig:
@@ -396,7 +442,7 @@ def write_glyphmap_build(
     nw.build(
         str(rel_build(_glyphmap_file(font_config, master))),
         _glyphmap_rule(font_config, master),
-        _input_svgs(font_config, master),
+        _input_files(font_config, master),
     )
     nw.newline()
 
@@ -406,7 +452,7 @@ def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List
         str(rel_build(_config_file(font_config))),
         str(rel_build(_fea_file(font_config))),
         str(rel_build(_glyphmap_file(font_config, master))),
-    ] + _input_svgs(font_config, master)
+    ] + _input_files(font_config, master)
 
 
 def write_ufo_build(
@@ -518,9 +564,18 @@ def _run(argv):
             picosvg_builds = set()
             for font_config in font_configs:
                 for master in font_config.masters:
-                    if not font_config.color_format.startswith("untouchedsvg"):
+                    if font_config.has_picosvgs:
                         write_picosvg_builds(
                             picosvg_builds, nw, font_config.clip_to_viewbox, master
+                        )
+            nw.newline()
+
+            bitmap_builds = set()
+            for font_config in font_configs:
+                for master in font_config.masters:
+                    if font_config.has_bitmaps:
+                        write_bitmap_builds(
+                            bitmap_builds, nw, font_config.clip_to_viewbox, master
                         )
             nw.newline()
 

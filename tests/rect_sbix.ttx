@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <sbix>
+    <version value="1"/>
+    <flags value="00000000 00000001"/>
+    <strike>
+      <ppem value="128"/>
+      <resolution value="128"/>
+      <glyph name=".notdef"/>
+      <glyph name=".space"/>
+      <glyph graphicType="png " name="e000" originOffsetX="0" originOffsetY="30">
+        <hexdata>
+          3c737667 20766965 77426f78 3d223020
+          30203130 20313022 20786d6c 6e733d22
+          68747470 3a2f2f77 77772e77 332e6f72
+          672f3230 30302f73 7667220a 20202020
+          20786d6c 6e733a78 6c696e6b 3d226874
+          74703a2f 2f777777 2e77332e 6f72672f
+          31393939 2f786c69 6e6b223e 0a20203c
+          72656374 20783d22 32222079 3d223222
+          20776964 74683d22 36222068 65696768
+          743d2232 22206669 6c6c3d22 70757270
+          6c652220 2f3e0a20 203c7265 63742078
+          3d223422 20793d22 34222077 69647468
+          3d223622 20686569 6768743d 22322220
+          66696c6c 3d226461 726b6772 65656e22
+          206f7061 63697479 3d22302e 3822202f
+          3e0a3c2f 7376673e  
+        </hexdata>
+      </glyph>
+    </strike>
+  </sbix>
+
+</ttFont>
