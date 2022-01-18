@@ -15,6 +15,7 @@
 # Integration tests for nanoemoji
 
 from fontTools.ttLib import TTFont
+from fontTools.ttLib.tables import otTables as ot
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
 import os
@@ -209,3 +210,27 @@ def test_omit_empty_color_glyphs():
         "omit_empty_color_glyphs.ttx",
         include_tables=["GlyphOrder", "cmap", "glyf", "COLR", "SVG "],
     )
+
+
+# https://github.com/googlefonts/nanoemoji/issues/367
+def test_path_to_src_matters():
+    def _glyph(font):
+        assert font["COLR"].version == 1
+        colr_table = font["COLR"].table
+        assert colr_table.BaseGlyphList.BaseGlyphCount == 1
+        paint = colr_table.BaseGlyphList.BaseGlyphPaintRecord[0].Paint
+        assert paint.Format == ot.PaintFormat.PaintGlyph
+        return font["glyf"][paint.Glyph]
+
+    tomls = [
+        "multi_toml/a.toml",
+        "multi_toml/b.toml",
+    ]
+
+    tmp_dir = _run(tuple(locate_test_file(toml) for toml in tomls))
+
+    font_a = TTFont(tmp_dir / "A.ttf")
+    font_b = TTFont(tmp_dir / "B.ttf")
+
+    # Each font should define a single PaintGlyph and the glyph it uses shouldn't be identical
+    assert _glyph(font_a) != _glyph(font_b)
