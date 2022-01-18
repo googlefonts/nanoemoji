@@ -33,12 +33,23 @@ jobs:
           - {platform: windows-latest, python-version: 3.9}
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.config.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.config.python-version }}
+
+    - uses: actions-rs/cargo@v1
+
+    # this is very slow :(
+    - name: Install resvg
+      run: cargo install resvg
+
+    - run: which resvg
+
     - name: Install tox
       run: pip install tox
+
     - name: Run the tests
       run: tox -e py
   deploy:
