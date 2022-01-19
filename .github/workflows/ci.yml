@@ -39,7 +39,9 @@ jobs:
       with:
         python-version: ${{ matrix.config.python-version }}
 
-    - uses: actions-rs/cargo@v1
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
 
     - name: Cache resvg
       uses: actions/cache@v2
