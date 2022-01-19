@@ -47,7 +47,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          ~/.cargo/bin/resvg
+          ~/.cargo/bin
           ~/.cargo/.crates.toml
           ~/.cargo/.crates2.json
         key: ${{ runner.os }}-resvg
