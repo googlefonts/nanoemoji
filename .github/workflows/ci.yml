@@ -46,7 +46,10 @@ jobs:
     - name: Cache resvg
       uses: actions/cache@v2
       with:
-        path: ~/.cargo/bin/resvg
+        path: |
+          ~/.cargo/bin/resvg
+          ~/.cargo/.crates.toml
+          ~/.cargo/.crates2.json
         key: ${{ runner.os }}-resvg
 
     - name: Install resvg
