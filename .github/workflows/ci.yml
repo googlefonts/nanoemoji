@@ -41,7 +41,12 @@ jobs:
 
     - uses: actions-rs/cargo@v1
 
-    # this is very slow :(
+    - name: Cache resvg
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/bin/resvg
+        key: ${{ runner.os }}-resvg
+
     - name: Install resvg
       run: cargo install resvg
 
