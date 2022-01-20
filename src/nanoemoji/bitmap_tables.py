@@ -29,6 +29,7 @@ from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from typing import (
     List,
+    NamedTuple,
     Sequence,
     Tuple,
 )
@@ -46,6 +47,40 @@ _CBDT_SMALL_METRIC_PNGS = 17
 
 # SmallGlyphMetrics(5) + dataLen(4)
 _CBDT_SMALL_METRIC_PNG_HEADER_SIZE = 5 + 4
+
+
+class BitmapMetrics(NamedTuple):
+    x_offset: int
+    y_offset: int
+    line_height: int
+    line_ascent: int
+
+    @classmethod
+    def create(cls, config: FontConfig, ppem: int) -> "BitmapMetrics":
+        # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L109
+        ascent = config.ascender
+        descent = -config.descender
+
+        line_height = int((ascent + descent) * ppem / float(config.upem))
+        line_ascent = ascent * ppem / float(config.upem)
+
+        metrics = BitmapMetrics(
+            x_offset=max(
+                int((config.bitmap_advance - config.bitmap_resolution) / 2), 0
+            ),
+            y_offset=int(
+                round(line_ascent - 0.5 * (line_height - config.bitmap_resolution))
+            ),
+            line_height=line_height,
+            line_ascent=int(line_ascent),
+        )
+
+        print("line_height", metrics.line_height)
+        print("line_ascent", metrics.line_ascent)
+        print("metrics.x_offset", metrics.x_offset)
+        print("metrics.y_offset", metrics.y_offset)
+
+        return metrics
 
 
 # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L53
@@ -87,22 +122,17 @@ def _cbdt_bitmapdata_offsets(
 
 
 def _cbdt_bitmap_data(
-    bitmap_resolution: int, bearing_x: int, advance: int, image_data: bytes
+    config: FontConfig, metrics: BitmapMetrics, image_data: bytes
 ) -> CbdtBitmapFormat17:
-    # The FontTools errors when values are out of bounds are a bit nasty
-    # so check here for earlier and more helpful termination
-    assert (
-        bitmap_resolution in _UINT8_RANGE
-    ), f"bitmap_resolution out of bounds: {bitmap_resolution}"
-    assert bearing_x in _INT8_RANGE, f"bearing_x out of bounds: {bearing_x}"
-    assert advance in _UINT8_RANGE, f"advance out of bounds: {advance}"
+
     bitmap_data = CbdtBitmapFormat17(b"", None)
     bitmap_data.metrics = SmallGlyphMetrics()
-    bitmap_data.metrics.height = bitmap_resolution
-    bitmap_data.metrics.width = bitmap_resolution
-    bitmap_data.metrics.BearingX = 0
-    bitmap_data.metrics.BearingY = bearing_x
-    bitmap_data.metrics.Advance = advance
+    bitmap_data.metrics.height = config.bitmap_resolution
+    bitmap_data.metrics.width = config.bitmap_resolution
+    # center within advance
+    bitmap_data.metrics.BearingX = metrics.x_offset
+    bitmap_data.metrics.BearingY = metrics.y_offset
+    bitmap_data.metrics.Advance = config.bitmap_advance
     bitmap_data.imageData = image_data
     return bitmap_data
 
@@ -121,9 +151,11 @@ def make_sbix_table(
     sbix.ppi = 96
 
     strike = SbixStrike()
-    strike.ppem = sbix.ppem
+    strike.ppem = sbix.ppem + 8  # TODO magic #
     strike.resolution = config.bitmap_resolution
     sbix.strikes[strike.ppem] = strike
+
+    metrics = BitmapMetrics.create(config, strike.ppem)
 
     for color_glyph in color_glyphs:
         # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
@@ -134,8 +166,8 @@ def make_sbix_table(
             graphicType="png",
             glyphName=glyph_name,
             imageData=image_data,
-            # TODO compute
-            originOffsetY=30,
+            originOffsetX=metrics.x_offset,
+            originOffsetY=metrics.line_height - metrics.y_offset,
         )
         strike.glyphs[glyph_name] = glyph
 
@@ -157,7 +189,7 @@ def make_cbdt_table(
     ), "Below assumes color gyphs gids are consecutive"
 
     advance = _advance(ttfont, color_glyphs)
-    ppem = _ppem(config, advance)
+    ppem = _ppem(config, advance) + 8
 
     cbdt = ttLib.newTable("CBDT")
     ttfont[cbdt.tableTag] = cbdt
@@ -189,11 +221,21 @@ def make_cbdt_table(
     line_metrics.pad1 = 0
     line_metrics.pad2 = 0
 
-    # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L282
-    line_height = int((config.ascender + -config.descender) * ppem / config.upem)
-    line_metrics.ascender = int(config.ascender * ppem / config.upem)
-    line_metrics.descender = -(line_height - line_metrics.ascender)
-    line_metrics.widthMax = config.bitmap_resolution
+    metrics = BitmapMetrics.create(config, ppem)
+    # The FontTools errors when values are out of bounds are a bit nasty
+    # so check here for earlier and more helpful termination
+    assert (
+        config.bitmap_resolution in _UINT8_RANGE
+    ), f"bitmap_resolution out of bounds: {config.bitmap_resolution}"
+    assert (
+        config.bitmap_advance in _UINT8_RANGE
+    ), f"bitmap_advance out of bounds: {config.bitmap_advance}"
+    assert metrics.y_offset in _INT8_RANGE, f"y_offset out of bounds: {metrics}"
+
+    line_metrics.ascender = int(config.ascender * ppem / float(config.upem))
+    line_metrics.descender = -(metrics.line_height - line_metrics.ascender)
+    line_metrics.widthMax = max(config.bitmap_advance, config.bitmap_resolution)
+
     strike.bitmapSizeTable.hori = line_metrics
     strike.bitmapSizeTable.vert = line_metrics
 
@@ -220,10 +262,7 @@ def make_cbdt_table(
     cbdt.strikeData = [
         {
             ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
-                config.bitmap_resolution,
-                line_metrics.ascender,
-                int(advance * ppem / config.upem),
-                _image_bytes(c),
+                config, metrics, _image_bytes(c)
             )
             for c in color_glyphs
         }
