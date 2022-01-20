@@ -54,7 +54,7 @@
           <BearingY value="104"/>
           <Advance value="127"/>
         </SmallGlyphMetrics>
-        <extfileimagedata value="./bitmaps/strike0/e000.png"/>
+        <extfileimagedata value="e000.png"/>
       </cbdt_bitmap_format_17>
     </strikedata>
   </CBDT>
