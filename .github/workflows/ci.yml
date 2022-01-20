@@ -39,13 +39,12 @@ jobs:
       with:
         python-version: ${{ matrix.config.python-version }}
 
-    - uses: actions-rs/cargo@v1
-
-    # this is very slow :(
     - name: Install resvg
-      run: cargo install resvg
-
-    - run: which resvg
+      # We use a pre-compiled wheel because cargo install resvg takes too long:
+      # https://github.com/googlefonts/nanoemoji/pull/373
+      run: |
+        pip install --find-links https://github.com/anthrotype/resvg-wheels/releases/tag/v0.2.0 resvg
+        which resvg
 
     - name: Install tox
       run: pip install tox
