@@ -105,6 +105,14 @@ flags.DEFINE_string(
     None,
     "A program that takes a list of filenames and outputs a file csv whose rows contain filename, codepoint(s), glyph name.",
 )
+flags.DEFINE_integer(
+    "bitmap_resolution", None, "Resolution of bitmap in pixels. Always square for now."
+)
+flags.DEFINE_integer(
+    "bitmap_advance",
+    None,
+    "Advance for bitmap, in pixels. Typically >= bitmap_resolution.",
+)
 
 
 class Axis(NamedTuple):
@@ -153,7 +161,8 @@ class FontConfig(NamedTuple):
     clipbox_quantization: Optional[int] = None
     fea_file: str = "features.fea"
     glyphmap_generator: str = "nanoemoji.write_glyphmap"
-    bitmap_resolution = 128
+    bitmap_resolution: int = 128
+    bitmap_advance: int = 136
     pretty_print: bool = False
     axes: Tuple[Axis, ...] = ()
     masters: Tuple[MasterConfig, ...] = ()
@@ -226,6 +235,8 @@ def write(dest: Path, config: FontConfig):
         "pretty_print": config.pretty_print,
         "fea_file": config.fea_file,
         "glyphmap_generator": config.glyphmap_generator,
+        "bitmap_resolution": config.bitmap_resolution,
+        "bitmap_advance": config.bitmap_advance,
         "axis": {
             a.axisTag: {
                 "name": a.name,
@@ -310,6 +321,8 @@ def load(
     pretty_print = _pop_flag(config, "pretty_print")
     fea_file = _pop_flag(config, "fea_file")
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
+    bitmap_resolution = _pop_flag(config, "bitmap_resolution")
+    bitmap_advance = _pop_flag(config, "bitmap_advance")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -388,6 +401,8 @@ def load(
         pretty_print=pretty_print,
         fea_file=fea_file,
         glyphmap_generator=glyphmap_generator,
+        bitmap_resolution=bitmap_resolution,
+        bitmap_advance=bitmap_advance,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),
