@@ -24,6 +24,8 @@ from picosvg.svg_transform import Affine2D
 import toml
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
+from nanoemoji import util
+
 
 FLAGS = flags.FLAGS
 
@@ -322,7 +324,7 @@ def load(
                 srcs.update(_resolve_src(config_dir, src))
         if additional_srcs is not None:
             srcs.update(additional_srcs)
-        srcs = tuple(sorted(p.resolve() for p in srcs))
+        srcs = tuple(sorted(util.abspath(p) for p in srcs))
 
         master = MasterConfig(
             master_name,

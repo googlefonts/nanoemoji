@@ -33,7 +33,7 @@ from absl import logging
 import glob
 from nanoemoji import codepoints, config, write_font
 from nanoemoji.config import AxisPosition, FontConfig, MasterConfig
-from nanoemoji.util import fs_root, rel, only
+from nanoemoji.util import fs_root, rel, only, abspath
 from ninja import ninja_syntax
 import os
 from pathlib import Path
@@ -265,7 +265,7 @@ def picosvg_dest(clipped: bool, input_svg: Path) -> str:
 
     # If  many different inputs have the same name disambiguate 1..N
     # by including N in picosvg path
-    input_svg = input_svg.resolve()
+    input_svg = abspath(input_svg)
     nth_of_name = 0
     while (
         picosvg_dest.names_seen.get((nth_of_name, input_svg.name), input_svg)
@@ -307,7 +307,7 @@ def write_picosvg_builds(
     if clipped:
         rule_name = "picosvg_clipped"
     for svg_file in master.sources:
-        svg_file = svg_file.resolve()
+        svg_file = abspath(svg_file)
         dest = picosvg_dest(clipped, svg_file)
         if svg_file in picosvg_builds:
             continue
@@ -368,7 +368,7 @@ def _input_svgs(font_config: FontConfig, master: MasterConfig) -> List[str]:
             picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
         ]
     else:
-        svg_files = [str(f.resolve()) for f in master.sources]
+        svg_files = [str(abspath(f)) for f in master.sources]
     return svg_files
 
 
