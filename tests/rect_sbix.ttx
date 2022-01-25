@@ -48,10 +48,10 @@
     <flags value="00000000 00000001"/>
     <strike>
       <ppem value="136"/>
-      <resolution value="128"/>
+      <resolution value="72"/>
       <glyph name=".notdef"/>
       <glyph name=".space"/>
-      <glyph graphicType="png " name="e000" originOffsetX="4" originOffsetY="4">e000.png</glyph>
+      <glyph graphicType="png " name="e000" originOffsetX="4" originOffsetY="0">e000.png</glyph>
     </strike>
   </sbix>
 

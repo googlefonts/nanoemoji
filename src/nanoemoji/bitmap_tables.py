@@ -85,7 +85,7 @@ class BitmapMetrics(NamedTuple):
 
 # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L53
 def _ppem(config: FontConfig, advance: int) -> int:
-    return int(config.bitmap_resolution * config.upem / advance)
+    return int(config.bitmap_advance * config.upem / advance)
 
 
 def _advance(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> int:
@@ -146,13 +146,11 @@ def make_sbix_table(
     sbix = ttLib.newTable("sbix")
     ttfont[sbix.tableTag] = sbix
 
-    sbix.ppem = _ppem(config, _advance(ttfont, color_glyphs))
-    # TODO what goes here
-    sbix.ppi = 96
+    ppem = _ppem(config, _advance(ttfont, color_glyphs))
 
     strike = SbixStrike()
-    strike.ppem = sbix.ppem + 8  # TODO magic #
-    strike.resolution = config.bitmap_resolution
+    strike.ppem = ppem
+    strike.resolution = 72  # pixels per inch
     sbix.strikes[strike.ppem] = strike
 
     metrics = BitmapMetrics.create(config, strike.ppem)
@@ -167,7 +165,7 @@ def make_sbix_table(
             glyphName=glyph_name,
             imageData=image_data,
             originOffsetX=metrics.x_offset,
-            originOffsetY=metrics.line_height - metrics.y_offset,
+            originOffsetY=metrics.line_ascent - metrics.line_height,
         )
         strike.glyphs[glyph_name] = glyph
 
@@ -189,7 +187,7 @@ def make_cbdt_table(
     ), "Below assumes color gyphs gids are consecutive"
 
     advance = _advance(ttfont, color_glyphs)
-    ppem = _ppem(config, advance) + 8
+    ppem = _ppem(config, advance)
 
     cbdt = ttLib.newTable("CBDT")
     ttfont[cbdt.tableTag] = cbdt
