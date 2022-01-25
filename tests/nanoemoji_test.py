@@ -234,3 +234,45 @@ def test_path_to_src_matters():
 
     # Each font should define a single PaintGlyph and the glyph it uses shouldn't be identical
     assert _glyph(font_a) != _glyph(font_b)
+
+
+def test_input_symlinks_support(tmp_path):
+    # Symbolic links are not resolved but treated as distinct input files.
+    shutil.copyfile(locate_test_file("emoji_u42.svg"), tmp_path / "emoji_u42.svg")
+    # $ ln -s emoji_u43.svg emoji_u42.svg
+    (tmp_path / "emoji_u43.svg").symlink_to(tmp_path / "emoji_u42.svg")
+    # $ ln -s emoji_u66_69.svg emoji_u42.svg
+    (tmp_path / "emoji_u66_69.svg").symlink_to(tmp_path / "emoji_u42.svg")
+
+    _run(
+        (
+            tmp_path / "emoji_u42.svg",  # glyph 'B'
+            tmp_path / "emoji_u43.svg",  # glyph 'C'
+            tmp_path / "emoji_u66_69.svg",  # ligature 'f_i'
+            "--keep_glyph_names",
+        ),
+        tmp_dir=tmp_path,
+    )
+
+    font = TTFont(tmp_path / "Font.ttf")
+    colr_table = font["COLR"].table
+
+    # check we get three identical color glyphs with the same Paint
+    assert colr_table.BaseGlyphList.BaseGlyphCount == 3
+
+    assert colr_table.BaseGlyphList.BaseGlyphPaintRecord[0].BaseGlyph == "B"
+    assert colr_table.BaseGlyphList.BaseGlyphPaintRecord[1].BaseGlyph == "C"
+    assert colr_table.BaseGlyphList.BaseGlyphPaintRecord[2].BaseGlyph == "f_i"
+
+    assert (
+        colr_table.BaseGlyphList.BaseGlyphPaintRecord[0].Paint
+        == (colr_table.BaseGlyphList.BaseGlyphPaintRecord[1].Paint)
+        == colr_table.BaseGlyphList.BaseGlyphPaintRecord[2].Paint
+    )
+
+    # check that the symlinked ligature was built as usual
+    ligatures = font["GSUB"].table.LookupList.Lookup[0].SubTable[0].ligatures
+    assert "f" in ligatures
+    assert len(ligatures["f"]) == 1
+    assert ligatures["f"][0].Component == ["i"]
+    assert ligatures["f"][0].LigGlyph == "f_i"

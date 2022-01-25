@@ -57,14 +57,21 @@ def fs_root() -> Path:
 
 def rel(from_path: Path, to_path: Path) -> Path:
     # relative_to(A,B) doesn't like it if B doesn't start with A
-    abs_from_path = from_path.resolve()
-    abs_to_path = to_path.resolve()
+    abs_from_path = abspath(from_path)
+    abs_to_path = abspath(to_path)
     if abs_from_path.drive != abs_to_path.drive:
         # On Windows, we can't resolve relative paths across drive mount points.
         # We must return the absolute path in this case, or else we get:
         #     ValueError: path is on mount 'D:', start on mount 'C:'
         return abs_to_path
     return Path(os.path.relpath(abs_to_path, abs_from_path))
+
+
+def abspath(path: Path) -> Path:
+    # pathlib.Path.absolute() doesn't do path normalization, whereas Path.resolve()
+    # does normalization but also resolves symlinks which sometimes we don't want to
+    # so here we use good ol' os.path.abspath.
+    return Path(os.path.abspath(path))
 
 
 @contextlib.contextmanager
