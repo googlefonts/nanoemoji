@@ -108,6 +108,17 @@ class ColorGenerator(NamedTuple):
     font_ext: str  # extension for font binary, .ttf or .otf
 
 
+_OUTLINE_GENERATORS = {
+    "none": lambda *_: None,
+    "glyf": lambda *_: None,
+    "cff": lambda *_: None,
+    "cff2": lambda *_: None,
+}
+# assert _OUTLINE_GENERATORS.keys() == set(config._OUTLINE_FORMATS)
+
+_COLOR_GENERATORS = {}
+# assert _COLOR_GENERATORS.keys() == set(config._COLOR_FORMATS)
+
 _COLOR_FORMAT_GENERATORS = {
     "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None, ".ttf"),
     "glyf_colr_0": ColorGenerator(
@@ -158,15 +169,21 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _sbix_ttfont(*args),
         ".ttf",
     ),
-    # https://github.com/googlefonts/nanoemoji/issues/260 svg & colr; max compatibility
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr
     # Meant to be subset if used for network delivery
     "glyf_colr_1_and_picosvgz": ColorGenerator(
         lambda *args: _colr_ufo(1, *args),
         lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
         ".ttf",
     ),
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr, sbix; max compatibility
+    # Meant to be subset if used for network delivery
+    "glyf_colr_1_and_picosvgz_and_sbix": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args),
+        lambda *args: _picosvgz_and_sbix(*args),
+        ".ttf",
+    ),
 }
-assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 
 
 def _ufo(config: FontConfig) -> ufoLib2.Font:
@@ -231,11 +248,6 @@ def _make_ttfont(
         raise ValueError(
             f"Unable to generate {config.color_format} {config.output_format}"
         )
-
-    # Permit fixups where we can't express something adequately in UFO
-    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
-        config, ufo, color_glyphs, ttfont
-    )
 
     return ttfont
 
@@ -651,6 +663,18 @@ def _svg_ttfont(
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
 
 
+def _picosvgz_and_sbix(
+    config: FontConfig,
+    _,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+):
+    picosvg = True
+    compressed = True
+    make_sbix_table(config, ttfont, color_glyphs)
+    make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
+
+
 def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):
     """Ensure all codepoints we use will have a glyph.
 
@@ -710,6 +734,11 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     logging.debug("fea:\n%s\n" % ufo.features.text)
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
+
+    # Permit fixups where we can't express something adequately in UFO
+    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
+        config, ufo, color_glyphs, ttfont
+    )
 
     # TODO may wish to nuke 'post' glyph names
 

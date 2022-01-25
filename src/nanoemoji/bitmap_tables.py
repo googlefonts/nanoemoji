@@ -66,7 +66,7 @@ class BitmapMetrics(NamedTuple):
 
         metrics = BitmapMetrics(
             x_offset=max(
-                int((config.bitmap_advance - config.bitmap_resolution) / 2), 0
+                int((_width_in_pixels(config) - config.bitmap_resolution) / 2), 0
             ),
             y_offset=int(
                 round(line_ascent - 0.5 * (line_height - config.bitmap_resolution))
@@ -75,17 +75,18 @@ class BitmapMetrics(NamedTuple):
             line_ascent=int(line_ascent),
         )
 
-        print("line_height", metrics.line_height)
-        print("line_ascent", metrics.line_ascent)
-        print("metrics.x_offset", metrics.x_offset)
-        print("metrics.y_offset", metrics.y_offset)
-
         return metrics
+
+
+def _width_in_pixels(config: FontConfig) -> int:
+    return int(
+        config.bitmap_resolution * config.width / (config.ascender - config.descender)
+    )
 
 
 # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L53
 def _ppem(config: FontConfig, advance: int) -> int:
-    return int(config.bitmap_advance * config.upem / advance)
+    return int(_width_in_pixels(config) * config.upem / advance)
 
 
 def _advance(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> int:
@@ -132,7 +133,7 @@ def _cbdt_bitmap_data(
     # center within advance
     bitmap_data.metrics.BearingX = metrics.x_offset
     bitmap_data.metrics.BearingY = metrics.y_offset
-    bitmap_data.metrics.Advance = config.bitmap_advance
+    bitmap_data.metrics.Advance = _width_in_pixels(config)
     bitmap_data.imageData = image_data
     return bitmap_data
 
@@ -165,7 +166,7 @@ def make_sbix_table(
             glyphName=glyph_name,
             imageData=image_data,
             originOffsetX=metrics.x_offset,
-            originOffsetY=metrics.line_ascent - metrics.line_height,
+            originOffsetY=metrics.line_height - metrics.y_offset,
         )
         strike.glyphs[glyph_name] = glyph
 
@@ -225,14 +226,11 @@ def make_cbdt_table(
     assert (
         config.bitmap_resolution in _UINT8_RANGE
     ), f"bitmap_resolution out of bounds: {config.bitmap_resolution}"
-    assert (
-        config.bitmap_advance in _UINT8_RANGE
-    ), f"bitmap_advance out of bounds: {config.bitmap_advance}"
     assert metrics.y_offset in _INT8_RANGE, f"y_offset out of bounds: {metrics}"
 
     line_metrics.ascender = int(config.ascender * ppem / float(config.upem))
     line_metrics.descender = -(metrics.line_height - line_metrics.ascender)
-    line_metrics.widthMax = max(config.bitmap_advance, config.bitmap_resolution)
+    line_metrics.widthMax = _width_in_pixels(config)
 
     strike.bitmapSizeTable.hori = line_metrics
     strike.bitmapSizeTable.vert = line_metrics

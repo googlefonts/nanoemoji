@@ -50,9 +50,9 @@
         <SmallGlyphMetrics>
           <height value="128"/>
           <width value="128"/>
-          <BearingX value="4"/>
-          <BearingY value="107"/>
-          <Advance value="136"/>
+          <BearingX value="0"/>
+          <BearingY value="101"/>
+          <Advance value="116"/>
         </SmallGlyphMetrics>
         <extfileimagedata value="e000.png"/>
       </cbdt_bitmap_format_17>
@@ -64,9 +64,9 @@
     <strike index="0">
       <bitmapSizeTable>
         <sbitLineMetrics direction="hori">
-          <ascender value="110"/>
-          <descender value="-25"/>
-          <widthMax value="136"/>
+          <ascender value="94"/>
+          <descender value="-21"/>
+          <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>
@@ -78,9 +78,9 @@
           <pad2 value="0"/>
         </sbitLineMetrics>
         <sbitLineMetrics direction="vert">
-          <ascender value="110"/>
-          <descender value="-25"/>
-          <widthMax value="136"/>
+          <ascender value="94"/>
+          <descender value="-21"/>
+          <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>
@@ -94,8 +94,8 @@
         <colorRef value="0"/>
         <startGlyphIndex value="2"/>
         <endGlyphIndex value="2"/>
-        <ppemX value="123"/>
-        <ppemY value="123"/>
+        <ppemX value="105"/>
+        <ppemY value="105"/>
         <bitDepth value="32"/>
         <flags value="1"/>
       </bitmapSizeTable>
