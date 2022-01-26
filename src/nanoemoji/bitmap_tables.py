@@ -166,7 +166,7 @@ def make_sbix_table(
             glyphName=glyph_name,
             imageData=image_data,
             originOffsetX=metrics.x_offset,
-            originOffsetY=metrics.line_height - metrics.y_offset,
+            originOffsetY=metrics.line_ascent - metrics.line_height,
         )
         strike.glyphs[glyph_name] = glyph
 

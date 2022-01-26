@@ -159,20 +159,24 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
     # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr
+    # Non-compressed picosvg because woff2 is likely
     # Meant to be subset if used for network delivery
-    "glyf_colr_1_and_picosvgz": ColorGenerator(
+    "glyf_colr_1_and_picosvg": ColorGenerator(
         lambda *args: _colr_ufo(1, *args),
-        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
         ".ttf",
     ),
-    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr, sbix; max compatibility
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr, cbdt; max compatibility
     # Meant to be subset if used for network delivery
-    "glyf_colr_1_and_picosvgz_and_sbix": ColorGenerator(
+    # Non-compressed picosvg because woff2 is likely
+    # cbdt because sbix is less x-platform than you'd guess (https://github.com/harfbuzz/harfbuzz/issues/2679)
+    "glyf_colr_1_and_picosvg_and_cbdt": ColorGenerator(
         lambda *args: _colr_ufo(1, *args),
-        lambda *args: _picosvgz_and_sbix(*args),
+        lambda *args: _picosvg_and_cbdt(*args),
         ".ttf",
     ),
 }
+assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 
 
 def _ufo(config: FontConfig) -> ufoLib2.Font:
@@ -652,15 +656,15 @@ def _svg_ttfont(
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
 
 
-def _picosvgz_and_sbix(
+def _picosvg_and_cbdt(
     config: FontConfig,
     _,
     color_glyphs: Tuple[ColorGlyph, ...],
     ttfont: ttLib.TTFont,
 ):
     picosvg = True
-    compressed = True
-    make_sbix_table(config, ttfont, color_glyphs)
+    compressed = False
+    make_cbdt_table(config, ttfont, color_glyphs)
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
 
 
