@@ -38,6 +38,7 @@ from ninja import ninja_syntax
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 from typing import List, NamedTuple, Optional, Tuple, Set, Sequence
@@ -516,6 +517,12 @@ def _run(argv):
     )
     if not font_configs:
         font_configs = (config.load(additional_srcs=additional_srcs),)
+
+    if any(fc.has_bitmaps for fc in font_configs) and not shutil.which("resvg"):
+        raise RuntimeError(
+            "'resvg' command-line tool not found on $PATH. "
+            "Try `cargo install resvg` or visit https://github.com/RazrFalcon/resvg."
+        )
 
     os.makedirs(build_dir(), exist_ok=True)
     if FLAGS.gen_svg_font_diffs:
