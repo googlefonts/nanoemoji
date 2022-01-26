@@ -61,32 +61,32 @@ class BitmapMetrics(NamedTuple):
         ascent = config.ascender
         descent = -config.descender
 
-        line_height = int((ascent + descent) * ppem / float(config.upem))
+        line_height = round((ascent + descent) * ppem / float(config.upem))
         line_ascent = ascent * ppem / float(config.upem)
 
         metrics = BitmapMetrics(
             x_offset=max(
-                int((_width_in_pixels(config) - config.bitmap_resolution) / 2), 0
+                round((_width_in_pixels(config) - config.bitmap_resolution) / 2), 0
             ),
-            y_offset=int(
-                round(line_ascent - 0.5 * (line_height - config.bitmap_resolution))
+            y_offset=round(
+                line_ascent - 0.5 * (line_height - config.bitmap_resolution)
             ),
             line_height=line_height,
-            line_ascent=int(line_ascent),
+            line_ascent=round(line_ascent),
         )
 
         return metrics
 
 
 def _width_in_pixels(config: FontConfig) -> int:
-    return int(
+    return round(
         config.bitmap_resolution * config.width / (config.ascender - config.descender)
     )
 
 
 # https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c93483cbd68ed916b1e9/third_party/color_emoji/emoji_builder.py#L53
 def _ppem(config: FontConfig, advance: int) -> int:
-    return int(_width_in_pixels(config) * config.upem / advance)
+    return round(_width_in_pixels(config) * config.upem / advance)
 
 
 def _advance(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> int:
@@ -228,7 +228,7 @@ def make_cbdt_table(
     ), f"bitmap_resolution out of bounds: {config.bitmap_resolution}"
     assert metrics.y_offset in _INT8_RANGE, f"y_offset out of bounds: {metrics}"
 
-    line_metrics.ascender = int(config.ascender * ppem / float(config.upem))
+    line_metrics.ascender = round(config.ascender * ppem / config.upem)
     line_metrics.descender = -(metrics.line_height - line_metrics.ascender)
     line_metrics.widthMax = _width_in_pixels(config)
 

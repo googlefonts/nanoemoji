@@ -51,7 +51,7 @@
           <height value="128"/>
           <width value="128"/>
           <BearingX value="0"/>
-          <BearingY value="101"/>
+          <BearingY value="100"/>
           <Advance value="116"/>
         </SmallGlyphMetrics>
         <extfileimagedata value="e000.png"/>
@@ -65,7 +65,7 @@
       <bitmapSizeTable>
         <sbitLineMetrics direction="hori">
           <ascender value="94"/>
-          <descender value="-21"/>
+          <descender value="-22"/>
           <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
@@ -79,7 +79,7 @@
         </sbitLineMetrics>
         <sbitLineMetrics direction="vert">
           <ascender value="94"/>
-          <descender value="-21"/>
+          <descender value="-22"/>
           <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
