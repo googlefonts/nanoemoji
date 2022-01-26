@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import difflib
+import io
 import os
 import re
 import sys
@@ -90,6 +90,36 @@ def _save_actual_ttx(expected_ttx, ttx_content):
     return tmp_file
 
 
+def _strip_inline_bitmaps(ttx_content):
+    parser = etree.XMLParser(strip_cdata=False)
+    root = etree.fromstring(bytes(ttx_content, encoding="utf-8"), parser=parser)
+    made_changes = False
+
+    # bitmapGlyphDataFormat="extfile" doesn't work for sbix so wipe those manually
+    for hexdata in root.xpath("//sbix/strike/glyph/hexdata"):
+        glyph = hexdata.getparent()
+        glyph.remove(hexdata)
+        glyph.text = (glyph.attrib["name"] + "." + glyph.attrib["graphicType"]).strip()
+        made_changes = True
+
+    # Windows gives \ instead of /, if we see that flip it
+    for imagedata in root.xpath("//extfileimagedata"):
+        imagedata.attrib["value"] = Path(imagedata.attrib["value"]).name
+        made_changes = True
+
+    if not made_changes:
+        return ttx_content
+
+    actual_ttx = io.BytesIO()
+    etree.ElementTree(root).write(actual_ttx, encoding="utf-8")
+    # Glue on the *exact* xml decl and wrapping newline saveXML produces
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + actual_ttx.getvalue().decode("utf-8")
+        + "\n"
+    )
+
+
 def assert_expected_ttx(
     svgs,
     ttfont,
@@ -105,10 +135,13 @@ def assert_expected_ttx(
         newlinestr="\n",
         tables=include_tables,
         skipTables=skip_tables,
+        bitmapGlyphDataFormat="extfile",
     )
 
     # Elide ttFont attributes because ttLibVersion may change
     actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
+
+    actual = _strip_inline_bitmaps(actual)
 
     expected_location = locate_test_file(expected_ttx)
     if os.path.isfile(expected_location):

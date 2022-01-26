@@ -16,6 +16,16 @@ nanoemoji --color_format glyf_colr_1 $(find ../noto-emoji/svg -name 'emoji_u270d
 
 Requires Python 3.7 or greater.
 
+## Color table support
+
+| Format | Support | Notes |
+| --- | --- | --- |
+| [COLRv1](https://docs.microsoft.com/en-us/typography/opentype/spec/colr#colr-formats) | Yes | x-glyph reuse |
+| [COLRv0](https://docs.microsoft.com/en-us/typography/opentype/spec/colr#colr-formats) | Yes | x-glyph reuse (limited), no gradients |
+| [SVG](https://docs.microsoft.com/en-us/typography/opentype/spec/svg) | Yes | x-glyph reuse |
+| [sbix](https://docs.microsoft.com/en-us/typography/opentype/spec/sbix) | Yes | Only for Mac Safari due to https://github.com/harfbuzz/harfbuzz/issues/2679#issuecomment-1021419864. Only square bitmaps. Requires [`resvg`](https://github.com/RazrFalcon/resvg).|
+| [CBDT](https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt) | Yes |  Only square bitmaps. Requires [`resvg`](https://github.com/RazrFalcon/resvg).|
+
 ## Releasing
 
 See https://googlefonts.github.io/python#make-a-release.

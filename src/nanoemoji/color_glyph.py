@@ -44,6 +44,7 @@ from picosvg.svg_types import (
 )
 from typing import Generator, NamedTuple, Optional, Sequence, Tuple
 import ufoLib2
+from ufoLib2.objects.glyph import Glyph as UfoGlyph
 import pathops
 
 
@@ -395,11 +396,11 @@ def _mutating_traverse(paint, mutator):
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
     filename: str
-    glyph_name: str
+    ufo_glyph_name: str  # only if config has keep_glyph_names will this match in font binary
     glyph_id: int
     codepoints: Tuple[int, ...]
-    painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched formats
-    svg: SVG  # picosvg except for untouched formats
+    painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched and bitmap formats
+    svg: Optional[SVG]  # picosvg except for untouched and bitmap formats
     user_transform: Affine2D
 
     @staticmethod
@@ -408,15 +409,17 @@ class ColorGlyph(NamedTuple):
         ufo: ufoLib2.Font,
         filename: str,
         glyph_id: int,
-        glyph_name: str,
+        ufo_glyph_name: str,
         codepoints: Tuple[int, ...],
-        svg: SVG,
+        svg: Optional[SVG],
     ) -> "ColorGlyph":
         logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
-        base_glyph = ufo.newGlyph(glyph_name)
+        base_glyph = ufo.newGlyph(ufo_glyph_name)
 
         # non-square aspect ratio == proportional width; square == monospace
-        view_box = svg.view_box()
+        view_box = None
+        if svg:
+            view_box = svg.view_box()
         if view_box is not None:
             base_glyph.width = _color_glyph_advance_width(view_box, font_config)
         else:
@@ -443,7 +446,7 @@ class ColorGlyph(NamedTuple):
         return ColorGlyph(
             ufo,
             filename,
-            glyph_name,
+            ufo_glyph_name,
             glyph_id,
             codepoints,
             painted_layers,
@@ -452,7 +455,9 @@ class ColorGlyph(NamedTuple):
         )
 
     def _has_viewbox_for_transform(self) -> bool:
-        view_box = self.svg.view_box()
+        view_box = None
+        if self.svg:
+            view_box = self.svg.view_box()
         if view_box is None:
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
@@ -466,7 +471,7 @@ class ColorGlyph(NamedTuple):
             self.svg.view_box(),
             self.ufo.info.ascender,
             self.ufo.info.descender,
-            self.ufo[self.glyph_name].width,
+            self.ufo_glyph.width,
             self.user_transform,
         )
 
@@ -475,6 +480,10 @@ class ColorGlyph(NamedTuple):
 
     def transform_for_font_space(self):
         return self._transform(map_viewbox_to_font_space)
+
+    @property
+    def ufo_glyph(self) -> UfoGlyph:
+        return self.ufo[self.ufo_glyph_name]
 
     def colors(self):
         """Set of Color used by this glyph."""

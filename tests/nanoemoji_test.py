@@ -189,7 +189,7 @@ def test_omit_empty_color_glyphs():
 
     tmp_dir = _run(
         (
-            "--color_format=glyf_colr_1_and_picosvgz",
+            "--color_format=glyf_colr_1_and_picosvg",
             "--pretty_print",
             "--keep_glyph_names",
             *(locate_test_file(svg) for svg in svgs),

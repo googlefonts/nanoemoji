@@ -19,7 +19,7 @@ from typing import NamedTuple, Optional, Tuple
 
 
 class GlyphMapping(NamedTuple):
-    svg_file: Path
+    input_file: Path
     codepoints: Tuple[int, ...]
     glyph_name: str
 
@@ -27,7 +27,7 @@ class GlyphMapping(NamedTuple):
         cp_str = ""
         if self.codepoints:
             cp_str = codepoints.string(self.codepoints)
-        return f"{self.svg_file}, {self.glyph_name}, {cp_str}"
+        return f"{self.input_file}, {self.glyph_name}, {cp_str}"
 
 
 def load_from(file):
@@ -35,17 +35,17 @@ def load_from(file):
     reader = csv.reader(file, skipinitialspace=True)
     for row in reader:
         try:
-            svg_file, glyph_name, *cps = row
+            input_file, glyph_name, *cps = row
         except ValueError as e:
             raise ValueError(f"Error parsing {row} from {file}") from e
 
-        svg_file = Path(svg_file)
+        input_file = Path(input_file)
 
         if cps and cps != [""]:
             cps = tuple(int(cp, 16) for cp in cps)
         else:
             cps = ()
-        results.append(GlyphMapping(svg_file, cps, glyph_name))
+        results.append(GlyphMapping(input_file, cps, glyph_name))
 
     return tuple(results)
 

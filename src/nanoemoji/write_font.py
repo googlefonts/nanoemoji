@@ -30,6 +30,7 @@ from fontTools.pens.boundsPen import ControlBoundsPen
 from fontTools.pens.transformPen import TransformPen
 from itertools import chain
 from lxml import etree  # pytype: disable=import-error
+from nanoemoji.bitmap_tables import make_cbdt_table, make_sbix_table
 from nanoemoji import codepoints, config, glyphmap
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
@@ -86,10 +87,10 @@ flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
 
 # A GlyphMapping plus an SVG, typically a picosvg
 class InputGlyph(NamedTuple):
-    svg_file: Path
+    input_file: Path
     codepoints: Tuple[int, ...]
     glyph_name: str
-    svg: SVG  # picosvg except for untouched formats
+    svg: Optional[SVG]  # picosvg except for untouched and bitmap formats
 
 
 # A color font generator.
@@ -148,20 +149,30 @@ _COLOR_FORMAT_GENERATORS = {
         ".ttf",
     ),
     "cbdt": ColorGenerator(
-        lambda *args: _not_impl("apply_ufo", "cbdt", *args),
-        lambda *args: _not_impl("apply_ttfont", "cbdt", *args),
+        lambda *args: None,
+        lambda *args: _cbdt_ttfont(*args),
         ".ttf",
     ),
     "sbix": ColorGenerator(
-        lambda *args: _not_impl("apply_ufo", "sbix", *args),
-        lambda *args: _not_impl("apply_ttfont", "sbix", *args),
+        lambda *args: None,
+        lambda *args: _sbix_ttfont(*args),
         ".ttf",
     ),
-    # https://github.com/googlefonts/nanoemoji/issues/260 svg & colr; max compatibility
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr
+    # Non-compressed picosvg because woff2 is likely
     # Meant to be subset if used for network delivery
-    "glyf_colr_1_and_picosvgz": ColorGenerator(
+    "glyf_colr_1_and_picosvg": ColorGenerator(
         lambda *args: _colr_ufo(1, *args),
-        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
+        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
+        ".ttf",
+    ),
+    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr, cbdt; max compatibility
+    # Meant to be subset if used for network delivery
+    # Non-compressed picosvg because woff2 is likely
+    # cbdt because sbix is less x-platform than you'd guess (https://github.com/harfbuzz/harfbuzz/issues/2679)
+    "glyf_colr_1_and_picosvg_and_cbdt": ColorGenerator(
+        lambda *args: _colr_ufo(1, *args),
+        lambda *args: _picosvg_and_cbdt(*args),
         ".ttf",
     ),
 }
@@ -205,7 +216,9 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     return ufo
 
 
-def _make_ttfont(config, ufo, color_glyphs):
+def _make_ttfont(
+    config: FontConfig, ufo: ufoLib2.Font, color_glyphs: Tuple[ColorGlyph, ...]
+):
     if config.output_format == ".ufo":
         return None
 
@@ -228,11 +241,6 @@ def _make_ttfont(config, ufo, color_glyphs):
         raise ValueError(
             f"Unable to generate {config.color_format} {config.output_format}"
         )
-
-    # Permit fixups where we can't express something adequately in UFO
-    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
-        config, ufo, color_glyphs, ttfont
-    )
 
     return ttfont
 
@@ -368,10 +376,10 @@ def _glyf_ufo(
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
-            color_glyph.glyph_name,
+            color_glyph.ufo_glyph_name,
             color_glyph.transform_for_font_space(),
         )
-        parent_glyph = ufo[color_glyph.glyph_name]
+        parent_glyph = color_glyph.ufo_glyph
 
         # generate glyphs for PaintGlyph's and assign glyph names
         color_glyphs[i] = color_glyph = _migrate_paths_to_ufo_glyphs(
@@ -392,7 +400,7 @@ def _glyf_ufo(
 
     # No great reason to keep single-component glyphs around (unless reused)
     for color_glyph in color_glyphs:
-        parent_glyph = ufo[color_glyph.glyph_name]
+        parent_glyph = color_glyph.ufo_glyph
         if (
             len(parent_glyph.components) == 1
             and glyph_uses[parent_glyph.components[0].baseGlyph] == 1
@@ -400,12 +408,12 @@ def _glyf_ufo(
             component = ufo[parent_glyph.components[0].baseGlyph]
             del ufo[component.name]
             component.unicode = parent_glyph.unicode
-            ufo[color_glyph.glyph_name] = component
-            assert component.name == color_glyph.glyph_name
+            ufo[color_glyph.ufo_glyph_name] = component
+            assert component.name == color_glyph.ufo_glyph_name
 
 
 def _name_prefix(color_glyph: ColorGlyph) -> Glyph:
-    return f"{color_glyph.glyph_name}."
+    return f"{color_glyph.ufo_glyph_name}."
 
 
 def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
@@ -418,7 +426,7 @@ def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
 def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
     ufo = color_glyph.ufo
     glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{_name_prefix(color_glyph)}{i}"))
-    glyph.width = ufo.get(color_glyph.glyph_name).width
+    glyph.width = color_glyph.ufo_glyph.width
     return glyph
 
 
@@ -583,7 +591,7 @@ def _colr_ufo(
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
-            color_glyph.glyph_name,
+            color_glyph.ufo_glyph_name,
             color_glyph.transform_for_font_space(),
         )
 
@@ -594,12 +602,12 @@ def _colr_ufo(
 
         if color_glyph.painted_layers:
             # write out the ufo structures for COLR
-            ufo_color_layers[color_glyph.glyph_name] = _ufo_colr_layers(
+            ufo_color_layers[color_glyph.ufo_glyph_name] = _ufo_colr_layers(
                 colr_version, colors, color_glyph
             )
         bounds = _bounds(color_glyph, quantization)
         if bounds is not None:
-            clipBoxes.setdefault(bounds, []).append(color_glyph.glyph_name)
+            clipBoxes.setdefault(bounds, []).append(color_glyph.ufo_glyph_name)
 
     ufo.lib[ufo2ft.constants.COLOR_LAYERS_KEY] = ufo_color_layers
     if clipBoxes:
@@ -619,6 +627,24 @@ def _colr_ufo(
             ]
 
 
+def _sbix_ttfont(
+    config: FontConfig,
+    _,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+):
+    make_sbix_table(config, ttfont, color_glyphs)
+
+
+def _cbdt_ttfont(
+    config: FontConfig,
+    _,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+):
+    make_cbdt_table(config, ttfont, color_glyphs)
+
+
 def _svg_ttfont(
     config: FontConfig,
     _,
@@ -627,6 +653,18 @@ def _svg_ttfont(
     picosvg: bool = True,
     compressed: bool = False,
 ):
+    make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
+
+
+def _picosvg_and_cbdt(
+    config: FontConfig,
+    _,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+):
+    picosvg = True
+    compressed = False
+    make_cbdt_table(config, ttfont, color_glyphs)
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
 
 
@@ -667,7 +705,7 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(
             config,
             ufo,
-            str(glyph_input.svg_file),
+            str(glyph_input.input_file),
             base_gid + idx,
             glyph_input.glyph_name,
             glyph_input.codepoints,
@@ -678,9 +716,9 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
     # values are placed next to one another in continuous ranges, to minimize number
     # of COLRv1 ClipRecords
-    ufo.glyphOrder = ufo.glyphOrder + [g.glyph_name for g in color_glyphs]
+    ufo.glyphOrder = ufo.glyphOrder + [g.ufo_glyph_name for g in color_glyphs]
     for g in color_glyphs:
-        assert g.glyph_id == ufo.glyphOrder.index(g.glyph_name)
+        assert g.glyph_id == ufo.glyphOrder.index(g.ufo_glyph_name)
 
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(config, ufo, color_glyphs)
 
@@ -690,20 +728,28 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 
+    # Permit fixups where we can't express something adequately in UFO
+    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
+        config, ufo, color_glyphs, ttfont
+    )
+
     # TODO may wish to nuke 'post' glyph names
 
     return ufo, ttfont
 
 
 def _inputs(
+    font_config: FontConfig,
     glyph_mappings: Sequence[GlyphMapping],
 ) -> Generator[InputGlyph, None, None]:
     for g in glyph_mappings:
-        try:
-            picosvg = SVG.parse(str(g.svg_file))
-        except etree.ParseError as e:
-            raise IOError(f"Unable to parse {g.svg_file}") from e
-        yield InputGlyph(g.svg_file, g.codepoints, g.glyph_name, picosvg)
+        picosvg = None
+        if font_config.has_picosvgs:
+            try:
+                picosvg = SVG.parse(str(g.input_file))
+            except etree.ParseError as e:
+                raise IOError(f"Unable to parse {g.input_file}") from e
+        yield InputGlyph(g.input_file, g.codepoints, g.glyph_name, picosvg)
 
 
 def main(argv):
@@ -714,7 +760,7 @@ def main(argv):
     if len(font_config.masters) != 1:
         raise ValueError("write_font expects only one master")
 
-    inputs = list(_inputs(glyphmap.parse_csv(FLAGS.glyphmap_file)))
+    inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(font_config, inputs)
