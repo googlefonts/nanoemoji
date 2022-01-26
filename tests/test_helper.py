@@ -91,7 +91,8 @@ def _save_actual_ttx(expected_ttx, ttx_content):
 
 
 def _strip_inline_bitmaps(ttx_content):
-    root = etree.fromstring(bytes(ttx_content, encoding="utf-8"))
+    parser = etree.XMLParser(strip_cdata=False)
+    root = etree.fromstring(bytes(ttx_content, encoding="utf-8"), parser=parser)
     made_changes = False
 
     # bitmapGlyphDataFormat="extfile" doesn't work for sbix so wipe those manually

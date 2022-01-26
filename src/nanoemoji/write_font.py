@@ -108,17 +108,6 @@ class ColorGenerator(NamedTuple):
     font_ext: str  # extension for font binary, .ttf or .otf
 
 
-_OUTLINE_GENERATORS = {
-    "none": lambda *_: None,
-    "glyf": lambda *_: None,
-    "cff": lambda *_: None,
-    "cff2": lambda *_: None,
-}
-# assert _OUTLINE_GENERATORS.keys() == set(config._OUTLINE_FORMATS)
-
-_COLOR_GENERATORS = {}
-# assert _COLOR_GENERATORS.keys() == set(config._COLOR_FORMATS)
-
 _COLOR_FORMAT_GENERATORS = {
     "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None, ".ttf"),
     "glyf_colr_0": ColorGenerator(

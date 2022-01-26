@@ -113,16 +113,16 @@
 
   <SVG>
     <svgDoc endGlyphID="2" startGlyphID="2">
-      &lt;svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"&gt;
-  &lt;defs&gt;
-    &lt;path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e000.0" fill="blue"/&gt;
-  &lt;/defs&gt;
-  &lt;g id="glyph2" transform="matrix(10 0 0 10 0 -100)"&gt;
-    &lt;use xlink:href="#e000.0"/&gt;
-    &lt;use xlink:href="#e000.0" x="2" y="2" opacity="0.8"/&gt;
-  &lt;/g&gt;
-&lt;/svg&gt;
-
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+  <defs>
+    <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e000.0" fill="blue"/>
+  </defs>
+  <g id="glyph2" transform="matrix(10 0 0 10 0 -100)">
+    <use xlink:href="#e000.0"/>
+    <use xlink:href="#e000.0" x="2" y="2" opacity="0.8"/>
+  </g>
+</svg>
+]]>
     </svgDoc>
   </SVG>
 
