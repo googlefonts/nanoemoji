@@ -215,7 +215,7 @@ def test_vertical_metrics(ascender, descender, linegap):
         (
             ("reused_shape_with_gradient.svg",),
             "reused_shape_with_gradient.ttx",
-            {"color_format": "glyf_colr_1"},
+            {"color_format": "glyf_colr_1_and_picosvg", "pretty_print": True},
         ),
         # Confirm we can apply a user transform, override some basic metrics
         (
