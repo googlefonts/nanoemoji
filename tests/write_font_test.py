@@ -310,6 +310,15 @@ def test_vertical_metrics(ascender, descender, linegap):
             "rect_sbix.ttx",
             {"color_format": "sbix"},
         ),
+        # The cheeks on the similing face noto-emoji are two identical circles painted
+        # with same radial gradients, translated some units apart; check that after we
+        # re<use> the same path for both cheeks, their gradients still looks ok.
+        # https://github.com/googlefonts/nanoemoji/issues/324
+        (
+            ("emoji_u263a.svg",),
+            "smiley_cheeks_gradient_svg.ttx",
+            {"color_format": "picosvg", "pretty_print": True},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
