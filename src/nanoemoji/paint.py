@@ -107,6 +107,9 @@ class ColorStop:
     stopOffset: float = 0.0
     color: Color = Color.fromstring("black")
 
+    def round(self, ndigits: int) -> "ColorStop":
+        return dataclasses.replace(self, stopOffset=round(self.stopOffset, ndigits))
+
 
 @dataclasses.dataclass(frozen=True)
 class Paint:
@@ -254,13 +257,25 @@ class PaintLinearGradient(Paint):
                     )
         return self
 
-    def apply_transform(self, transform: Affine2D) -> Paint:
-        return dataclasses.replace(
+    def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:
+        gradient = dataclasses.replace(
             self,
             p0=transform.map_point(self.p0),
             p1=transform.map_point(self.p1),
             p2=transform.map_point(self.p2),
-        ).check_overflows()
+        )
+        if check_overflows:
+            gradient.check_overflows()
+        return gradient
+
+    def round(self, ndigits: int) -> "PaintLinearGradient":
+        return dataclasses.replace(
+            self,
+            stops=tuple(stop.round(ndigits) for stop in self.stops),
+            p0=self.p0.round(ndigits),
+            p1=self.p1.round(ndigits),
+            p2=self.p2.round(ndigits),
+        )
 
 
 def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
@@ -343,7 +358,7 @@ class PaintRadialGradient(Paint):
                 )
         return self
 
-    def apply_transform(self, transform: Affine2D) -> Paint:
+    def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:
         # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
         # gradientTransform, we may end up with a transformation that does not keep the
         # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
@@ -361,9 +376,19 @@ class PaintRadialGradient(Paint):
         r1 = self.r1 * sx
 
         # TODO handle degenerate cases, fallback to solid, w/e
-        return transformed(
-            remaining_transform,
-            dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1).check_overflows(),
+        gradient = dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1)
+        if check_overflows:
+            gradient.check_overflows()
+        return transformed(remaining_transform, gradient)
+
+    def round(self, ndigits: int) -> "PaintRadialGradient":
+        return dataclasses.replace(
+            self,
+            stops=tuple(stop.round(ndigits) for stop in self.stops),
+            c0=self.c0.round(ndigits),
+            c1=self.c1.round(ndigits),
+            r0=round(self.r0, ndigits),
+            r1=round(self.r1, ndigits),
         )
 
 
