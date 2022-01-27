@@ -25,6 +25,7 @@ from nanoemoji.config import FontConfig
 from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.glyph_reuse import GlyphReuseCache, ReuseResult
 from nanoemoji.paint import (
+    _BasePaintTransform,
     CompositeMode,
     Extend,
     Paint,
@@ -188,7 +189,9 @@ def _apply_gradient_paint(
             paint = paint.apply_transform(transform, check_overflows=False)
             transform = Affine2D.identity()
             if is_transform(paint):
+                paint = cast(_BasePaintTransform, paint)
                 transform, paint = paint.gettransform(), paint.paint
+        paint = cast(_GradientPaint, paint)
         paint = paint.round(_DEFAULT_ROUND_NDIGITS)
         transform = transform.round(_DEFAULT_ROUND_NDIGITS)
         reuse_key = GradientReuseKey(paint, transform)

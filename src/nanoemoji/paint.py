@@ -17,6 +17,7 @@
 Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
 import dataclasses
+from abc import ABC, abstractmethod
 from enum import Enum, IntEnum
 from absl import logging
 from fontTools.ttLib.tables import otTables as ot
@@ -111,15 +112,16 @@ class ColorStop:
         return dataclasses.replace(self, stopOffset=round(self.stopOffset, ndigits))
 
 
-@dataclasses.dataclass(frozen=True)
-class Paint:
+class Paint(ABC):
     format: ClassVar[int] = -1  # so pytype knows all Paint have format
 
+    @abstractmethod
     def colors(self) -> Generator[Color, None, None]:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def to_ufo_paint(self, colors: Sequence[Color]):
-        raise NotImplementedError()
+        ...
 
     def breadth_first(self) -> Generator[PaintTraverseContext, None, None]:
         frontier = [PaintTraverseContext((), self, Affine2D.identity())]
@@ -426,8 +428,16 @@ class PaintColrGlyph(Paint):
         return paint
 
 
+class _BasePaintTransform(Paint):
+    paint: Paint
+
+    @abstractmethod
+    def gettransform(self) -> Affine2D:
+        ...
+
+
 @dataclasses.dataclass(frozen=True)
-class PaintTransform(Paint):
+class PaintTransform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
     paint: Paint
@@ -451,7 +461,7 @@ class PaintTransform(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintTranslate(Paint):
+class PaintTranslate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTranslate)
     paint: Paint
     dx: int
@@ -477,7 +487,7 @@ class PaintTranslate(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScale(Paint):
+class PaintScale(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScale)
     paint: Paint
     scaleX: float = 1.0
@@ -503,7 +513,7 @@ class PaintScale(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleAroundCenter(Paint):
+class PaintScaleAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleAroundCenter)
     paint: Paint
     scaleX: float = 1.0
@@ -537,7 +547,7 @@ class PaintScaleAroundCenter(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleUniform(Paint):
+class PaintScaleUniform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniform)
     paint: Paint
     scale: float = 1.0
@@ -561,7 +571,7 @@ class PaintScaleUniform(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleUniformAroundCenter(Paint):
+class PaintScaleUniformAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniformAroundCenter)
     paint: Paint
     scale: float = 1.0
@@ -593,7 +603,7 @@ class PaintScaleUniformAroundCenter(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintRotate(Paint):
+class PaintRotate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotate)
     paint: Paint
     angle: float = 0.0
@@ -617,7 +627,7 @@ class PaintRotate(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintRotateAroundCenter(Paint):
+class PaintRotateAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotateAroundCenter)
     paint: Paint
     angle: float = 0.0
