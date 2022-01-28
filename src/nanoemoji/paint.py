@@ -17,6 +17,7 @@
 Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
 import dataclasses
+from abc import ABC, abstractmethod
 from enum import Enum, IntEnum
 from absl import logging
 from fontTools.ttLib.tables import otTables as ot
@@ -107,16 +108,20 @@ class ColorStop:
     stopOffset: float = 0.0
     color: Color = Color.fromstring("black")
 
+    def round(self, ndigits: int) -> "ColorStop":
+        return dataclasses.replace(self, stopOffset=round(self.stopOffset, ndigits))
 
-@dataclasses.dataclass(frozen=True)
-class Paint:
+
+class Paint(ABC):
     format: ClassVar[int] = -1  # so pytype knows all Paint have format
 
+    @abstractmethod
     def colors(self) -> Generator[Color, None, None]:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def to_ufo_paint(self, colors: Sequence[Color]):
-        raise NotImplementedError()
+        ...
 
     def breadth_first(self) -> Generator[PaintTraverseContext, None, None]:
         frontier = [PaintTraverseContext((), self, Affine2D.identity())]
@@ -254,13 +259,25 @@ class PaintLinearGradient(Paint):
                     )
         return self
 
-    def apply_transform(self, transform: Affine2D) -> Paint:
-        return dataclasses.replace(
+    def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:
+        gradient = dataclasses.replace(
             self,
             p0=transform.map_point(self.p0),
             p1=transform.map_point(self.p1),
             p2=transform.map_point(self.p2),
-        ).check_overflows()
+        )
+        if check_overflows:
+            gradient.check_overflows()
+        return gradient
+
+    def round(self, ndigits: int) -> "PaintLinearGradient":
+        return dataclasses.replace(
+            self,
+            stops=tuple(stop.round(ndigits) for stop in self.stops),
+            p0=self.p0.round(ndigits),
+            p1=self.p1.round(ndigits),
+            p2=self.p2.round(ndigits),
+        )
 
 
 def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
@@ -343,7 +360,7 @@ class PaintRadialGradient(Paint):
                 )
         return self
 
-    def apply_transform(self, transform: Affine2D) -> Paint:
+    def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:
         # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
         # gradientTransform, we may end up with a transformation that does not keep the
         # aspect ratio of the gradient circles and turns them into ellipses, but CORLv1
@@ -361,9 +378,19 @@ class PaintRadialGradient(Paint):
         r1 = self.r1 * sx
 
         # TODO handle degenerate cases, fallback to solid, w/e
-        return transformed(
-            remaining_transform,
-            dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1).check_overflows(),
+        gradient = dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1)
+        if check_overflows:
+            gradient.check_overflows()
+        return transformed(remaining_transform, gradient)
+
+    def round(self, ndigits: int) -> "PaintRadialGradient":
+        return dataclasses.replace(
+            self,
+            stops=tuple(stop.round(ndigits) for stop in self.stops),
+            c0=self.c0.round(ndigits),
+            c1=self.c1.round(ndigits),
+            r0=round(self.r0, ndigits),
+            r1=round(self.r1, ndigits),
         )
 
 
@@ -401,8 +428,16 @@ class PaintColrGlyph(Paint):
         return paint
 
 
+class _BasePaintTransform(Paint):
+    paint: Paint
+
+    @abstractmethod
+    def gettransform(self) -> Affine2D:
+        ...
+
+
 @dataclasses.dataclass(frozen=True)
-class PaintTransform(Paint):
+class PaintTransform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
     paint: Paint
@@ -426,7 +461,7 @@ class PaintTransform(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintTranslate(Paint):
+class PaintTranslate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTranslate)
     paint: Paint
     dx: int
@@ -452,7 +487,7 @@ class PaintTranslate(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScale(Paint):
+class PaintScale(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScale)
     paint: Paint
     scaleX: float = 1.0
@@ -478,7 +513,7 @@ class PaintScale(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleAroundCenter(Paint):
+class PaintScaleAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleAroundCenter)
     paint: Paint
     scaleX: float = 1.0
@@ -512,7 +547,7 @@ class PaintScaleAroundCenter(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleUniform(Paint):
+class PaintScaleUniform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniform)
     paint: Paint
     scale: float = 1.0
@@ -536,7 +571,7 @@ class PaintScaleUniform(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintScaleUniformAroundCenter(Paint):
+class PaintScaleUniformAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniformAroundCenter)
     paint: Paint
     scale: float = 1.0
@@ -568,7 +603,7 @@ class PaintScaleUniformAroundCenter(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintRotate(Paint):
+class PaintRotate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotate)
     paint: Paint
     angle: float = 0.0
@@ -592,7 +627,7 @@ class PaintRotate(Paint):
 
 
 @dataclasses.dataclass(frozen=True)
-class PaintRotateAroundCenter(Paint):
+class PaintRotateAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotateAroundCenter)
     paint: Paint
     angle: float = 0.0

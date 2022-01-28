@@ -25,6 +25,7 @@ from nanoemoji.config import FontConfig
 from nanoemoji.disjoint_set import DisjointSet
 from nanoemoji.glyph_reuse import GlyphReuseCache, ReuseResult
 from nanoemoji.paint import (
+    _BasePaintTransform,
     CompositeMode,
     Extend,
     Paint,
@@ -181,6 +182,18 @@ def _apply_gradient_paint(
     else:
         # Gradients can be reused by multiple glyphs in the same OT-SVG document,
         # provided paints are the same and have the same transform.
+        # Pre-apply transform to gradient's geometry and round both to
+        # normalize them before adding to the cache, thus increasing the chance
+        # of a reuse.
+        if not transform.almost_equals(Affine2D.identity()):
+            paint = paint.apply_transform(transform, check_overflows=False)
+            transform = Affine2D.identity()
+            if is_transform(paint):
+                paint = cast(_BasePaintTransform, paint)
+                transform, paint = paint.gettransform(), paint.paint
+        paint = cast(_GradientPaint, paint)
+        paint = paint.round(_DEFAULT_ROUND_NDIGITS)
+        transform = transform.round(_DEFAULT_ROUND_NDIGITS)
         reuse_key = GradientReuseKey(paint, transform)
 
         grad_id = reuse_cache.gradient_ids.get(reuse_key)
@@ -474,12 +487,27 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                         raise AssertionError(reused_el_tag)
 
                     svg_use = _create_use_element(svg, parent_el, reuse_result)
+
+                    # We must apply the inverse of the reuse transform to the children
+                    # paints to discount its effect on them, since these refer to the
+                    # original pre-reuse paths. _apply_paint expects 'transform' to be
+                    # in UPEM space, whereas reuse_result.transform is in SVG space, so
+                    # we remap the (inverse of the) latter from SVG to UPEM.
+                    inverse_reuse_transform = Affine2D.compose_ltr(
+                        (
+                            upem_to_vbox,
+                            reuse_result.transform.inverse(),
+                            upem_to_vbox.inverse(),
+                        )
+                    )
+
                     _apply_paint(
                         svg_defs,
                         svg_use,
                         context.paint.paint,  # pytype: disable=attribute-error
                         upem_to_vbox,
                         reuse_cache,
+                        inverse_reuse_transform,
                     )
 
                     # In two cases, we need to push the reused element to the outer
