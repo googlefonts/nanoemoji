@@ -77,10 +77,10 @@ def main(argv):
 
         <body>
             <div>
-                <span class="title">resvg</span>
+                <span class="title">SVG</span>
                 <span class="title">Raw Diff</span>
                 <span class="title">Pink Diff</span>
-                <span class="title">Skia</span>
+                <span class="title">COLRv1</span>
             </div>
         """
             )

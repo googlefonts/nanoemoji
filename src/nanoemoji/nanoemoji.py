@@ -30,6 +30,8 @@ nanoemoji $(find ~/oss/twemoji/assets/svg -name '*.svg')
 from absl import app
 from absl import flags
 from absl import logging
+from collections.abc import Iterable
+import functools
 import glob
 from nanoemoji import codepoints, config, write_font
 from nanoemoji.config import AxisPosition, FontConfig, MasterConfig
@@ -37,11 +39,12 @@ from nanoemoji.util import fs_root, rel, only, abspath
 from ninja import ninja_syntax
 import os
 from pathlib import Path
+import platform
 import re
 import shutil
 import subprocess
 import sys
-from typing import List, NamedTuple, Optional, Tuple, Set, Sequence
+from typing import List, MutableSequence, NamedTuple, Optional, Tuple, Set, Sequence
 
 
 FLAGS = flags.FLAGS
@@ -55,6 +58,33 @@ flags.DEFINE_bool(
 )
 flags.DEFINE_integer("svg_font_diff_resolution", 256, "Render diffs resolution")
 flags.DEFINE_bool("exec_ninja", True, "Whether to run ninja.")
+
+
+class NinjaWriter:
+    def __init__(self, nw: ninja_syntax.Writer):
+        self._nw = nw
+
+    def _str_paths(self, args):
+        # Path in particular kerplodes nw.build
+        args = list(args)
+        for i, arg in enumerate(args):
+            if isinstance(arg, Path):
+                args[i] = str(arg)
+            if isinstance(arg, MutableSequence):
+                args[i] = self._str_paths(arg)
+        return args
+
+    def rule(self, *args, **kwargs):
+        self._nw.rule(*args, **kwargs)
+
+    def build(self, *args):
+        self._nw.build(*self._str_paths(args))
+
+    def newline(self):
+        self._nw.newline()
+
+    def comment(self, comment):
+        self._nw.comment(comment)
 
 
 def self_dir() -> Path:
@@ -222,6 +252,23 @@ def write_preamble(nw):
     nw.newline()
 
 
+@functools.lru_cache()
+def _chrome_command() -> str:
+    cmd, validator = {
+        "Linux": ("google-chrome", shutil.which),
+        "Darwin": (
+            '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"',
+            lambda s: Path(s).is_dir(),
+        ),
+        "Windows": ("chrome", shutil.which),
+    }[platform.system()]
+
+    if not validator(cmd):
+        raise ValueError(f"{cmd} failed validation")
+
+    return cmd
+
+
 def write_config_preamble(nw, font_config: FontConfig):
     if font_config.has_bitmaps:
         # TODO bitmap support for non-square svgs? - baby steps
@@ -243,20 +290,28 @@ def write_config_preamble(nw, font_config: FontConfig):
         )
 
     if FLAGS.gen_svg_font_diffs:
-        nw.rule(
-            "write_svg2png",
-            f"resvg -h {FLAGS.svg_font_diff_resolution}  -w {FLAGS.svg_font_diff_resolution} $in $out",
+        res = FLAGS.svg_font_diff_resolution
+        chrome_screenshot = " ".join(
+            (
+                _chrome_command(),
+                "--headless",
+                f"--window-size={res},{res}",
+                "--force-device-scale-factor=1",
+                "--virtual-time-budget=1000",
+                "--screenshot=$out",
+                "$in",
+            )
         )
+        nw.rule("screenshot", chrome_screenshot)
+        nw.rule("copy_font_to_screenshot_dir", "cp $in $out")
         module_rule(
-            nw,
-            "write_font2png",
-            f"--height {FLAGS.svg_font_diff_resolution}  --width {FLAGS.svg_font_diff_resolution} --output_file $out $in",
+            nw, "write_font2png_html", f"--resolution {res} --output_file $out $in"
         )
         module_rule(nw, "write_pngdiff", f"--output_file $out $in")
         module_rule(
             nw,
             "write_diffreport",
-            f"--lhs_dir {resvg_bitmap_dir()} --rhs_dir {skia_bitmap_dir()} --output_file $out @$out.rsp",
+            f"--lhs_dir {svg2png_dir()} --rhs_dir {font2png_dir()} --output_file $out @$out.rsp",
             rspfile="$out.rsp",
             rspfile_content="$in",
         )
@@ -273,12 +328,12 @@ def bitmap_dir() -> Path:
     return build_dir() / "bitmap"
 
 
-def resvg_bitmap_dir() -> Path:
-    return build_dir() / "imagediff" / "resvg"
+def svg2png_dir() -> Path:
+    return build_dir() / "imagediff" / "svg2png"
 
 
-def skia_bitmap_dir() -> Path:
-    return build_dir() / "imagediff" / "skia"
+def font2png_dir() -> Path:
+    return build_dir() / "imagediff" / "font2png"
 
 
 def diff_bitmap_dir() -> Path:
@@ -314,21 +369,25 @@ def bitmap_dest(input_svg: Path) -> Path:
     return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, ".png")
 
 
-def resvg_png_dest(input_svg: Path) -> Path:
-    return _dest_for_src(resvg_png_dest, resvg_bitmap_dir(), input_svg, ".png")
+def svg2png_dest(input_svg: Path) -> Path:
+    return _dest_for_src(svg2png_dest, svg2png_dir(), input_svg, ".png")
 
 
-def skia_png_dest(input_svg: Path) -> Path:
-    return _dest_for_src(skia_png_dest, skia_bitmap_dir(), input_svg, ".png")
+def font2png_html_dest(input_svg: Path) -> Path:
+    return _dest_for_src(font2png_html_dest, font2png_dir(), input_svg, ".html")
+
+
+def font2png_dest(input_svg: Path) -> Path:
+    return _dest_for_src(font2png_dest, font2png_dir(), input_svg, ".png")
 
 
 def diff_png_dest(input_svg: Path) -> Path:
-    return _dest_for_src(skia_png_dest, diff_bitmap_dir(), input_svg, ".png")
+    return _dest_for_src(diff_png_dest, diff_bitmap_dir(), input_svg, ".png")
 
 
 def write_picosvg_builds(
     picosvg_builds: Set[Path],
-    nw: ninja_syntax.Writer,
+    nw: NinjaWriter,
     clipped: bool,
     master: MasterConfig,
 ):
@@ -341,12 +400,12 @@ def write_picosvg_builds(
         if svg_file in picosvg_builds:
             continue
         picosvg_builds.add(svg_file)
-        nw.build(str(dest), rule_name, str(rel_build(svg_file)))
+        nw.build(dest, rule_name, rel_build(svg_file))
 
 
 def write_bitmap_builds(
     bitmap_builds: Set[Path],
-    nw: ninja_syntax.Writer,
+    nw: NinjaWriter,
     clipped: bool,
     master: MasterConfig,
 ):
@@ -356,7 +415,7 @@ def write_bitmap_builds(
         if dest in bitmap_builds:
             continue
         bitmap_builds.add(dest)
-        nw.build(str(dest), "write_bitmap", str(rel_build(svg_file)))
+        nw.build(dest, "write_bitmap", rel_build(svg_file))
 
 
 def write_source_names(font_config: FontConfig):
@@ -366,38 +425,47 @@ def write_source_names(font_config: FontConfig):
             f.write("\n")
 
 
-def write_fea_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
 
     nw.build(
-        str(rel_build(_fea_file(font_config))),
+        rel_build(_fea_file(font_config)),
         "write_fea",
-        str(rel_build(_glyphmap_file(font_config, font_config.default()))),
+        rel_build(_glyphmap_file(font_config, font_config.default())),
     )
     nw.newline()
 
 
 def write_svg_font_diff_build(
-    nw: ninja_syntax.Writer, font_dest: str, svg_files: Sequence[Path]
+    nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path]
 ):
     # render each svg => png
     for svg_file in svg_files:
-        nw.build(resvg_png_dest(svg_file), "write_svg2png", str(rel_build(svg_file)))
+        nw.build(svg2png_dest(svg_file), "screenshot", rel_build(svg_file))
     nw.newline()
 
-    # render each input from the font => png
+    # copy the output font to the screenshot directory
+    font_for_screenshots = font2png_dir() / "Font.ttf"
+    nw.build(font_for_screenshots, "copy_font_to_screenshot_dir", font_dest)
+
+    # make an html container for each input in the font
     for svg_file in svg_files:
         inputs = [
-            font_dest,
-            str(rel_build(svg_file)),
+            font_for_screenshots,
+            rel_build(svg_file),
         ]
-        nw.build(skia_png_dest(svg_file), "write_font2png", inputs)
+        nw.build(font2png_html_dest(svg_file), "write_font2png_html", inputs)
+    nw.newline()
+
+    # render the html container => png
+    for svg_file in svg_files:
+        nw.build(font2png_dest(svg_file), "screenshot", font2png_html_dest(svg_file))
     nw.newline()
 
     # create comparison images
     for svg_file in svg_files:
         inputs = [
-            resvg_png_dest(svg_file),
-            skia_png_dest(svg_file),
+            svg2png_dest(svg_file),
+            font2png_dest(svg_file),
         ]
         nw.build(diff_png_dest(svg_file), "write_pngdiff", inputs)
     nw.newline()
@@ -406,16 +474,16 @@ def write_svg_font_diff_build(
     nw.build("diffs.html", "write_diffreport", [diff_png_dest(f) for f in svg_files])
 
 
-def _input_files(font_config: FontConfig, master: MasterConfig) -> List[str]:
+def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
     if font_config.has_bitmaps:
-        input_files = [str(bitmap_dest(f)) for f in master.sources]
+        input_files = [bitmap_dest(f) for f in master.sources]
     elif font_config.has_picosvgs:
         input_files = [
-            str(picosvg_dest(font_config.clip_to_viewbox, f)) for f in master.sources
+            picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
         ]
     else:
 
-        input_files = [str(abspath(f)) for f in master.sources]
+        input_files = [abspath(f) for f in master.sources]
     return input_files
 
 
@@ -436,29 +504,27 @@ def _update_sources(font_config: FontConfig) -> FontConfig:
 
 
 def write_glyphmap_build(
-    nw: ninja_syntax.Writer,
+    nw: NinjaWriter,
     font_config: FontConfig,
     master: MasterConfig,
 ):
     nw.build(
-        str(rel_build(_glyphmap_file(font_config, master))),
+        rel_build(_glyphmap_file(font_config, master)),
         _glyphmap_rule(font_config, master),
         _input_files(font_config, master),
     )
     nw.newline()
 
 
-def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[str]:
+def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[Path]:
     return [
-        str(rel_build(_config_file(font_config))),
-        str(rel_build(_fea_file(font_config))),
-        str(rel_build(_glyphmap_file(font_config, master))),
+        rel_build(_config_file(font_config)),
+        rel_build(_fea_file(font_config)),
+        rel_build(_glyphmap_file(font_config, master)),
     ] + _input_files(font_config, master)
 
 
-def write_ufo_build(
-    nw: ninja_syntax.Writer, font_config: FontConfig, master: MasterConfig
-):
+def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConfig):
     ufo_config = font_config._replace(output_file=master.output_ufo, masters=(master,))
     ufo_config = _update_sources(ufo_config)
     config.write(build_dir() / _ufo_config(font_config, master), ufo_config)
@@ -470,7 +536,7 @@ def write_ufo_build(
     nw.newline()
 
 
-def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
     assert len(font_config.masters) == 1
     nw.build(
         font_config.output_file,
@@ -480,11 +546,11 @@ def write_static_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
     nw.newline()
 
 
-def write_variable_font_build(nw: ninja_syntax.Writer, font_config: FontConfig):
+def write_variable_font_build(nw: NinjaWriter, font_config: FontConfig):
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        [str(rel_build(_fea_file(font_config)))]
+        [rel_build(_fea_file(font_config))]
         + [m.output_ufo for m in font_config.masters],
     )
     nw.newline()
@@ -524,11 +590,11 @@ def _run(argv):
             "Try `cargo install resvg` or visit https://github.com/RazrFalcon/resvg."
         )
 
-    os.makedirs(build_dir(), exist_ok=True)
+    required_dirs = [build_dir()]
     if FLAGS.gen_svg_font_diffs:
-        os.makedirs(os.path.join(build_dir(), "resvg_png"), exist_ok=True)
-        os.makedirs(os.path.join(build_dir(), "skia_png"), exist_ok=True)
-        os.makedirs(os.path.join(build_dir(), "diff_png"), exist_ok=True)
+        required_dirs += [svg2png_dir(), font2png_dir(), diff_bitmap_dir()]
+    for required_dir in required_dirs:
+        required_dir.mkdir(parents=True, exist_ok=True)
     build_file = build_dir() / "build.ninja"
 
     assert not FLAGS.gen_svg_font_diffs or (
@@ -549,7 +615,7 @@ def _run(argv):
     if FLAGS.gen_ninja:
         logging.info(f"Generating {build_file.relative_to(build_dir())}")
         with open(build_file, "w") as f:
-            nw = ninja_syntax.Writer(f)
+            nw = NinjaWriter(ninja_syntax.Writer(f))
             write_preamble(nw)
 
             # Separate loops for separate content to keep related rules together

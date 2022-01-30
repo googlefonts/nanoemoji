@@ -35,19 +35,13 @@ See https://googlefonts.github.io/python#make-a-release.
 ## QA
 
 To help confirm valid output `nanoemoji` can optionally perform image diffs
-between resvg rendering of the original SVGs and Skia rendering from the compiled font. Usage:
+between browser rendering of the original SVGs and rendering from the compiled font.
+
+Chrome must be installed in the normal location.
+
+Usage:
 
 ```
-# Make sure colr_test is compiled and on PATH
-git clone git@github.com:rsheeter/skia_colr.git
-(cd colr_test && ./build_colr.sh)
-export PATH="$PATH:$(cd skia_colr/out/Static/ && pwd)"
-which colr_test
-
-# Make sure resvg tool is compiled and on PATH. E.g. you can use cargo to install it
-cargo install resvg
-which resvg
-
 # Get some svgs to play with
 git clone --recursive git@github.com:googlefonts/color-fonts.git
 
