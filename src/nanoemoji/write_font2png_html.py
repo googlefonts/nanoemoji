@@ -35,14 +35,20 @@ def main(argv):
         f"&#x{cp:04x};" for cp in codepoints.from_filename(Path(argv[2]).name)
     )
     with util.file_printer(FLAGS.output_file) as print:
+        # replace rather than f-string because the template contains js-interpolations
+        # and double-interpolated strings make my head hurt
         print(
             textwrap.dedent(
                 """
             <!DOCTYPE html>
+            <script>
+                let t0 = performance.now();
+            </script>
             <style>
                 @font-face {
                     font-family: "TestFont";
                     src: url("FONT_LOCATION");
+                    font-display: block;
                 }
                 * {
                     margin: 0;
@@ -52,24 +58,26 @@ def main(argv):
             </style>
             <span id="glyph" style="font-size: 16em;">ACTIVATION</span>
             <script>
-                let t0 = performance.now();
-                (async function() {
-                  let fontLoads = [];
-                  for (fontFace of document.fonts.values()) {
-                    fontLoads.push(fontFace);
-                  }
-                  await Promise.all(fontLoads);
-                  console.log("Fonts ready.", performance.now() - t0, "ms");
+                window.addEventListener("load", resizeGlyph, false);
+
+                function resizeGlyph(e) {
+                  
+                  console.log("load", performance.now() - t0, "ms");
 
                   let glyph = document.getElementById("glyph");
 
                   // try to hit target height by adjusting size in em
                   let currEm = parseInt(glyph.style.fontSize);
                   let newEm = currEm * 256 / glyph.offsetHeight;
+                  console.log(`currEm=${currEm}`);
+                  console.log(`newEm=${newEm}`);
                   glyph.style.fontSize = `${newEm}em`;
 
+                  // also center in resolution on x
+                  xOffset = -(glyph.offsetWidth - RESOLUTION) / 2;
+                  glyph.style.marginLeft = `${xOffset}px`
 
-                })();
+                }
             </script>
         """.replace(
                     "FONT_LOCATION", font_file

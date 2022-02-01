@@ -41,6 +41,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -257,8 +258,8 @@ def _chrome_command() -> str:
     cmd, validator = {
         "Linux": ("google-chrome", shutil.which),
         "Darwin": (
-            '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"',
-            lambda s: Path(s).is_dir(),
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            lambda s: Path(s).is_file(),
         ),
         "Windows": ("chrome", shutil.which),
     }[platform.system()]
@@ -266,7 +267,7 @@ def _chrome_command() -> str:
     if not validator(cmd):
         raise ValueError(f"{cmd} failed validation")
 
-    return cmd
+    return shlex.quote(cmd)
 
 
 def write_config_preamble(nw, font_config: FontConfig):
@@ -298,6 +299,7 @@ def write_config_preamble(nw, font_config: FontConfig):
                 f"--window-size={res},{res}",
                 "--force-device-scale-factor=1",
                 "--virtual-time-budget=1000",
+                "--enable-features=COLRV1Fonts",  # unnecessary for 98+
                 "--screenshot=$out",
                 "$in",
             )
@@ -311,7 +313,9 @@ def write_config_preamble(nw, font_config: FontConfig):
         module_rule(
             nw,
             "write_diffreport",
-            f"--lhs_dir {svg2png_dir()} --rhs_dir {font2png_dir()} --output_file $out @$out.rsp",
+            f"--lhs_dir {rel_build(svg2png_dir())} "
+            f"--rhs_dir {rel_build(font2png_dir())} "
+            "--output_file $out @$out.rsp",
             rspfile="$out.rsp",
             rspfile_content="$in",
         )
