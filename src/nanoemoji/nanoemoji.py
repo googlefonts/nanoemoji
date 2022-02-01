@@ -256,12 +256,12 @@ def write_preamble(nw):
 @functools.lru_cache()
 def _chrome_command() -> str:
     cmd, validator = {
-        "Linux": ("google-chrome", shutil.which),
+        "Linux": ("google-chrome-beta", shutil.which),
         "Darwin": (
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta",
             lambda s: Path(s).is_file(),
         ),
-        "Windows": ("chrome", shutil.which),
+        "Windows": ("chrome-beta", shutil.which),
     }[platform.system()]
 
     if not validator(cmd):
@@ -299,7 +299,6 @@ def write_config_preamble(nw, font_config: FontConfig):
                 f"--window-size={res},{res}",
                 "--force-device-scale-factor=1",
                 "--virtual-time-budget=1000",
-                "--enable-features=COLRV1Fonts",  # unnecessary for 98+
                 "--screenshot=$out",
                 "$in",
             )
