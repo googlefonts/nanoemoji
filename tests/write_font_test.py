@@ -17,6 +17,8 @@ from nanoemoji import write_font
 from nanoemoji.config import _DEFAULT_CONFIG
 from picosvg.svg_transform import Affine2D
 from ufo2ft.constants import COLR_CLIP_BOXES_KEY
+from fontTools.ttLib.tables import otTables as ot
+from picosvg.svg import SVG
 import pytest
 import test_helper
 
@@ -319,28 +321,6 @@ def test_vertical_metrics(ascender, descender, linegap):
             "smiley_cheeks_gradient_svg.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
-        # Use foreground color palette index 0xFFFF for SVG fill='currentColor'
-        # https://github.com/googlefonts/nanoemoji/issues/380
-        (
-            ("currentColor.svg",),
-            "currentColor_glyf_colr_1.ttx",
-            {"color_format": "glyf_colr_1"},
-        ),
-        (
-            ("currentColor.svg",),
-            "currentColor_glyf_colr_0.ttx",
-            {"color_format": "glyf_colr_0"},
-        ),
-        (
-            ("currentColor.svg",),
-            "currentColor_picosvg.ttx",
-            {"color_format": "picosvg", "pretty_print": True},
-        ),
-        (
-            ("currentColor_with_opacity.svg",),
-            "currentColor_with_opacity_glyf_colr_1_and_picosvg.ttx",
-            {"color_format": "glyf_colr_1_and_picosvg", "pretty_print": True},
-        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
@@ -421,3 +401,82 @@ def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected_clip_boxes
             assert bounds == pytest.approx(expected_bounds)
     else:
         assert COLR_CLIP_BOXES_KEY not in ufo.lib
+
+
+class TestCurrentColor:
+    # Chec that we use foreground color palette index 0xFFFF for SVG fill='currentColor'
+    # https://github.com/googlefonts/nanoemoji/issues/380
+    @staticmethod
+    def generate_color_font(svgs, config_overrides):
+        config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
+        _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+        return test_helper.reload_font(ttfont)
+
+    @pytest.mark.parametrize(
+        "svgs, expected_alpha",
+        [
+            (("currentColor.svg",), 1.0),
+            (("currentColor_with_opacity.svg",), 0.5),
+        ],
+    )
+    def test_colr_1(self, svgs, expected_alpha):
+        config_overrides = {"color_format": "glyf_colr_1"}
+        ttfont = self.generate_color_font(svgs, config_overrides)
+        colr = ttfont["COLR"].table
+        assert len(colr.BaseGlyphList.BaseGlyphPaintRecord) == len(svgs)
+        color_glyph = colr.BaseGlyphList.BaseGlyphPaintRecord[0]
+        assert color_glyph.Paint.Format == ot.PaintFormat.PaintGlyph
+        assert color_glyph.Paint.Paint.Format == ot.PaintFormat.PaintSolid
+        assert color_glyph.Paint.Paint.PaletteIndex == 0xFFFF
+        assert color_glyph.Paint.Paint.Alpha == expected_alpha
+
+        cpal = ttfont["CPAL"]
+        assert len(cpal.palettes) == 1
+        # Chrome expects non-empty palettes so we always add a dummy color as workaround
+        # assert len(cpal.palettes[0]) == 0
+        assert len(cpal.palettes[0]) == 1
+        assert cpal.palettes[0][0] == (0, 0, 0, 0xFF)
+
+    @pytest.mark.parametrize(
+        # COLRv0 can only encode alpha in CPAL's RGBA colors; since the foreground
+        # color palette 0xFFFF is not actually in CPAL, we can't encode a transparent
+        # fill="currentColor" with COLRv0, so both these input produce the same
+        # result, i.e. an opaque foreground color.
+        "svgs",
+        [("currentColor.svg",), ("currentColor_with_opacity.svg",)],
+    )
+    def test_colr_0(self, svgs):
+        config_overrides = {"color_format": "glyf_colr_0"}
+        ttfont = self.generate_color_font(svgs, config_overrides)
+        colr = ttfont["COLR"]
+        assert len(colr.ColorLayers) == len(svgs)
+        glyph_layers = next(iter(colr.ColorLayers.values()))
+        assert len(glyph_layers) == 1
+        assert glyph_layers[0].colorID == 0xFFFF
+
+        cpal = ttfont["CPAL"]
+        assert len(cpal.palettes) == 1
+        # Chrome expects non-empty palettes so we always add a dummy color as workaround
+        # assert len(cpal.palettes[0]) == 0
+        assert len(cpal.palettes[0]) == 1
+        assert cpal.palettes[0][0] == (0, 0, 0, 0xFF)
+
+    @pytest.mark.parametrize(
+        "svgs, expected_opacity",
+        [
+            (("currentColor.svg",), 1.0),
+            (("currentColor_with_opacity.svg",), 0.5),
+        ],
+    )
+    @pytest.mark.parametrize("color_format", ["picosvg", "untouchedsvg"])
+    def test_picosvg(self, color_format, svgs, expected_opacity):
+        config_overrides = {"color_format": color_format}
+        ttfont = self.generate_color_font(svgs, config_overrides)
+        svg_table = ttfont["SVG "]
+        assert len(svg_table.docList) == len(svgs)
+        svg = SVG.fromstring(svg_table.docList[0][0])
+        shapes = svg.shapes()
+        assert len(shapes) == 1
+        assert shapes[0].fill == "currentColor"
+        print(svg.tostring(pretty_print=True))
+        assert shapes[0].opacity == expected_opacity
