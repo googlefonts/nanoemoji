@@ -197,7 +197,7 @@ class PaintSolid(Paint):
     def to_ufo_paint(self, colors):
         return {
             "Format": self.format,
-            "PaletteIndex": colors.index(self.color.opaque()),
+            "PaletteIndex": self.color.opaque().palette_index(colors),
             "Alpha": self.color.alpha,
         }
 
@@ -207,7 +207,7 @@ def _ufoColorLine(gradient, colors):
         "ColorStop": [
             {
                 "StopOffset": stop.stopOffset,
-                "PaletteIndex": colors.index(stop.color.opaque()),
+                "PaletteIndex": stop.color.opaque().palette_index(colors),
                 "Alpha": stop.color.alpha,
             }
             for stop in gradient.stops

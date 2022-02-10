@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.0"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000.0" width="100" lsb="30"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000.0" xMin="30" yMin="20" xMax="71" yMax="90">
+      <contour>
+        <pt x="51" y="90" on="1"/>
+        <pt x="45" y="90" on="0"/>
+        <pt x="36" y="84" on="0"/>
+        <pt x="30" y="75" on="0"/>
+        <pt x="30" y="70" on="1"/>
+        <pt x="30" y="40" on="1"/>
+        <pt x="30" y="35" on="0"/>
+        <pt x="36" y="25" on="0"/>
+        <pt x="45" y="20" on="0"/>
+        <pt x="51" y="20" on="1"/>
+        <pt x="56" y="20" on="0"/>
+        <pt x="65" y="25" on="0"/>
+        <pt x="71" y="35" on="0"/>
+        <pt x="71" y="40" on="1"/>
+        <pt x="71" y="70" on="1"/>
+        <pt x="71" y="75" on="0"/>
+        <pt x="65" y="84" on="0"/>
+        <pt x="56" y="90" on="0"/>
+      </contour>
+      <contour>
+        <pt x="59" y="40" on="1"/>
+        <pt x="59" y="37" on="0"/>
+        <pt x="54" y="32" on="0"/>
+        <pt x="51" y="32" on="1"/>
+        <pt x="47" y="32" on="0"/>
+        <pt x="42" y="37" on="0"/>
+        <pt x="42" y="40" on="1"/>
+        <pt x="42" y="70" on="1"/>
+        <pt x="42" y="74" on="0"/>
+        <pt x="46" y="77" on="1"/>
+        <pt x="51" y="79" on="0"/>
+        <pt x="55" y="77" on="1"/>
+        <pt x="59" y="74" on="0"/>
+        <pt x="59" y="70" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+  </glyf>
+
+  <COLR>
+    <Version value="1"/>
+    <!-- BaseGlyphRecordCount=0 -->
+    <!-- LayerRecordCount=0 -->
+    <BaseGlyphList>
+      <!-- BaseGlyphCount=1 -->
+      <BaseGlyphPaintRecord index="0">
+        <BaseGlyph value="e000"/>
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <PaletteIndex value="65535"/>
+            <Alpha value="1.0"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+      </BaseGlyphPaintRecord>
+    </BaseGlyphList>
+    <ClipList Format="1">
+      <Clip>
+        <Glyph value="e000"/>
+        <ClipBox Format="1">
+          <xMin value="30"/>
+          <yMin value="20"/>
+          <xMax value="72"/>
+          <yMax value="90"/>
+        </ClipBox>
+      </Clip>
+    </ClipList>
+  </COLR>
+
+  <CPAL>
+    <version value="0"/>
+    <numPaletteEntries value="1"/>
+    <palette index="0">
+      <color index="0" value="#000000FF"/>
+    </palette>
+  </CPAL>
+
+</ttFont>

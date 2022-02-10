@@ -319,6 +319,18 @@ def test_vertical_metrics(ascender, descender, linegap):
             "smiley_cheeks_gradient_svg.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
+        # Use foreground color palette index 0xFFFF for SVG fill='currentColor'
+        # https://github.com/googlefonts/nanoemoji/issues/380
+        (
+            ("currentColor.svg",),
+            "currentColor_glyf_colr_1.ttx",
+            {"color_format": "glyf_colr_1"},
+        ),
+        (
+            ("currentColor.svg",),
+            "currentColor_glyf_colr_0.ttx",
+            {"color_format": "glyf_colr_0"},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

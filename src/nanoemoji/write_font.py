@@ -459,7 +459,7 @@ def _colr0_layers(color_glyph: ColorGlyph, root: Paint, palette: Sequence[Color]
                 color_glyph, paint_glyph, context.transform
             ).name
 
-        layers.append((glyph_name, palette.index(color)))
+        layers.append((glyph_name, color.palette_index(palette)))
     return layers
 
 
@@ -569,9 +569,16 @@ def _colr_ufo(
         set(
             c if colr_version == 0 else c.opaque()
             for c in chain.from_iterable(g.colors() for g in color_glyphs)
+            if not c.is_current_color()
         )
     )
     logging.debug("colors %s", colors)
+
+    if len(colors) == 0:
+        # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette, so we
+        # add one unused color as workaround.
+        # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
+        colors.append(Color(0, 0, 0, 1.0))
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
