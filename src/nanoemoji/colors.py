@@ -186,6 +186,8 @@ def color_name(rgb) -> Optional[str]:
 
 
 class Color(collections.namedtuple("Color", "red green blue alpha")):
+    _CURRENT_COLOR = (-1, -1, -1)
+
     @classmethod
     def fromstring(cls, s, alpha=1.0) -> "Color":
         # https://www.w3.org/TR/css-color-4/#hex-notation
@@ -195,7 +197,7 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
             # CPAL color palette index.
             # https://docs.microsoft.com/en-us/typography/opentype/spec/SVG#colors
-            return _CURRENT_COLOR
+            return cls(*cls._CURRENT_COLOR, alpha=alpha)
         if s.startswith("#"):
             ss = s[1:]
             if len(ss) in (3, 4):
@@ -255,13 +257,9 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
         return string
 
     def is_current_color(self):
-        return self == _CURRENT_COLOR
+        return self[:3] == self._CURRENT_COLOR
 
     def palette_index(self, palette: Sequence["Color"]) -> int:
         if self.is_current_color():
-            assert _CURRENT_COLOR not in palette
             return 0xFFFF
         return palette.index(self)
-
-
-_CURRENT_COLOR = Color(-1, -1, -1, 1.0)
