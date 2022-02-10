@@ -13,7 +13,7 @@
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="0"/>
-    <mtx name="e000.0" width="100" lsb="30"/>
+    <mtx name="e000.0" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
@@ -43,42 +43,12 @@
 
     <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000.0" xMin="30" yMin="20" xMax="71" yMax="90">
+    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
-        <pt x="51" y="90" on="1"/>
-        <pt x="45" y="90" on="0"/>
-        <pt x="36" y="84" on="0"/>
-        <pt x="30" y="75" on="0"/>
-        <pt x="30" y="70" on="1"/>
-        <pt x="30" y="40" on="1"/>
-        <pt x="30" y="35" on="0"/>
-        <pt x="36" y="25" on="0"/>
-        <pt x="45" y="20" on="0"/>
-        <pt x="51" y="20" on="1"/>
-        <pt x="56" y="20" on="0"/>
-        <pt x="65" y="25" on="0"/>
-        <pt x="71" y="35" on="0"/>
-        <pt x="71" y="40" on="1"/>
-        <pt x="71" y="70" on="1"/>
-        <pt x="71" y="75" on="0"/>
-        <pt x="65" y="84" on="0"/>
-        <pt x="56" y="90" on="0"/>
-      </contour>
-      <contour>
-        <pt x="59" y="40" on="1"/>
-        <pt x="59" y="37" on="0"/>
-        <pt x="54" y="32" on="0"/>
-        <pt x="51" y="32" on="1"/>
-        <pt x="47" y="32" on="0"/>
-        <pt x="42" y="37" on="0"/>
-        <pt x="42" y="40" on="1"/>
-        <pt x="42" y="70" on="1"/>
-        <pt x="42" y="74" on="0"/>
-        <pt x="46" y="77" on="1"/>
-        <pt x="51" y="79" on="0"/>
-        <pt x="55" y="77" on="1"/>
-        <pt x="59" y="74" on="0"/>
-        <pt x="59" y="70" on="1"/>
+        <pt x="20" y="80" on="1"/>
+        <pt x="20" y="60" on="1"/>
+        <pt x="80" y="60" on="1"/>
+        <pt x="80" y="80" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -106,10 +76,10 @@
       <Clip>
         <Glyph value="e000"/>
         <ClipBox Format="1">
-          <xMin value="30"/>
-          <yMin value="20"/>
-          <xMax value="72"/>
-          <yMax value="90"/>
+          <xMin value="20"/>
+          <yMin value="60"/>
+          <xMax value="80"/>
+          <yMax value="80"/>
         </ClipBox>
       </Clip>
     </ClipList>

@@ -13,7 +13,7 @@
     <mtx name=".notdef" width="0" lsb="0"/>
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="0"/>
-    <mtx name="e000.0" width="100" lsb="30"/>
+    <mtx name="e000.0" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
@@ -43,42 +43,12 @@
 
     <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000.0" xMin="30" yMin="20" xMax="71" yMax="90">
+    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
-        <pt x="51" y="90" on="1"/>
-        <pt x="45" y="90" on="0"/>
-        <pt x="36" y="84" on="0"/>
-        <pt x="30" y="75" on="0"/>
-        <pt x="30" y="70" on="1"/>
-        <pt x="30" y="40" on="1"/>
-        <pt x="30" y="35" on="0"/>
-        <pt x="36" y="25" on="0"/>
-        <pt x="45" y="20" on="0"/>
-        <pt x="51" y="20" on="1"/>
-        <pt x="56" y="20" on="0"/>
-        <pt x="65" y="25" on="0"/>
-        <pt x="71" y="35" on="0"/>
-        <pt x="71" y="40" on="1"/>
-        <pt x="71" y="70" on="1"/>
-        <pt x="71" y="75" on="0"/>
-        <pt x="65" y="84" on="0"/>
-        <pt x="56" y="90" on="0"/>
-      </contour>
-      <contour>
-        <pt x="59" y="40" on="1"/>
-        <pt x="59" y="37" on="0"/>
-        <pt x="54" y="32" on="0"/>
-        <pt x="51" y="32" on="1"/>
-        <pt x="47" y="32" on="0"/>
-        <pt x="42" y="37" on="0"/>
-        <pt x="42" y="40" on="1"/>
-        <pt x="42" y="70" on="1"/>
-        <pt x="42" y="74" on="0"/>
-        <pt x="46" y="77" on="1"/>
-        <pt x="51" y="79" on="0"/>
-        <pt x="55" y="77" on="1"/>
-        <pt x="59" y="74" on="0"/>
-        <pt x="59" y="70" on="1"/>
+        <pt x="20" y="80" on="1"/>
+        <pt x="20" y="60" on="1"/>
+        <pt x="80" y="60" on="1"/>
+        <pt x="80" y="80" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -106,10 +76,10 @@
       <Clip>
         <Glyph value="e000"/>
         <ClipBox Format="1">
-          <xMin value="30"/>
-          <yMin value="20"/>
-          <xMax value="72"/>
-          <yMax value="90"/>
+          <xMin value="20"/>
+          <yMin value="60"/>
+          <xMax value="80"/>
+          <yMax value="80"/>
         </ClipBox>
       </Clip>
     </ClipList>
@@ -126,8 +96,8 @@
   <SVG>
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
-  <g id="glyph2" transform="matrix(0.1 0 0 0.1 26.15 -100)">
-    <path d="M243.69,100.48 C356.13,100.61 447.251,191.73 447.371,304.17 L447.371,596.31 C447.371,708.8 356.181,799.991 243.69,799.991 C131.199,799.991 40.009,708.801 40.009,596.31 L40.009,304.17 C40.129,191.73 131.249,100.609 243.69,100.48 Z M326.44,596.341 L326.44,304.191 C326.71,274.451 310.99,246.861 285.28,231.911 C259.57,216.961 227.81,216.961 202.1,231.911 C176.39,246.861 160.68,274.451 160.95,304.191 L160.95,596.341 C161.36,641.751 198.28,678.341 243.69,678.341 C289.1,678.341 326.03,641.751 326.44,596.341 Z" fill="currentColor" opacity="0.5"/>
+  <g id="glyph2" transform="matrix(10 0 0 10 0 -100)">
+    <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" fill="currentColor" opacity="0.5"/>
   </g>
 </svg>
 ]]>
