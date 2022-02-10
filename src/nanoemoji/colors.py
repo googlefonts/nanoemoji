@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import collections
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -186,10 +186,18 @@ def color_name(rgb) -> Optional[str]:
 
 
 class Color(collections.namedtuple("Color", "red green blue alpha")):
+    _CURRENT_COLOR = (-1, -1, -1)
+
     @classmethod
     def fromstring(cls, s, alpha=1.0) -> "Color":
         # https://www.w3.org/TR/css-color-4/#hex-notation
         s = s.strip()
+        if s == "currentColor":
+            # For the 'currentColor' special keyword, we return a sentinel value (with
+            # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
+            # CPAL color palette index.
+            # https://docs.microsoft.com/en-us/typography/opentype/spec/SVG#colors
+            return cls(*cls._CURRENT_COLOR, alpha=alpha)
         if s.startswith("#"):
             ss = s[1:]
             if len(ss) in (3, 4):
@@ -234,6 +242,10 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
 
     def to_string(self) -> str:
         # A CSS or SVG friendly string
+        if self.is_current_color():
+            if self.alpha != 1.0:
+                raise ValueError("'currentColor' can't encode alpha != 1.0")
+            return "currentColor"
         rgb = self[0:3]
         string = None
         if self.alpha == 1.0:
@@ -243,3 +255,11 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             if self.alpha != 1.0:
                 string += f"{int(self.alpha * 255):02X}"
         return string
+
+    def is_current_color(self):
+        return self[:3] == self._CURRENT_COLOR
+
+    def palette_index(self, palette: Sequence["Color"]) -> int:
+        if self.is_current_color():
+            return 0xFFFF
+        return palette.index(self)
