@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="0" lsb="0"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <g id="glyph2" transform="matrix(0.1 0 0 0.1 26.15 -100)">
+    <path d="M243.69,100.48 C356.13,100.61 447.251,191.73 447.371,304.17 L447.371,596.31 C447.371,708.8 356.181,799.991 243.69,799.991 C131.199,799.991 40.009,708.801 40.009,596.31 L40.009,304.17 C40.129,191.73 131.249,100.609 243.69,100.48 Z M326.44,596.341 L326.44,304.191 C326.71,274.451 310.99,246.861 285.28,231.911 C259.57,216.961 227.81,216.961 202.1,231.911 C176.39,246.861 160.68,274.451 160.95,304.191 L160.95,596.341 C161.36,641.751 198.28,678.341 243.69,678.341 C289.1,678.341 326.03,641.751 326.44,596.341 Z" fill="currentColor"/>
+  </g>
+</svg>
+]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>

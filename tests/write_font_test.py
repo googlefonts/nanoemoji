@@ -331,6 +331,11 @@ def test_vertical_metrics(ascender, descender, linegap):
             "currentColor_glyf_colr_0.ttx",
             {"color_format": "glyf_colr_0"},
         ),
+        (
+            ("currentColor.svg",),
+            "currentColor_picosvg.ttx",
+            {"color_format": "picosvg", "pretty_print": True},
+        ),
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):

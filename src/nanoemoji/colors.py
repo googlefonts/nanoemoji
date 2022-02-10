@@ -240,6 +240,10 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
 
     def to_string(self) -> str:
         # A CSS or SVG friendly string
+        if self.is_current_color():
+            if self.alpha != 1.0:
+                raise ValueError("'currentColor' can't encode alpha != 1.0")
+            return "currentColor"
         rgb = self[0:3]
         string = None
         if self.alpha == 1.0:

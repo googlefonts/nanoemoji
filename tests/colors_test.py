@@ -56,6 +56,8 @@ def test_color_fromstring(color_string, expected_color):
         (Color(0xF5, 0xDE, 0xB3, 1.0), "wheat"),
         # CSS named color skipped for alpha != 1
         (Color(0xF5, 0xDE, 0xB3, 0.4), "#F5DEB366"),
+        # special sentinel value that stands for 'currentColor' keyword
+        (Color(-1, -1, -1, 1.0), "currentColor"),
     ],
 )
 def test_color_to_string(color, expected_string):
