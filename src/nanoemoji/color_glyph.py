@@ -395,27 +395,28 @@ def _mutating_traverse(paint, mutator):
 
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
-    filename: str
+    filenames: Tuple[str]
     ufo_glyph_name: str  # only if config has keep_glyph_names will this match in font binary
     glyph_id: int
     codepoints: Tuple[int, ...]
     painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched and bitmap formats
-    svg: Optional[SVG]  # picosvg except for untouched and bitmap formats
+    svg: Optional[SVG]  # None for bitmap formats
     user_transform: Affine2D
+    bitmap: Optional[bytes]  # None for vector formats
 
     @staticmethod
     def create(
         font_config: FontConfig,
         ufo: ufoLib2.Font,
-        filename: str,
+        filenames: Sequence[str],
         glyph_id: int,
         ufo_glyph_name: str,
         codepoints: Tuple[int, ...],
         svg: Optional[SVG],
+        bitmap: Optional[bytes] = None,
     ) -> "ColorGlyph":
-        logging.debug(" ColorGlyph for %s (%s)", filename, codepoints)
+        logging.debug(" ColorGlyph for %s (%s)", ", ".join(filenames), codepoints)
         base_glyph = ufo.newGlyph(ufo_glyph_name)
-
         # non-square aspect ratio == proportional width; square == monospace
         view_box = None
         if svg:
@@ -435,23 +436,19 @@ class ColorGlyph(NamedTuple):
         if not font_config.transform.is_degenerate():
             if font_config.has_picosvgs:
                 painted_layers = tuple(
-                    _painted_layers(
-                        filename,
-                        font_config,
-                        svg,
-                        base_glyph.width,
-                    )
+                    _painted_layers(filenames[0], font_config, svg, base_glyph.width)
                 )
 
         return ColorGlyph(
             ufo,
-            filename,
+            tuple(filenames),
             ufo_glyph_name,
             glyph_id,
             codepoints,
             painted_layers,
             svg,
             font_config.transform,
+            bitmap,
         )
 
     def _has_viewbox_for_transform(self) -> bool:

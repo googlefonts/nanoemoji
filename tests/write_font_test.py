@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+import enum
+import shutil
+from pathlib import Path
 from nanoemoji import write_font
 from nanoemoji.config import _DEFAULT_CONFIG
 from nanoemoji.glyphmap import GlyphMapping
@@ -483,42 +486,82 @@ class TestCurrentColor:
         assert shapes[0].opacity == expected_opacity
 
 
+class InputFormat(enum.Flag):
+    SVG = enum.auto()
+    PNG = enum.auto()
+
+
 @pytest.mark.parametrize(
-    "color_format, expected_has_svgs",
+    "color_format, expected_input_format",
     [
-        ("sbix", False),
-        ("cbdt", False),
-        ("glyf_colr_0", True),
-        ("glyf_colr_1", True),
-        ("cff_colr_0", True),
-        ("cff_colr_1", True),
-        ("cff2_colr_0", True),
-        ("cff2_colr_1", True),
-        ("picosvg", True),
-        ("picosvgz", True),
-        ("untouchedsvg", True),
-        ("untouchedsvgz", True),
-        ("glyf_colr_1_and_picosvg", True),
-        ("glyf_colr_1_and_picosvg_and_cbdt", True),
+        ("sbix", InputFormat.PNG),
+        ("cbdt", InputFormat.PNG),
+        ("glyf_colr_0", InputFormat.SVG),
+        ("glyf_colr_1", InputFormat.SVG),
+        ("cff_colr_0", InputFormat.SVG),
+        ("cff_colr_1", InputFormat.SVG),
+        ("cff2_colr_0", InputFormat.SVG),
+        ("cff2_colr_1", InputFormat.SVG),
+        ("picosvg", InputFormat.SVG),
+        ("picosvgz", InputFormat.SVG),
+        ("untouchedsvg", InputFormat.SVG),
+        ("untouchedsvgz", InputFormat.SVG),
+        ("glyf_colr_1_and_picosvg", InputFormat.SVG),
+        ("glyf_colr_1_and_picosvg_and_cbdt", InputFormat.SVG | InputFormat.PNG),
     ],
 )
-def test_inputs_have_svg(color_format, expected_has_svgs):
+def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_format):
     # Check that inputs have their 'svg' attribute set to a parsed picosvg.SVG object
     # for all the color formats that use that, including 'untouchedsvg'; only bitmap
     # formats don't use that so their InputGlyph.svg attribute is None.
     # https://github.com/googlefonts/nanoemoji/issues/378
-    glyph_mappings = [
-        GlyphMapping(test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
-        GlyphMapping(test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
-    ]
+    # Also check that inputs have their 'bitmap' attribute set to the PNG bytes for
+    # all the color formats that include that, including hybrid vector+bitmap formats
+    # e.g. `glyf_colr_1_and_picosvg_and_cbdt`.
+
     config = _DEFAULT_CONFIG._replace(color_format=color_format)
 
-    assert config.has_svgs is expected_has_svgs
+    assert config.has_svgs is bool(expected_input_format & InputFormat.SVG)
+    assert config.has_bitmaps is bool(expected_input_format & InputFormat.PNG)
 
-    inputs = list(write_font._inputs(config, glyph_mappings))
+    cp = 0xE001
+    glyph_mappings = []
+    argv = []
+    for i, svg_file in enumerate(("rect.svg", "rect2.svg")):
+        svg_file = test_helper.locate_test_file(svg_file)
+        svg_file2 = Path(shutil.copy(svg_file, tmp_path))
 
-    assert [g[:3] for g in inputs] == [
-        (test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
-        (test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
-    ]
-    assert all((g.svg is not None) is expected_has_svgs for g in inputs)
+        if expected_input_format & InputFormat.SVG:
+            argv.append(str(svg_file2))
+
+        if expected_input_format & InputFormat.PNG:
+            png_file = svg_file2.with_suffix(".png")
+            png_file.write_bytes(
+                test_helper.rasterize_svg(svg_file2, config.bitmap_resolution)
+            )
+            argv.append(str(png_file))
+
+        glyph_mappings.append(GlyphMapping(svg_file, (cp + i,), f"uni{i:04X}"))
+
+    inputs = list(write_font._inputs(config, glyph_mappings, argv))
+
+    for ginp, gmap in zip(inputs, glyph_mappings):
+        file_stems = {Path(f).stem for f in ginp.filenames}
+        assert len(file_stems) == 1
+        assert next(iter(file_stems)) == gmap.input_file.stem
+        assert len(ginp.filenames) == (
+            2 if expected_input_format == InputFormat.SVG | InputFormat.PNG else 1
+        )
+        # the first filename is always .svg if there are any SVGs, otherwise it's .png
+        if expected_input_format & InputFormat.SVG:
+            assert Path(ginp.filenames[0]).suffix == ".svg"
+        else:
+            assert Path(ginp.filenames[0]).suffix == ".png"
+        # if there are both, then the second filename is the .png one
+        if expected_input_format == InputFormat.SVG | InputFormat.PNG:
+            assert Path(ginp.filenames[1]).suffix == ".png"
+        assert ginp.glyph_name == gmap.glyph_name
+        assert ginp.codepoints == gmap.codepoints
+
+    assert all(isinstance(g.svg, SVG) is config.has_svgs for g in inputs)
+    assert all(isinstance(g.bitmap, bytes) is config.has_bitmaps for g in inputs)

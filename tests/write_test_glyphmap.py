@@ -46,7 +46,7 @@ def main(argv):
     svg_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
         for gm in _glyphmappings(svg_files):
-            # filename, codepoint(s), glyph name
+            # filename, glyph_name, codepoint(s)
             print(gm.csv_line())
 
 

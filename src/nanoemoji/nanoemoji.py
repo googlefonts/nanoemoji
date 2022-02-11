@@ -134,7 +134,7 @@ def _fea_file(font_config: FontConfig) -> Path:
 
 def _font_rule(font_config: FontConfig) -> str:
     suffix = "_font"
-    if _is_vf(font_config):
+    if font_config.is_vf:
         suffix = "_vfont"
     return Path(font_config.output_file).stem + suffix
 
@@ -155,14 +155,14 @@ def _ufo_config(font_config: FontConfig, master: MasterConfig) -> Path:
 
 def _glyphmap_rule(font_config: FontConfig, master: MasterConfig) -> str:
     master_part = ""
-    if _is_vf(font_config):
+    if font_config.is_vf:
         master_part = "_" + master.style_name.lower()
     return "write_" + Path(font_config.output_file).stem + master_part + "_glyphmap"
 
 
 def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
     master_part = ""
-    if _is_vf(font_config):
+    if font_config.is_vf:
         master_part = "." + master.output_ufo
     return _per_config_file(font_config, master_part + ".glyphmap")
 
@@ -189,7 +189,7 @@ def module_rule(
 
 
 def write_font_rule(nw, font_config: FontConfig, master: MasterConfig):
-    if _is_vf(font_config):
+    if font_config.is_vf:
         rule_name = _ufo_rule(font_config, master)
         config_file = _ufo_config(font_config, master)
     else:
@@ -282,7 +282,7 @@ def write_config_preamble(nw, font_config: FontConfig):
 
     for master in font_config.masters:
         write_font_rule(nw, font_config, master)
-    if _is_vf(font_config):
+    if font_config.is_vf:
         module_rule(
             nw,
             "write_variable_font",
@@ -479,15 +479,15 @@ def write_svg_font_diff_build(
 
 
 def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
-    if font_config.has_bitmaps:
-        input_files = [bitmap_dest(f) for f in master.sources]
-    elif font_config.has_picosvgs:
-        input_files = [
+    input_files = []
+    if font_config.has_picosvgs:
+        input_files.extend(
             picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
-        ]
-    else:
-
-        input_files = [abspath(f) for f in master.sources]
+        )
+    if font_config.has_untouchedsvgs:
+        input_files.extend(rel_build(f) for f in master.sources)
+    if font_config.has_bitmaps:
+        input_files.extend(bitmap_dest(f) for f in master.sources)
     return input_files
 
 
@@ -515,17 +515,23 @@ def write_glyphmap_build(
     nw.build(
         rel_build(_glyphmap_file(font_config, master)),
         _glyphmap_rule(font_config, master),
-        _input_files(font_config, master),
+        [rel_build(f) for f in master.sources],
     )
     nw.newline()
 
 
-def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[Path]:
+def _implicit_inputs_to_font_build(
+    font_config: FontConfig, master: MasterConfig
+) -> List[Path]:
+    # these inputs are not passed in as positional argv to write_font; unlike explicit
+    # inputs (i.e., .svg or .png files), these are generated files pulled in via CLI
+    # flags and hardcoded in the write_font ninja rule; thus we add them only as
+    # implicit dependencies
     return [
         rel_build(_config_file(font_config)),
         rel_build(_fea_file(font_config)),
         rel_build(_glyphmap_file(font_config, master)),
-    ] + _input_files(font_config, master)
+    ]
 
 
 def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConfig):
@@ -535,17 +541,20 @@ def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConf
     nw.build(
         master.output_ufo,
         _ufo_rule(font_config, master),
-        _inputs_to_font_build(font_config, master),
+        _input_files(font_config, master),
+        _implicit_inputs_to_font_build(font_config, master),
     )
     nw.newline()
 
 
 def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
     assert len(font_config.masters) == 1
+    master = font_config.default()
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        _inputs_to_font_build(font_config, font_config.default()),
+        _input_files(font_config, master),
+        _implicit_inputs_to_font_build(font_config, master),
     )
     nw.newline()
 
@@ -567,16 +576,6 @@ def _write_config_for_build(font_config: FontConfig):
     config_file = _config_file(font_config)
     config.write(config_file, font_config)
     logging.info(f"Wrote {config_file.relative_to(build_dir().parent)}")
-
-
-def _is_vf(font_config: FontConfig) -> bool:
-    return len(font_config.masters) > 1
-
-
-def _is_svg(font_config: FontConfig) -> bool:
-    return font_config.color_format.endswith(
-        "svg"
-    ) or font_config.color_format.endswith("svgz")
 
 
 def _run(argv):
@@ -606,13 +605,11 @@ def _run(argv):
     ), "Can only generate diffs for one font at a time"
 
     if len(font_configs) > 1:
-        assert all(not _is_vf(c) for c in font_configs)
+        assert all(not c.is_vf for c in font_configs)
 
     logging.info(f"Proceeding with {len(font_configs)} config(s)")
 
     for font_config in font_configs:
-        if _is_vf(font_config) and _is_svg(font_config):
-            raise ValueError("svg formats cannot have multiple masters")
         _write_config_for_build(font_config)
         write_source_names(font_config)
 
@@ -658,17 +655,17 @@ def _run(argv):
 
             for font_config in font_configs:
                 if FLAGS.gen_svg_font_diffs:
-                    assert not _is_vf(font_config)
+                    assert not font_config.is_vf
                     write_svg_font_diff_build(
                         nw, font_config.output_file, font_config.masters[0].sources
                     )
 
                 for master in font_config.masters:
-                    if _is_vf(font_config):
+                    if font_config.is_vf:
                         write_ufo_build(nw, font_config, master)
 
             for font_config in font_configs:
-                if _is_vf(font_config):
+                if font_config.is_vf:
                     write_variable_font_build(nw, font_config)
                 else:
                     write_static_font_build(nw, font_config)

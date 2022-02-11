@@ -29,6 +29,30 @@ import tempfile
 from test_helper import assert_expected_ttx, color_font_config, locate_test_file
 
 
+RESVG_PATH = shutil.which("resvg")
+
+
+_TEMPORARY_DIRS = set()
+
+
+def _mkdtemp() -> Path:
+    tmp_dir = Path(tempfile.mkdtemp())
+    assert tmp_dir not in _TEMPORARY_DIRS
+    _TEMPORARY_DIRS.add(tmp_dir)
+    return tmp_dir
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _cleanup_temporary_dirs():
+    # The mkdtemp() docs say the user is responsible for deleting the directory
+    # and its contents when done with it. So we use an autouse fixture that
+    # automatically removes all the temp dirs at the end of the test module
+    yield
+    # teardown happens after the 'yield'
+    for tmp_dir in _TEMPORARY_DIRS:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 def _svg_element_names(xpath, svg_content):
     return tuple(
         etree.QName(e).localname
@@ -42,7 +66,7 @@ def _svg_element_attributes(xpath, svg_content):
 
 def _run(cmd, tmp_dir=None):
     if not tmp_dir:
-        tmp_dir = tempfile.mkdtemp()
+        tmp_dir = _mkdtemp()
 
     cmd = (
         "nanoemoji",
@@ -50,9 +74,12 @@ def _run(cmd, tmp_dir=None):
         str(tmp_dir),
     ) + tuple(str(c) for c in cmd)
     print("subprocess:", " ".join(cmd))  # very useful on failure
+    # We need to find nanoemoji and (optionally) resvg
+    bin_paths = [str(Path(shutil.which("nanoemoji")).parent)]
+    if RESVG_PATH:
+        bin_paths.append(str(Path(RESVG_PATH).parent))
     env = {
-        # We need to find nanoemoji
-        "PATH": os.pathsep.join((str(Path(shutil.which("nanoemoji")).parent),)),
+        "PATH": os.pathsep.join(bin_paths),
         # We may need to find test modules
         "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
     }
@@ -62,7 +89,6 @@ def _run(cmd, tmp_dir=None):
 
     subprocess.run(cmd, check=True, env=env)
 
-    tmp_dir = Path(tmp_dir)
     assert (tmp_dir / "build.ninja").is_file()
 
     return tmp_dir
@@ -76,7 +102,7 @@ def test_build_static_font_default_config_cli_svg_list():
 
 
 def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
-    config_file = Path(tempfile.mkdtemp()) / "config.toml"
+    config_file = _mkdtemp() / "config.toml"
     font_config, _ = color_font_config(
         config_overrides, svgs, tmp_dir=str(config_file.parent)
     )
@@ -141,6 +167,54 @@ def test_build_untouchedsvg_font():
     assert "transform" in g_attrs
     transform = Affine2D.fromstring(g_attrs["transform"])
     assert transform != Affine2D.identity(), transform
+
+
+def test_build_glyf_colr_1_and_picosvg_font():
+    tmp_dir = _run(
+        (locate_test_file("minimal_static/config_glyf_colr_1_and_picosvg.toml"),)
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+
+    assert "COLR" in font
+    assert "SVG " in font
+
+
+@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
+def test_build_sbix_font():
+    tmp_dir = _run((locate_test_file("minimal_static/config_sbix.toml"),))
+
+    font = TTFont(tmp_dir / "Font.ttf")
+
+    assert "sbix" in font
+
+
+@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
+def test_build_cbdt_font():
+    tmp_dir = _run((locate_test_file("minimal_static/config_cbdt.toml"),))
+
+    font = TTFont(tmp_dir / "Font.ttf")
+
+    assert "CBDT" in font
+    assert "CBLC" in font
+
+
+@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
+def test_build_glyf_colr_1_and_picosvg_and_cbdt_font():
+    tmp_dir = _run(
+        (
+            locate_test_file(
+                "minimal_static/config_glyf_colr_1_and_picosvg_and_cbdt.toml"
+            ),
+        )
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+
+    assert "COLR" in font
+    assert "SVG " in font
+    assert "CBDT" in font
+    assert "CBLC" in font
 
 
 def test_the_curious_case_of_the_parentless_reused_el():

@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import csv
-from nanoemoji import codepoints
+from io import StringIO
 from pathlib import Path
-from typing import NamedTuple, Optional, Tuple
+from typing import NamedTuple, Tuple
 
 
 class GlyphMapping(NamedTuple):
@@ -23,14 +23,20 @@ class GlyphMapping(NamedTuple):
     codepoints: Tuple[int, ...]
     glyph_name: str
 
-    def csv_line(self):
-        cp_str = ""
+    def csv_line(self) -> str:
+        row = [self.input_file, self.glyph_name]
         if self.codepoints:
-            cp_str = codepoints.string(self.codepoints)
-        return f"{self.input_file}, {self.glyph_name}, {cp_str}"
+            row.extend(f"{c:04x}" for c in self.codepoints)
+        else:
+            row.append("")
+        # Use a csv.writer instead of ",".join() so we escape commas in file/glyph names
+        f = StringIO()
+        writer = csv.writer(f, lineterminator="")
+        writer.writerow(row)
+        return f.getvalue()
 
 
-def load_from(file):
+def load_from(file) -> Tuple[GlyphMapping]:
     results = []
     reader = csv.reader(file, skipinitialspace=True)
     for row in reader:
@@ -50,6 +56,6 @@ def load_from(file):
     return tuple(results)
 
 
-def parse_csv(filename):
+def parse_csv(filename) -> Tuple[GlyphMapping]:
     with open(filename) as f:
         return load_from(f)

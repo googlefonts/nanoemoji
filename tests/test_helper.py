@@ -16,6 +16,8 @@ import difflib
 import io
 import os
 import re
+import shutil
+import subprocess
 import sys
 from lxml import etree
 from fontTools import ttLib
@@ -45,6 +47,26 @@ def parse_svg(filename, locate=False, topicosvg=True):
     return svg.topicosvg(inplace=True) if topicosvg else svg
 
 
+def rasterize_svg(filename, bitmap_resolution):
+    resvg = shutil.which("resvg")
+    if not resvg:
+        pytest.skip("resvg not installed")
+    with tempfile.TemporaryDirectory(prefix="nanoemoji-resvg-") as tmpdir:
+        output_file = Path(tmpdir) / Path(filename).with_suffix(".png").name
+        result = subprocess.run(
+            [
+                resvg,
+                "-h",
+                f"{bitmap_resolution}",
+                "-w",
+                f"{bitmap_resolution}",
+                filename,
+                output_file,
+            ]
+        )
+        return output_file.read_bytes()
+
+
 def color_font_config(config_overrides, svgs, tmp_dir=None):
     if tmp_dir is None:
         tmp_dir = tempfile.gettempdir()
@@ -54,14 +76,7 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
     with open(fea_file, "w") as f:
         f.write(features.generate_fea(rgi_seqs))
 
-    topicosvg = (
-        False
-        if "color_format" in config_overrides
-        and config_overrides["color_format"].startswith("untouchedsvg")
-        else True
-    )
-
-    return (
+    font_config = (
         config.load(config_file=None, additional_srcs=svgs)
         ._replace(
             family="UnitTest",
@@ -72,13 +87,24 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
             keep_glyph_names=True,
             fea_file=fea_file,
         )
-        ._replace(**config_overrides),
+        ._replace(**config_overrides)
+    )
+
+    topicosvg = True if font_config.has_picosvgs else False
+
+    return (
+        font_config,
         [
             write_font.InputGlyph(
-                os.path.relpath(svg),
+                (os.path.relpath(svg),),
                 (0xE000 + idx,),
                 glyph_name((0xE000 + idx,)),
                 parse_svg(svg, topicosvg=topicosvg),
+                bitmap=(
+                    rasterize_svg(svg, font_config.bitmap_resolution)
+                    if font_config.has_bitmaps
+                    else None
+                ),
             )
             for idx, svg in enumerate(svgs)
         ],

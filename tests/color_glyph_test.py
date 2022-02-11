@@ -123,7 +123,13 @@ def test_transform_and_width(
     ).validate()
     ufo = _ufo(config)
     color_glyph = ColorGlyph.create(
-        config, ufo, "duck", 1, "glyph_name", [0x0042], SVG.fromstring(svg_str)
+        config,
+        ufo,
+        ("duck",),
+        1,
+        "glyph_name",
+        [0x0042],
+        SVG.fromstring(svg_str),
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
@@ -467,7 +473,7 @@ def _round_coords(paint, prec=5):
 def test_color_glyph_layers(svg_in, expected_paints):
     config = FontConfig(upem=1000, ascender=1000, descender=0, width=1000)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config), "duck", 1, "g_name", [0x0042], _nsvg(svg_in)
+        config, _ufo(config), ("duck",), 1, "g_name", [0x0042], _nsvg(svg_in)
     ).mutating_traverse(_round_coords)
 
     actual_paints = color_glyph.painted_layers

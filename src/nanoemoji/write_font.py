@@ -21,6 +21,7 @@ from absl import logging
 from collections import Counter
 import csv
 import dataclasses
+import enum
 import math
 from fontTools import ttLib
 from fontTools.misc.arrayTools import rectArea, normRect, unionRect
@@ -85,12 +86,13 @@ flags.DEFINE_string("config_file", None, "Config filename.")
 flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
 
 
-# A GlyphMapping plus an SVG, typically a picosvg
+# A GlyphMapping plus an SVG, typically a picosvg, and/or a PNG
 class InputGlyph(NamedTuple):
-    input_file: Path
+    filenames: Tuple[str]  # .svg and/or .png filenames, for debugging purposes
     codepoints: Tuple[int, ...]
     glyph_name: str
-    svg: Optional[SVG]  # except for bitmap formats
+    svg: Optional[SVG]  # None for bitmap formats
+    bitmap: Optional[bytes]  # None for vector formats
 
 
 # A color font generator.
@@ -712,11 +714,12 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(
             config,
             ufo,
-            str(glyph_input.input_file),
+            glyph_input.filenames,
             base_gid + idx,
             glyph_input.glyph_name,
             glyph_input.codepoints,
             glyph_input.svg,
+            glyph_input.bitmap,
         )
         for idx, glyph_input in enumerate(inputs)
     )
@@ -745,18 +748,51 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     return ufo, ttfont
 
 
+class InputFileSuffix(enum.Enum):
+    SVG = ".svg"
+    PNG = ".png"
+
+
 def _inputs(
     font_config: FontConfig,
     glyph_mappings: Sequence[GlyphMapping],
+    argv: Sequence[str],
 ) -> Generator[InputGlyph, None, None]:
-    for g in glyph_mappings:
-        picosvg = None
+    # group .svg and/or .png files with the same filename stem
+    files_by_stem = {}
+    index = {InputFileSuffix.SVG: 0, InputFileSuffix.PNG: 1}
+    for filename in argv:
+        input_file = Path(filename)
+        suffix = InputFileSuffix(input_file.suffix)
+        i = index[suffix]
+        files_by_stem.setdefault(input_file.stem, [None, None])[i] = input_file
+
+    # match inputs with respective glyph mappings by their file stem
+    glyph_mappings_by_stem = {g.input_file.stem: g for g in glyph_mappings}
+    for file_stem, (svg_file, png_file) in files_by_stem.items():
+        g = glyph_mappings_by_stem[file_stem]
+        svg = None
         if font_config.has_svgs:
+            if svg_file is None:
+                raise ValueError(f"No {file_stem}.svg among inputs")
             try:
-                picosvg = SVG.parse(str(g.input_file))
+                svg = SVG.parse(str(svg_file))
             except etree.ParseError as e:
-                raise IOError(f"Unable to parse {g.input_file}") from e
-        yield InputGlyph(g.input_file, g.codepoints, g.glyph_name, picosvg)
+                raise IOError(f"Unable to parse {svg_file}") from e
+
+        bitmap = None
+        if font_config.has_bitmaps:
+            if png_file is None:
+                raise ValueError(f"No {file_stem}.png among inputs")
+            bitmap = png_file.read_bytes()
+
+        filenames = []
+        if svg_file is not None:
+            filenames.append(str(svg_file))
+        if png_file is not None:
+            filenames.append(str(png_file))
+
+        yield InputGlyph(tuple(filenames), g.codepoints, g.glyph_name, svg, bitmap)
 
 
 def main(argv):
@@ -767,7 +803,13 @@ def main(argv):
     if len(font_config.masters) != 1:
         raise ValueError("write_font expects only one master")
 
-    inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
+    inputs = list(
+        _inputs(
+            font_config,
+            glyphmap.parse_csv(FLAGS.glyphmap_file),
+            util.expand_ninja_response_files(argv[1:]),
+        )
+    )
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(font_config, inputs)

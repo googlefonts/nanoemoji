@@ -15,7 +15,7 @@
 """Default glyphmap writer. Writes rows like:
 
 
-picosvg/regular/clipped/emoji_u270d_1f3fb.svg, "270d,1f3fb", g_270d_1f3fb
+../noto-emoji/svg/emoji_u270d_1f3fb.svg, g_270d_1f3fb, "270d,1f3fb"
 
 """
 
@@ -28,15 +28,15 @@ from nanoemoji import codepoints
 from nanoemoji import features
 from nanoemoji import util
 from pathlib import Path
-from typing import Sequence, Tuple
+from typing import Iterator, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def _glyphmappings(input_files: Sequence[str]) -> Tuple[GlyphMapping]:
-    return tuple(
+def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
+    yield from (
         GlyphMapping(Path(input_file), cps, glyph_name(cps))
         for input_file, cps in zip(
             input_files,
@@ -49,7 +49,7 @@ def main(argv):
     input_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
         for gm in _glyphmappings(input_files):
-            # filename, codepoint(s), glyph name
+            # filename(s), glyph_name, codepoint(s)
             print(gm.csv_line())
 
 

@@ -99,11 +99,6 @@ def _advance(ttfont: ttLib.TTFont, color_glyphs: Sequence[ColorGlyph]) -> int:
     return next(iter(advances))
 
 
-def _image_bytes(color_glyph: ColorGlyph) -> bytes:
-    with open(color_glyph.filename, "rb") as f:
-        return f.read()
-
-
 def _cbdt_record_size(image_format: int, image_data: bytes) -> int:
     assert image_format == _CBDT_SMALL_METRIC_PNGS, "Unrecognized format"
     return _CBDT_SMALL_METRIC_PNG_HEADER_SIZE + len(image_data)
@@ -117,7 +112,7 @@ def _cbdt_bitmapdata_offsets(
     offset = _CBDT_HEADER_SIZE
     for color_glyph in color_glyphs:
         offsets.append(offset)
-        offset += _cbdt_record_size(image_format, _image_bytes(color_glyph))
+        offset += _cbdt_record_size(image_format, color_glyph.bitmap)
     offsets.append(offset)  # capture end of stream
     return list(zip(offsets, offsets[1:]))
 
@@ -158,7 +153,7 @@ def make_sbix_table(
 
     for color_glyph in color_glyphs:
         # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
-        image_data = _image_bytes(color_glyph)
+        image_data = color_glyph.bitmap
 
         glyph_name = ttfont.getGlyphName(color_glyph.glyph_id)
         glyph = SbixGlyph(
@@ -258,7 +253,7 @@ def make_cbdt_table(
     cbdt.strikeData = [
         {
             ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
-                config, metrics, _image_bytes(c)
+                config, metrics, c.bitmap
             )
             for c in color_glyphs
         }

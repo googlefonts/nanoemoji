@@ -16,6 +16,7 @@ from nanoemoji import config
 from pathlib import Path
 import pytest
 from test_helper import test_data_dir, locate_test_file
+import shutil
 import tempfile
 from typing import Iterable
 
@@ -32,15 +33,17 @@ def test_read_write_config(config_file):
     tmp_dir = Path(tempfile.mkdtemp())
     if config_file:
         config_file = locate_test_file(config_file)
-        tmp_dir = tmp_dir / config_file.name
+        tmp_config = tmp_dir / config_file.name
     else:
-        tmp_dir = tmp_dir / "the_default.toml"
+        tmp_config = tmp_dir / "the_default.toml"
 
     original = config.load(config_file)
-    config.write(tmp_dir, original)
-    reloaded = config.load(tmp_dir)
+    config.write(tmp_config, original)
+    reloaded = config.load(tmp_config)
 
     assert original == reloaded
+
+    shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 @pytest.mark.parametrize(
