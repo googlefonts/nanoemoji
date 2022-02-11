@@ -710,9 +710,8 @@ def _rawsvg_docs(
     doc_list = []
     for color_glyph in color_glyphs:
         svg = (
-            SVG.parse(color_glyph.filename)
             # all the scaling and positioning happens in "transform" below
-            .remove_attributes(("width", "height", "viewBox"), inplace=True)
+            color_glyph.svg.remove_attributes(("width", "height", "viewBox"))
             # Firefox likes to render blank if present
             .remove_attributes(("enable-background",), inplace=True)
         )
