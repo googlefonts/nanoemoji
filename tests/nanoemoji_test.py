@@ -21,6 +21,7 @@ from nanoemoji import config
 import os
 from pathlib import Path
 from picosvg.svg import SVG
+from picosvg.svg_transform import Affine2D
 import pytest
 import shutil
 import subprocess
@@ -33,6 +34,10 @@ def _svg_element_names(xpath, svg_content):
         etree.QName(e).localname
         for e in SVG.fromstring(svg_content).xpath(xpath.replace("/", "/svg:"))
     )
+
+
+def _svg_element_attributes(xpath, svg_content):
+    return SVG.fromstring(svg_content).xpath_one(xpath.replace("/", "/svg:")).attrib
 
 
 def _run(cmd, tmp_dir=None):
@@ -131,6 +136,11 @@ def test_build_untouchedsvg_font():
         "rect",
         "ellipse",
     ), svg_content
+    # transform OT-SVG=>UPEM is not identity
+    g_attrs = _svg_element_attributes("/svg/g", svg_content)
+    assert "transform" in g_attrs
+    transform = Affine2D.fromstring(g_attrs["transform"])
+    assert transform != Affine2D.identity(), transform
 
 
 def test_the_curious_case_of_the_parentless_reused_el():

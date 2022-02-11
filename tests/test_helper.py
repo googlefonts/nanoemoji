@@ -38,10 +38,11 @@ def locate_test_file(filename) -> Path:
     return test_data_dir() / filename
 
 
-def picosvg(filename, locate=False):
+def parse_svg(filename, locate=False, topicosvg=True):
     if locate:
         filename = locate_test_file(filename)
-    return SVG.parse(filename).topicosvg()
+    svg = SVG.parse(filename)
+    return svg.topicosvg(inplace=True) if topicosvg else svg
 
 
 def color_font_config(config_overrides, svgs, tmp_dir=None):
@@ -52,6 +53,13 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
     rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
     with open(fea_file, "w") as f:
         f.write(features.generate_fea(rgi_seqs))
+
+    topicosvg = (
+        False
+        if "color_format" in config_overrides
+        and config_overrides["color_format"].startswith("untouchedsvg")
+        else True
+    )
 
     return (
         config.load(config_file=None, additional_srcs=svgs)
@@ -70,7 +78,7 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
                 os.path.relpath(svg),
                 (0xE000 + idx,),
                 glyph_name((0xE000 + idx,)),
-                picosvg(svg),
+                parse_svg(svg, topicosvg=topicosvg),
             )
             for idx, svg in enumerate(svgs)
         ],

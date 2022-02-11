@@ -15,6 +15,7 @@
 
 from nanoemoji import write_font
 from nanoemoji.config import _DEFAULT_CONFIG
+from nanoemoji.glyphmap import GlyphMapping
 from picosvg.svg_transform import Affine2D
 from ufo2ft.constants import COLR_CLIP_BOXES_KEY
 from fontTools.ttLib.tables import otTables as ot
@@ -480,3 +481,44 @@ class TestCurrentColor:
         assert shapes[0].fill == "currentColor"
         print(svg.tostring(pretty_print=True))
         assert shapes[0].opacity == expected_opacity
+
+
+@pytest.mark.parametrize(
+    "color_format, expected_has_svgs",
+    [
+        ("sbix", False),
+        ("cbdt", False),
+        ("glyf_colr_0", True),
+        ("glyf_colr_1", True),
+        ("cff_colr_0", True),
+        ("cff_colr_1", True),
+        ("cff2_colr_0", True),
+        ("cff2_colr_1", True),
+        ("picosvg", True),
+        ("picosvgz", True),
+        ("untouchedsvg", True),
+        ("untouchedsvgz", True),
+        ("glyf_colr_1_and_picosvg", True),
+        ("glyf_colr_1_and_picosvg_and_cbdt", True),
+    ],
+)
+def test_inputs_have_svg(color_format, expected_has_svgs):
+    # Check that inputs have their 'svg' attribute set to a parsed picosvg.SVG object
+    # for all the color formats that use that, including 'untouchedsvg'; only bitmap
+    # formats don't use that so their InputGlyph.svg attribute is None.
+    # https://github.com/googlefonts/nanoemoji/issues/378
+    glyph_mappings = [
+        GlyphMapping(test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
+        GlyphMapping(test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
+    ]
+    config = _DEFAULT_CONFIG._replace(color_format=color_format)
+
+    assert config.has_svgs is expected_has_svgs
+
+    inputs = list(write_font._inputs(config, glyph_mappings))
+
+    assert [g[:3] for g in inputs] == [
+        (test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
+        (test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
+    ]
+    assert all((g.svg is not None) is expected_has_svgs for g in inputs)

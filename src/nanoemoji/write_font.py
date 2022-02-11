@@ -90,7 +90,7 @@ class InputGlyph(NamedTuple):
     input_file: Path
     codepoints: Tuple[int, ...]
     glyph_name: str
-    svg: Optional[SVG]  # picosvg except for untouched and bitmap formats
+    svg: Optional[SVG]  # except for bitmap formats
 
 
 # A color font generator.
@@ -751,7 +751,7 @@ def _inputs(
 ) -> Generator[InputGlyph, None, None]:
     for g in glyph_mappings:
         picosvg = None
-        if font_config.has_picosvgs:
+        if font_config.has_svgs:
             try:
                 picosvg = SVG.parse(str(g.input_file))
             except etree.ParseError as e:
