@@ -31,6 +31,7 @@ from nanoemoji.paint import (
     PaintRadialGradient,
     PaintSolid,
 )
+from nanoemoji.png import PNG
 from picosvg.geometric_types import Point, Rect
 from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
@@ -402,7 +403,7 @@ class ColorGlyph(NamedTuple):
     painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched and bitmap formats
     svg: Optional[SVG]  # None for bitmap formats
     user_transform: Affine2D
-    bitmap: Optional[bytes]  # None for vector formats
+    bitmap: Optional[PNG]  # None for vector formats
 
     @staticmethod
     def create(
@@ -413,7 +414,7 @@ class ColorGlyph(NamedTuple):
         ufo_glyph_name: str,
         codepoints: Tuple[int, ...],
         svg: Optional[SVG],
-        bitmap: Optional[bytes] = None,
+        bitmap: Optional[PNG] = None,
     ) -> "ColorGlyph":
         logging.debug(" ColorGlyph for %s (%s)", ", ".join(filenames), codepoints)
         base_glyph = ufo.newGlyph(ufo_glyph_name)

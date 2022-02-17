@@ -51,6 +51,7 @@ from nanoemoji.paint import (
     PaintGlyph,
     PaintSolid,
 )
+from nanoemoji.png import PNG
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -92,7 +93,7 @@ class InputGlyph(NamedTuple):
     codepoints: Tuple[int, ...]
     glyph_name: str
     svg: Optional[SVG]  # None for bitmap formats
-    bitmap: Optional[bytes]  # None for vector formats
+    bitmap: Optional[PNG]  # None for vector formats
 
 
 # A color font generator.
@@ -784,7 +785,7 @@ def _inputs(
         if font_config.has_bitmaps:
             if png_file is None:
                 raise ValueError(f"No {file_stem}.png among inputs")
-            bitmap = png_file.read_bytes()
+            bitmap = PNG(png_file.read_bytes())
 
         filenames = []
         if svg_file is not None:

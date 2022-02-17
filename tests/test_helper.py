@@ -26,6 +26,7 @@ from nanoemoji import config
 from nanoemoji import features
 from nanoemoji.glyph import glyph_name
 from nanoemoji import write_font
+from nanoemoji.png import PNG
 from pathlib import Path
 from picosvg.svg import SVG
 import pytest
@@ -64,7 +65,7 @@ def rasterize_svg(filename, bitmap_resolution):
                 output_file,
             ]
         )
-        return output_file.read_bytes()
+        return PNG(output_file.read_bytes())
 
 
 def color_font_config(config_overrides, svgs, tmp_dir=None):
