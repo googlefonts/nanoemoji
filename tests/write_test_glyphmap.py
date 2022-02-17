@@ -21,31 +21,31 @@ from absl import app
 from absl import flags
 from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import codepoints
-from nanoemoji import features
 from nanoemoji import util
 from pathlib import Path
-from typing import Sequence, Tuple
+from typing import Iterator, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def _glyphmappings(svg_files: Sequence[str]) -> Tuple[GlyphMapping]:
-    result = []
-    for idx, (svg_file, cps) in enumerate(
-        zip(svg_files, tuple(codepoints.from_filename(Path(f).name) for f in svg_files))
-    ):
-        if idx % 2 == 1:
-            cps = ()
-        result.append(GlyphMapping(Path(svg_file), cps, f"custom_name_{idx}"))
-    return tuple(result)
+def _glyphmappings(source_names: Sequence[str]) -> Iterator[GlyphMapping]:
+    yield from (
+        GlyphMapping(source_stem, () if idx % 2 == 1 else cps, f"custom_name_{idx}")
+        for idx, (source_stem, cps) in enumerate(
+            zip(
+                (Path(name).stem for name in source_names),
+                (codepoints.from_filename(name) for name in source_names),
+            )
+        )
+    )
 
 
 def main(argv):
-    svg_files = util.expand_ninja_response_files(argv[1:])
+    source_names = Path(argv[1]).read_text().splitlines()
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(svg_files):
+        for gm in _glyphmappings(source_names):
             # filename, glyph_name, codepoint(s)
             print(gm.csv_line())
 

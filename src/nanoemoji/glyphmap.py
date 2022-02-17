@@ -19,12 +19,12 @@ from typing import NamedTuple, Tuple
 
 
 class GlyphMapping(NamedTuple):
-    input_file: Path
+    source_stem: str  # source filename w/o suffix, i.e. Path(source_file).stem
     codepoints: Tuple[int, ...]
     glyph_name: str
 
     def csv_line(self) -> str:
-        row = [self.input_file, self.glyph_name]
+        row = [self.source_stem, self.glyph_name]
         if self.codepoints:
             row.extend(f"{c:04x}" for c in self.codepoints)
         else:
@@ -41,17 +41,15 @@ def load_from(file) -> Tuple[GlyphMapping]:
     reader = csv.reader(file, skipinitialspace=True)
     for row in reader:
         try:
-            input_file, glyph_name, *cps = row
+            source_stem, glyph_name, *cps = row
         except ValueError as e:
             raise ValueError(f"Error parsing {row} from {file}") from e
-
-        input_file = Path(input_file)
 
         if cps and cps != [""]:
             cps = tuple(int(cp, 16) for cp in cps)
         else:
             cps = ()
-        results.append(GlyphMapping(input_file, cps, glyph_name))
+        results.append(GlyphMapping(source_stem, cps, glyph_name))
 
     return tuple(results)
 

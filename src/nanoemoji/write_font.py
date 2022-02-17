@@ -769,7 +769,7 @@ def _inputs(
         files_by_stem.setdefault(input_file.stem, [None, None])[i] = input_file
 
     # match inputs with respective glyph mappings by their file stem
-    glyph_mappings_by_stem = {g.input_file.stem: g for g in glyph_mappings}
+    glyph_mappings_by_stem = {g.source_stem: g for g in glyph_mappings}
     for file_stem, (svg_file, png_file) in files_by_stem.items():
         g = glyph_mappings_by_stem[file_stem]
         svg = None

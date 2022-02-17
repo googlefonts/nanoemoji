@@ -528,27 +528,26 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
     glyph_mappings = []
     argv = []
     for i, svg_file in enumerate(("rect.svg", "rect2.svg")):
-        svg_file = test_helper.locate_test_file(svg_file)
-        svg_file2 = Path(shutil.copy(svg_file, tmp_path))
+        svg_file = Path(shutil.copy(test_helper.locate_test_file(svg_file), tmp_path))
 
         if expected_input_format & InputFormat.SVG:
-            argv.append(str(svg_file2))
+            argv.append(str(svg_file))
 
         if expected_input_format & InputFormat.PNG:
-            png_file = svg_file2.with_suffix(".png")
+            png_file = svg_file.with_suffix(".png")
             png_file.write_bytes(
-                test_helper.rasterize_svg(svg_file2, config.bitmap_resolution)
+                test_helper.rasterize_svg(svg_file, config.bitmap_resolution)
             )
             argv.append(str(png_file))
 
-        glyph_mappings.append(GlyphMapping(svg_file, (cp + i,), f"uni{i:04X}"))
+        glyph_mappings.append(GlyphMapping(svg_file.stem, (cp + i,), f"uni{i:04X}"))
 
     inputs = list(write_font._inputs(config, glyph_mappings, argv))
 
     for ginp, gmap in zip(inputs, glyph_mappings):
         file_stems = {Path(f).stem for f in ginp.filenames}
         assert len(file_stems) == 1
-        assert next(iter(file_stems)) == gmap.input_file.stem
+        assert next(iter(file_stems)) == gmap.source_stem
         assert len(ginp.filenames) == (
             2 if expected_input_format == InputFormat.SVG | InputFormat.PNG else 1
         )

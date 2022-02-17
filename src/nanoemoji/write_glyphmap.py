@@ -15,7 +15,7 @@
 """Default glyphmap writer. Writes rows like:
 
 
-../noto-emoji/svg/emoji_u270d_1f3fb.svg, g_270d_1f3fb, "270d,1f3fb"
+emoji_u270d_1f3fb, g_270d_1f3fb, "270d,1f3fb"
 
 """
 
@@ -35,20 +35,20 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
+def _glyphmappings(source_names: Sequence[str]) -> Iterator[GlyphMapping]:
     yield from (
-        GlyphMapping(Path(input_file), cps, glyph_name(cps))
-        for input_file, cps in zip(
-            input_files,
-            tuple(codepoints.from_filename(Path(f).name) for f in input_files),
+        GlyphMapping(source_stem, cps, glyph_name(cps))
+        for source_stem, cps in zip(
+            (Path(name).stem for name in source_names),
+            (codepoints.from_filename(name) for name in source_names),
         )
     )
 
 
 def main(argv):
-    input_files = util.expand_ninja_response_files(argv[1:])
+    source_names = Path(argv[1]).read_text().splitlines()
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(input_files):
+        for gm in _glyphmappings(source_names):
             # filename(s), glyph_name, codepoint(s)
             print(gm.csv_line())
 
