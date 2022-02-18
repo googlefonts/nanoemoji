@@ -56,6 +56,7 @@ from nanoemoji import util
 import os
 from pathlib import Path
 import ufoLib2
+from ufo2ft.outlineCompiler import StubGlyph
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
@@ -210,6 +211,10 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     space.width = config.width
     ufo.glyphOrder = [".notdef", ".space"]
 
+    # Always the .notdef outline, even for things like a pure SVG font
+    # This decreases the odds of triggering https://github.com/khaledhosny/ots/issues/52
+    _draw_notdef(config, ufo)
+
     # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
     ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = config.keep_glyph_names
 
@@ -361,6 +366,22 @@ def _draw_glyph_extents(
     pen.endPath()
 
     return glyph
+
+
+def _draw_notdef(config: FontConfig, ufo: ufoLib2.Font):
+    # A StubGlyph named .notdef provides a nice drawing of a notdef
+    notdefArtist = StubGlyph(
+        ".notdef",
+        config.width,
+        config.upem,
+        config.ascender,
+        config.descender,
+    )
+
+    # UFO doesn't like just sticking StubGlyph directly in place
+    glyph = ufo[".notdef"]
+    glyph.width = notdefArtist.width
+    notdefArtist.draw(glyph.getPen())
 
 
 def _glyf_ufo(
