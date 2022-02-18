@@ -19,6 +19,7 @@ try:
 except ImportError:
     import importlib_resources as resources  # pytype: disable=import-error
 
+import itertools
 from pathlib import Path
 from picosvg.svg_transform import Affine2D
 import toml
@@ -163,23 +164,39 @@ class FontConfig(NamedTuple):
     masters: Tuple[MasterConfig, ...] = ()
     source_names: Tuple[str, ...] = ()
 
+    def _has_any(self, *color_formats) -> bool:
+        return bool(set(color_formats).intersection(self.color_format.split("_")))
+
     @property
     def output_format(self):
         return Path(self.output_file).suffix
 
     @property
-    def has_bitmaps(self):
-        return self.color_format.startswith("sbix") or self.color_format.startswith(
-            "cbdt"
+    def has_bitmaps(self) -> bool:
+        return self._has_any("sbix", "cbdt")
+
+    @property
+    def has_picosvgs(self) -> bool:
+        return self._has_any("glyf", "colr", "picosvg", "picosvgz")
+
+    @property
+    def has_untouchedsvgs(self) -> bool:
+        return self._has_any("untouchedsvg", "untouchedsvgz")
+
+    @property
+    def has_svgs(self) -> bool:
+        return self.has_picosvgs or self.has_untouchedsvgs
+
+    @property
+    def is_vf(self) -> bool:
+        return len(self.masters) > 1
+
+    @property
+    def is_ot_svg(self) -> bool:
+        return self._has_any(
+            "".join(p)
+            for p in itertools.product(("picosvg", "untouchedsvg"), ("", "z"))
         )
-
-    @property
-    def has_picosvgs(self):
-        return not (self.color_format.startswith("untouchedsvg") or self.has_bitmaps)
-
-    @property
-    def has_svgs(self):
-        return not self.has_bitmaps
 
     def validate(self):
         for attr_name in (
@@ -199,6 +216,15 @@ class FontConfig(NamedTuple):
 
         if self.clipbox_quantization is not None and self.clipbox_quantization < 1:
             raise ValueError("If set, 'clipbox_quantization' must be 1 or positive")
+
+        # sanity check
+        assert self.has_svgs or self.has_bitmaps
+
+        if self.is_vf:
+            if self.has_bitmaps:
+                raise ValueError("bitmap formats cannot have multiple masters")
+            if self.is_ot_svg:
+                raise ValueError("OT-SVG formats cannot have multiple masters")
 
         return self
 

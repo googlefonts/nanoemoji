@@ -13,6 +13,10 @@
 # limitations under the License.
 
 
+import dataclasses
+import enum
+import shutil
+from pathlib import Path
 from nanoemoji import write_font
 from nanoemoji.config import _DEFAULT_CONFIG
 from nanoemoji.glyphmap import GlyphMapping
@@ -483,42 +487,80 @@ class TestCurrentColor:
         assert shapes[0].opacity == expected_opacity
 
 
+class InputFormat(enum.Flag):
+    SVG = enum.auto()
+    PNG = enum.auto()
+
+
 @pytest.mark.parametrize(
-    "color_format, expected_has_svgs",
+    "color_format, expected_input_format",
     [
-        ("sbix", False),
-        ("cbdt", False),
-        ("glyf_colr_0", True),
-        ("glyf_colr_1", True),
-        ("cff_colr_0", True),
-        ("cff_colr_1", True),
-        ("cff2_colr_0", True),
-        ("cff2_colr_1", True),
-        ("picosvg", True),
-        ("picosvgz", True),
-        ("untouchedsvg", True),
-        ("untouchedsvgz", True),
-        ("glyf_colr_1_and_picosvg", True),
-        ("glyf_colr_1_and_picosvg_and_cbdt", True),
+        ("sbix", InputFormat.PNG),
+        ("cbdt", InputFormat.PNG),
+        ("glyf_colr_0", InputFormat.SVG),
+        ("glyf_colr_1", InputFormat.SVG),
+        ("cff_colr_0", InputFormat.SVG),
+        ("cff_colr_1", InputFormat.SVG),
+        ("cff2_colr_0", InputFormat.SVG),
+        ("cff2_colr_1", InputFormat.SVG),
+        ("picosvg", InputFormat.SVG),
+        ("picosvgz", InputFormat.SVG),
+        ("untouchedsvg", InputFormat.SVG),
+        ("untouchedsvgz", InputFormat.SVG),
+        ("glyf_colr_1_and_picosvg", InputFormat.SVG),
+        ("glyf_colr_1_and_picosvg_and_cbdt", InputFormat.SVG | InputFormat.PNG),
     ],
 )
-def test_inputs_have_svg(color_format, expected_has_svgs):
+def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_format):
     # Check that inputs have their 'svg' attribute set to a parsed picosvg.SVG object
     # for all the color formats that use that, including 'untouchedsvg'; only bitmap
     # formats don't use that so their InputGlyph.svg attribute is None.
     # https://github.com/googlefonts/nanoemoji/issues/378
-    glyph_mappings = [
-        GlyphMapping(test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
-        GlyphMapping(test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
-    ]
+    # Also check that inputs have their 'bitmap' attribute set to the PNG bytes for
+    # all the color formats that include that, including hybrid vector+bitmap formats
+    # e.g. `glyf_colr_1_and_picosvg_and_cbdt`.
+    expected_has_svgs = bool(expected_input_format & InputFormat.SVG)
+    expected_has_bitmaps = bool(expected_input_format & InputFormat.PNG)
+
     config = _DEFAULT_CONFIG._replace(color_format=color_format)
 
     assert config.has_svgs is expected_has_svgs
+    assert config.has_bitmaps is expected_has_bitmaps
+
+    cp = 0xE001
+    glyph_mappings = []
+    for i, svg_file in enumerate(("rect.svg", "rect2.svg")):
+        svg_file = Path(shutil.copy(test_helper.locate_test_file(svg_file), tmp_path))
+
+        bitmap_file = None
+        if expected_input_format & InputFormat.PNG:
+            bitmap_file = svg_file.with_suffix(".png")
+            test_helper.rasterize_svg(svg_file, bitmap_file, config.bitmap_resolution)
+
+        if not expected_input_format & InputFormat.SVG:
+            svg_file = None
+
+        glyph_mappings.append(
+            GlyphMapping(svg_file, bitmap_file, (cp + i,), f"uni{i:04X}")
+        )
 
     inputs = list(write_font._inputs(config, glyph_mappings))
 
-    assert [g[:3] for g in inputs] == [
-        (test_helper.locate_test_file("rect.svg"), (0xE001,), "uniE001"),
-        (test_helper.locate_test_file("rect2.svg"), (0xE002,), "uniE002"),
-    ]
-    assert all((g.svg is not None) is expected_has_svgs for g in inputs)
+    for ginp, gmap in zip(inputs, glyph_mappings):
+        assert ginp[:4] == dataclasses.astuple(gmap)
+        assert ginp.glyph_name == gmap.glyph_name
+        assert ginp.codepoints == gmap.codepoints
+
+    if expected_has_svgs:
+        assert all(isinstance(g.svg_file, Path) for g in inputs)
+        assert all(isinstance(g.svg, SVG) for g in inputs)
+    else:
+        assert all(g.svg_file is None for g in inputs)
+        assert all(g.svg is None for g in inputs)
+
+    if expected_has_bitmaps:
+        assert all(isinstance(g.bitmap_file, Path) for g in inputs)
+        assert all(isinstance(g.bitmap, bytes) for g in inputs)
+    else:
+        assert all(g.bitmap_file is None for g in inputs)
+        assert all(g.bitmap is None for g in inputs)

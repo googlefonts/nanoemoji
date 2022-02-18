@@ -21,9 +21,11 @@ import io
 @pytest.mark.parametrize(
     "glyph_mapping",
     (
-        GlyphMapping(Path("duck/file.svg"), (), "q"),
-        GlyphMapping(Path("file.svg"), (0x32,), "q2"),
-        GlyphMapping(Path("duck/file.svg"), (0x123, 0x234), "g_123_234"),
+        GlyphMapping(Path("duck/file.svg"), None, (), "q"),
+        GlyphMapping(Path("file.svg"), None, (0x32,), "q2"),
+        GlyphMapping(Path("duck/file.svg"), None, (0x123, 0x234), "g_123_234"),
+        # this name contains a comma, we check that csv.writer correctly escapes it
+        GlyphMapping(Path("foo/bar,baz.svg"), None, (0x0041,), "g_41"),
     ),
 )
 def test_glyphmap_round_trip(glyph_mapping):

@@ -11,7 +11,7 @@
   <hmtx>
     <mtx name=".notdef" width="100" lsb="5"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="110" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
   </hmtx>
 
   <cmap>
@@ -65,7 +65,7 @@
           <height value="128"/>
           <width value="128"/>
           <BearingX value="0"/>
-          <BearingY value="100"/>
+          <BearingY value="104"/>
           <Advance value="116"/>
         </SmallGlyphMetrics>
         <extfileimagedata value="e000.png"/>
@@ -78,8 +78,8 @@
     <strike index="0">
       <bitmapSizeTable>
         <sbitLineMetrics direction="hori">
-          <ascender value="94"/>
-          <descender value="-22"/>
+          <ascender value="104"/>
+          <descender value="-24"/>
           <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
@@ -92,8 +92,8 @@
           <pad2 value="0"/>
         </sbitLineMetrics>
         <sbitLineMetrics direction="vert">
-          <ascender value="94"/>
-          <descender value="-22"/>
+          <ascender value="104"/>
+          <descender value="-24"/>
           <widthMax value="116"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
@@ -108,8 +108,8 @@
         <colorRef value="0"/>
         <startGlyphIndex value="2"/>
         <endGlyphIndex value="2"/>
-        <ppemX value="105"/>
-        <ppemY value="105"/>
+        <ppemX value="116"/>
+        <ppemY value="116"/>
         <bitDepth value="32"/>
         <flags value="1"/>
       </bitmapSizeTable>

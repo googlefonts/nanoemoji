@@ -21,6 +21,7 @@ from absl import logging
 from collections import Counter
 import csv
 import dataclasses
+import enum
 import math
 from fontTools import ttLib
 from fontTools.misc.arrayTools import rectArea, normRect, unionRect
@@ -50,6 +51,7 @@ from nanoemoji.paint import (
     PaintGlyph,
     PaintSolid,
 )
+from nanoemoji.png import PNG
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
 from nanoemoji import util
@@ -86,12 +88,14 @@ flags.DEFINE_string("config_file", None, "Config filename.")
 flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
 
 
-# A GlyphMapping plus an SVG, typically a picosvg
+# A GlyphMapping plus an SVG, typically a picosvg, and/or a PNG
 class InputGlyph(NamedTuple):
-    input_file: Path
+    svg_file: Optional[Path]  # either filenames can be omitted, mostly for debugging
+    bitmap_file: Optional[Path]
     codepoints: Tuple[int, ...]
     glyph_name: str
-    svg: Optional[SVG]  # except for bitmap formats
+    svg: Optional[SVG]  # None for bitmap formats
+    bitmap: Optional[PNG]  # None for vector formats
 
 
 # A color font generator.
@@ -733,11 +737,13 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(
             config,
             ufo,
-            str(glyph_input.input_file),
+            str(glyph_input.svg_file) if glyph_input.svg_file else "",
             base_gid + idx,
             glyph_input.glyph_name,
             glyph_input.codepoints,
             glyph_input.svg,
+            str(glyph_input.bitmap_file) if glyph_input.bitmap_file else "",
+            glyph_input.bitmap,
         )
         for idx, glyph_input in enumerate(inputs)
     )
@@ -773,11 +779,27 @@ def _inputs(
     for g in glyph_mappings:
         picosvg = None
         if font_config.has_svgs:
+            if not g.svg_file:
+                raise ValueError(f"No svg file for glyph {g.glyph_name}")
             try:
-                picosvg = SVG.parse(str(g.input_file))
+                picosvg = SVG.parse(g.svg_file)
             except etree.ParseError as e:
-                raise IOError(f"Unable to parse {g.input_file}") from e
-        yield InputGlyph(g.input_file, g.codepoints, g.glyph_name, picosvg)
+                raise IOError(f"Unable to parse {g.svg_file}") from e
+
+        bitmap = None
+        if font_config.has_bitmaps:
+            if not g.bitmap_file:
+                raise ValueError(f"No bitmap file for glyph {g.glyph_name}")
+            bitmap = PNG.read_from(g.bitmap_file)
+
+        yield InputGlyph(
+            g.svg_file,
+            g.bitmap_file,
+            g.codepoints,
+            g.glyph_name,
+            picosvg,
+            bitmap,
+        )
 
 
 def main(argv):
@@ -789,6 +811,7 @@ def main(argv):
         raise ValueError("write_font expects only one master")
 
     inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
+
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(font_config, inputs)
@@ -797,4 +820,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    flags.mark_flag_as_required("glyphmap_file")
     app.run(main)
