@@ -434,7 +434,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
 
     view_box = color_glyph.svg.view_box()
     if view_box is None:
-        raise ValueError(f"{color_glyph.filenames[0]} must declare view box")
+        raise ValueError(f"{color_glyph.svg_filename} must declare view box")
 
     # https://github.com/googlefonts/nanoemoji/issues/58: group needs transform
     svg_g.attrib["transform"] = _svg_matrix(color_glyph.transform_for_otsvg_space())

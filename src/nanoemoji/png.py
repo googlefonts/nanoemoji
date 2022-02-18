@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from pathlib import Path
+from typing import Union
+
 
 class PNG(bytes):
 
@@ -26,3 +30,7 @@ class PNG(bytes):
         if header != cls.SIGNATURE:
             raise ValueError("Invalid PNG file: bad signature {header!r}")
         return self
+
+    @classmethod
+    def read_from(cls, path: Union[str, os.PathLike]) -> "PNG":
+        return cls(Path(path).read_bytes())

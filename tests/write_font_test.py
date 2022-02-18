@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import dataclasses
 import enum
 import shutil
 from pathlib import Path
@@ -518,49 +519,48 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
     # Also check that inputs have their 'bitmap' attribute set to the PNG bytes for
     # all the color formats that include that, including hybrid vector+bitmap formats
     # e.g. `glyf_colr_1_and_picosvg_and_cbdt`.
+    expected_has_svgs = bool(expected_input_format & InputFormat.SVG)
+    expected_has_bitmaps = bool(expected_input_format & InputFormat.PNG)
 
     config = _DEFAULT_CONFIG._replace(color_format=color_format)
 
-    assert config.has_svgs is bool(expected_input_format & InputFormat.SVG)
-    assert config.has_bitmaps is bool(expected_input_format & InputFormat.PNG)
+    assert config.has_svgs is expected_has_svgs
+    assert config.has_bitmaps is expected_has_bitmaps
 
     cp = 0xE001
     glyph_mappings = []
-    argv = []
     for i, svg_file in enumerate(("rect.svg", "rect2.svg")):
         svg_file = Path(shutil.copy(test_helper.locate_test_file(svg_file), tmp_path))
 
-        if expected_input_format & InputFormat.SVG:
-            argv.append(str(svg_file))
-
+        bitmap_file = None
         if expected_input_format & InputFormat.PNG:
-            png_file = svg_file.with_suffix(".png")
-            png_file.write_bytes(
-                test_helper.rasterize_svg(svg_file, config.bitmap_resolution)
-            )
-            argv.append(str(png_file))
+            bitmap_file = svg_file.with_suffix(".png")
+            test_helper.rasterize_svg(svg_file, bitmap_file, config.bitmap_resolution)
 
-        glyph_mappings.append(GlyphMapping(svg_file.stem, (cp + i,), f"uni{i:04X}"))
+        if not expected_input_format & InputFormat.SVG:
+            svg_file = None
 
-    inputs = list(write_font._inputs(config, glyph_mappings, argv))
+        glyph_mappings.append(
+            GlyphMapping(svg_file, bitmap_file, (cp + i,), f"uni{i:04X}")
+        )
+
+    inputs = list(write_font._inputs(config, glyph_mappings))
 
     for ginp, gmap in zip(inputs, glyph_mappings):
-        file_stems = {Path(f).stem for f in ginp.filenames}
-        assert len(file_stems) == 1
-        assert next(iter(file_stems)) == gmap.source_stem
-        assert len(ginp.filenames) == (
-            2 if expected_input_format == InputFormat.SVG | InputFormat.PNG else 1
-        )
-        # the first filename is always .svg if there are any SVGs, otherwise it's .png
-        if expected_input_format & InputFormat.SVG:
-            assert Path(ginp.filenames[0]).suffix == ".svg"
-        else:
-            assert Path(ginp.filenames[0]).suffix == ".png"
-        # if there are both, then the second filename is the .png one
-        if expected_input_format == InputFormat.SVG | InputFormat.PNG:
-            assert Path(ginp.filenames[1]).suffix == ".png"
+        assert ginp[:4] == dataclasses.astuple(gmap)
         assert ginp.glyph_name == gmap.glyph_name
         assert ginp.codepoints == gmap.codepoints
 
-    assert all(isinstance(g.svg, SVG) is config.has_svgs for g in inputs)
-    assert all(isinstance(g.bitmap, bytes) is config.has_bitmaps for g in inputs)
+    if expected_has_svgs:
+        assert all(isinstance(g.svg_file, Path) for g in inputs)
+        assert all(isinstance(g.svg, SVG) for g in inputs)
+    else:
+        assert all(g.svg_file is None for g in inputs)
+        assert all(g.svg is None for g in inputs)
+
+    if expected_has_bitmaps:
+        assert all(isinstance(g.bitmap_file, Path) for g in inputs)
+        assert all(isinstance(g.bitmap, bytes) for g in inputs)
+    else:
+        assert all(g.bitmap_file is None for g in inputs)
+        assert all(g.bitmap is None for g in inputs)

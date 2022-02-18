@@ -396,7 +396,8 @@ def _mutating_traverse(paint, mutator):
 
 class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
-    filenames: Tuple[str]
+    svg_filename: str  # empty string means no svg or bitmap filenames
+    bitmap_filename: str
     ufo_glyph_name: str  # only if config has keep_glyph_names will this match in font binary
     glyph_id: int
     codepoints: Tuple[int, ...]
@@ -409,14 +410,17 @@ class ColorGlyph(NamedTuple):
     def create(
         font_config: FontConfig,
         ufo: ufoLib2.Font,
-        filenames: Sequence[str],
+        svg_filename: str,
         glyph_id: int,
         ufo_glyph_name: str,
         codepoints: Tuple[int, ...],
         svg: Optional[SVG],
+        bitmap_filename: str = "",
         bitmap: Optional[PNG] = None,
     ) -> "ColorGlyph":
-        logging.debug(" ColorGlyph for %s (%s)", ", ".join(filenames), codepoints)
+        logging.debug(
+            " ColorGlyph for %s (%s)", svg_filename or bitmap_filename, codepoints
+        )
         base_glyph = ufo.newGlyph(ufo_glyph_name)
         # non-square aspect ratio == proportional width; square == monospace
         view_box = None
@@ -437,12 +441,13 @@ class ColorGlyph(NamedTuple):
         if not font_config.transform.is_degenerate():
             if font_config.has_picosvgs:
                 painted_layers = tuple(
-                    _painted_layers(filenames[0], font_config, svg, base_glyph.width)
+                    _painted_layers(svg_filename, font_config, svg, base_glyph.width)
                 )
 
         return ColorGlyph(
             ufo,
-            tuple(filenames),
+            svg_filename,
+            bitmap_filename,
             ufo_glyph_name,
             glyph_id,
             codepoints,

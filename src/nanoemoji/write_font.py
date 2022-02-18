@@ -89,7 +89,8 @@ flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
 
 # A GlyphMapping plus an SVG, typically a picosvg, and/or a PNG
 class InputGlyph(NamedTuple):
-    filenames: Tuple[str]  # .svg and/or .png filenames, for debugging purposes
+    svg_file: Optional[Path]  # either filenames can be omitted, mostly for debugging
+    bitmap_file: Optional[Path]
     codepoints: Tuple[int, ...]
     glyph_name: str
     svg: Optional[SVG]  # None for bitmap formats
@@ -715,11 +716,12 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
         ColorGlyph.create(
             config,
             ufo,
-            glyph_input.filenames,
+            str(glyph_input.svg_file) if glyph_input.svg_file else "",
             base_gid + idx,
             glyph_input.glyph_name,
             glyph_input.codepoints,
             glyph_input.svg,
+            str(glyph_input.bitmap_file) if glyph_input.bitmap_file else "",
             glyph_input.bitmap,
         )
         for idx, glyph_input in enumerate(inputs)
@@ -749,51 +751,34 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     return ufo, ttfont
 
 
-class InputFileSuffix(enum.Enum):
-    SVG = ".svg"
-    PNG = ".png"
-
-
 def _inputs(
     font_config: FontConfig,
     glyph_mappings: Sequence[GlyphMapping],
-    argv: Sequence[str],
 ) -> Generator[InputGlyph, None, None]:
-    # group .svg and/or .png files with the same filename stem
-    files_by_stem = {}
-    index = {InputFileSuffix.SVG: 0, InputFileSuffix.PNG: 1}
-    for filename in argv:
-        input_file = Path(filename)
-        suffix = InputFileSuffix(input_file.suffix)
-        i = index[suffix]
-        files_by_stem.setdefault(input_file.stem, [None, None])[i] = input_file
-
-    # match inputs with respective glyph mappings by their file stem
-    glyph_mappings_by_stem = {g.source_stem: g for g in glyph_mappings}
-    for file_stem, (svg_file, png_file) in files_by_stem.items():
-        g = glyph_mappings_by_stem[file_stem]
-        svg = None
+    for g in glyph_mappings:
+        picosvg = None
         if font_config.has_svgs:
-            if svg_file is None:
-                raise ValueError(f"No {file_stem}.svg among inputs")
+            if not g.svg_file:
+                raise ValueError(f"No svg file for glyph {g.glyph_name}")
             try:
-                svg = SVG.parse(str(svg_file))
+                picosvg = SVG.parse(g.svg_file)
             except etree.ParseError as e:
-                raise IOError(f"Unable to parse {svg_file}") from e
+                raise IOError(f"Unable to parse {g.svg_file}") from e
 
         bitmap = None
         if font_config.has_bitmaps:
-            if png_file is None:
-                raise ValueError(f"No {file_stem}.png among inputs")
-            bitmap = PNG(png_file.read_bytes())
+            if not g.bitmap_file:
+                raise ValueError(f"No bitmap file for glyph {g.glyph_name}")
+            bitmap = PNG.read_from(g.bitmap_file)
 
-        filenames = []
-        if svg_file is not None:
-            filenames.append(str(svg_file))
-        if png_file is not None:
-            filenames.append(str(png_file))
-
-        yield InputGlyph(tuple(filenames), g.codepoints, g.glyph_name, svg, bitmap)
+        yield InputGlyph(
+            g.svg_file,
+            g.bitmap_file,
+            g.codepoints,
+            g.glyph_name,
+            picosvg,
+            bitmap,
+        )
 
 
 def main(argv):
@@ -804,13 +789,8 @@ def main(argv):
     if len(font_config.masters) != 1:
         raise ValueError("write_font expects only one master")
 
-    inputs = list(
-        _inputs(
-            font_config,
-            glyphmap.parse_csv(FLAGS.glyphmap_file),
-            util.expand_ninja_response_files(argv[1:]),
-        )
-    )
+    inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
+
     if not inputs:
         sys.exit("Please provide at least one svg filename")
     ufo, ttfont = _generate_color_font(font_config, inputs)
@@ -819,4 +799,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    flags.mark_flag_as_required("glyphmap_file")
     app.run(main)

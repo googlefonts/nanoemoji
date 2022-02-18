@@ -124,10 +124,6 @@ def _config_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".toml")
 
 
-def _source_name_file(font_config: FontConfig) -> Path:
-    return _per_config_file(font_config, ".source_names.txt")
-
-
 def _fea_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".fea")
 
@@ -153,12 +149,18 @@ def _ufo_config(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, "." + master.output_ufo + ".toml")
 
 
-def _glyphmap_rule(font_config: FontConfig) -> str:
-    return "write_" + Path(font_config.output_file).stem + "_glyphmap"
+def _glyphmap_rule(font_config: FontConfig, master: MasterConfig) -> str:
+    master_part = ""
+    if font_config.is_vf:
+        master_part = "_" + master.style_name.lower()
+    return "write_" + Path(font_config.output_file).stem + master_part + "_glyphmap"
 
 
-def _glyphmap_file(font_config: FontConfig) -> Path:
-    return _per_config_file(font_config, ".glyphmap")
+def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
+    master_part = ""
+    if font_config.is_vf:
+        master_part = "." + master.output_ufo
+    return _per_config_file(font_config, master_part + ".glyphmap")
 
 
 def module_rule(
@@ -197,23 +199,22 @@ def write_font_rule(nw, font_config: FontConfig, master: MasterConfig):
             (
                 f"--config_file {rel_build(config_file)}",
                 f"--fea_file {rel_build(_fea_file(font_config))}",
-                f"--glyphmap_file {rel_build(_glyphmap_file(font_config))}",
-                "@$out.rsp",
+                f"--glyphmap_file {rel_build(_glyphmap_file(font_config, master))}",
             )
         ),
-        rspfile="$out.rsp",
-        rspfile_content="$in",
         rule_name=rule_name,
     )
     nw.newline()
 
 
-def write_glyphmap_rule(nw, font_config: FontConfig):
+def write_glyphmap_rule(nw, font_config: FontConfig, master: MasterConfig):
     module_rule(
         nw,
         font_config.glyphmap_generator,
-        f"--output_file $out $in",
-        rule_name=_glyphmap_rule(font_config),
+        f"--output_file $out @$out.rsp",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
+        rule_name=_glyphmap_rule(font_config, master),
         allow_external=True,
     )
     nw.newline()
@@ -414,19 +415,12 @@ def write_bitmap_builds(
         nw.build(dest, "write_bitmap", rel_build(svg_file))
 
 
-def write_source_names(font_config: FontConfig):
-    with open(os.path.join(build_dir(), _source_name_file(font_config)), "w") as f:
-        for source_name in font_config.source_names:
-            f.write(source_name)
-            f.write("\n")
-
-
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
 
     nw.build(
         rel_build(_fea_file(font_config)),
         "write_fea",
-        rel_build(_glyphmap_file(font_config)),
+        rel_build(_glyphmap_file(font_config, font_config.default())),
     )
     nw.newline()
 
@@ -499,24 +493,24 @@ def _update_sources(font_config: FontConfig) -> FontConfig:
     )
 
 
-def write_glyphmap_build(nw: NinjaWriter, font_config: FontConfig):
+def write_glyphmap_build(
+    nw: NinjaWriter,
+    font_config: FontConfig,
+    master: MasterConfig,
+):
     nw.build(
-        rel_build(_glyphmap_file(font_config)),
-        _glyphmap_rule(font_config),
-        _source_name_file(font_config),
+        rel_build(_glyphmap_file(font_config, master)),
+        _glyphmap_rule(font_config, master),
+        _input_files(font_config, master),
     )
     nw.newline()
 
 
-def _implicit_inputs_to_font_build(font_config: FontConfig) -> List[Path]:
-    # these inputs are not passed in as positional argv to write_font; unlike explicit
-    # inputs (i.e., .svg or .png files), these are generated files pulled in via CLI
-    # flags and hardcoded in the write_font ninja rule; thus we add them only as
-    # implicit dependencies
+def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[Path]:
     return [
         rel_build(_config_file(font_config)),
         rel_build(_fea_file(font_config)),
-        rel_build(_glyphmap_file(font_config)),
+        rel_build(_glyphmap_file(font_config, master)),
     ]
 
 
@@ -527,20 +521,17 @@ def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConf
     nw.build(
         master.output_ufo,
         _ufo_rule(font_config, master),
-        _input_files(font_config, master),
-        _implicit_inputs_to_font_build(font_config),
+        _inputs_to_font_build(font_config, master),
     )
     nw.newline()
 
 
 def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
     assert len(font_config.masters) == 1
-    master = font_config.default()
     nw.build(
         font_config.output_file,
         _font_rule(font_config),
-        _input_files(font_config, master),
-        _implicit_inputs_to_font_build(font_config),
+        _inputs_to_font_build(font_config, font_config.default()),
     )
     nw.newline()
 
@@ -597,7 +588,6 @@ def _run(argv):
 
     for font_config in font_configs:
         _write_config_for_build(font_config)
-        write_source_names(font_config)
 
     if FLAGS.gen_ninja:
         logging.info(f"Generating {build_file.relative_to(build_dir())}")
@@ -608,7 +598,8 @@ def _run(argv):
             # Separate loops for separate content to keep related rules together
 
             for font_config in font_configs:
-                write_glyphmap_rule(nw, font_config)
+                for master in font_config.masters:
+                    write_glyphmap_rule(nw, font_config, master)
 
             for font_config in font_configs:
                 write_config_preamble(nw, font_config)
@@ -617,7 +608,8 @@ def _run(argv):
                 write_fea_build(nw, font_config)
 
             for font_config in font_configs:
-                write_glyphmap_build(nw, font_config)
+                for master in font_config.masters:
+                    write_glyphmap_build(nw, font_config, master)
 
             picosvg_builds = set()
             for font_config in font_configs:

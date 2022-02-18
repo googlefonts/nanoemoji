@@ -48,31 +48,29 @@ def parse_svg(filename, locate=False, topicosvg=True):
     return svg.topicosvg(inplace=True) if topicosvg else svg
 
 
-def rasterize_svg(filename, bitmap_resolution):
+def rasterize_svg(input_file: Path, output_file: Path, resolution: int = 128) -> PNG:
     resvg = shutil.which("resvg")
     if not resvg:
         pytest.skip("resvg not installed")
-    with tempfile.TemporaryDirectory(prefix="nanoemoji-resvg-") as tmpdir:
-        output_file = Path(tmpdir) / Path(filename).with_suffix(".png").name
-        result = subprocess.run(
-            [
-                resvg,
-                "-h",
-                f"{bitmap_resolution}",
-                "-w",
-                f"{bitmap_resolution}",
-                filename,
-                output_file,
-            ]
-        )
-        return PNG(output_file.read_bytes())
+    result = subprocess.run(
+        [
+            resvg,
+            "-h",
+            f"{resolution}",
+            "-w",
+            f"{resolution}",
+            input_file,
+            output_file,
+        ]
+    )
+    return PNG.read_from(output_file)
 
 
 def color_font_config(config_overrides, svgs, tmp_dir=None):
     if tmp_dir is None:
-        tmp_dir = tempfile.gettempdir()
+        tmp_dir = Path(tempfile.gettempdir())
     svgs = tuple(locate_test_file(s) for s in svgs)
-    fea_file = os.path.join(tmp_dir, "test.fea")
+    fea_file = tmp_dir / "test.fea"
     rgi_seqs = tuple(codepoints.from_filename(str(f)) for f in svgs)
     with open(fea_file, "w") as f:
         f.write(features.generate_fea(rgi_seqs))
@@ -86,28 +84,48 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
             descender=0,
             width=100,
             keep_glyph_names=True,
-            fea_file=fea_file,
+            fea_file=str(fea_file),
         )
         ._replace(**config_overrides)
     )
 
-    topicosvg = True if font_config.has_picosvgs else False
+    has_svgs = font_config.has_svgs
+    has_picosvgs = font_config.has_picosvgs
+    has_bitmaps = font_config.has_bitmaps
+
+    svg_inputs = [(None, None)] * len(svgs)
+    if has_svgs:
+        svg_inputs = [
+            (Path(os.path.relpath(svg)), parse_svg(svg, topicosvg=has_picosvgs))
+            for svg in svgs
+        ]
+
+    bitmap_inputs = [(None, None)] * len(svgs)
+    if has_bitmaps:
+        bitmap_inputs = [
+            (
+                tmp_dir / (svg.stem + ".png"),
+                rasterize_svg(
+                    svg, tmp_dir / (svg.stem + ".png"), font_config.bitmap_resolution
+                ),
+            )
+            for svg in svgs
+        ]
 
     return (
         font_config,
         [
             write_font.InputGlyph(
-                (os.path.relpath(svg),),
+                svg_file,
+                bitmap_file,
                 (0xE000 + idx,),
                 glyph_name((0xE000 + idx,)),
-                parse_svg(svg, topicosvg=topicosvg),
-                bitmap=(
-                    rasterize_svg(svg, font_config.bitmap_resolution)
-                    if font_config.has_bitmaps
-                    else None
-                ),
+                svg,
+                bitmap,
             )
-            for idx, svg in enumerate(svgs)
+            for idx, ((svg_file, svg), (bitmap_file, bitmap)) in enumerate(
+                zip(svg_inputs, bitmap_inputs)
+            )
         ],
     )
 

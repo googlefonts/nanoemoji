@@ -30,23 +30,25 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def _glyphmappings(source_names: Sequence[str]) -> Iterator[GlyphMapping]:
+def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
     yield from (
-        GlyphMapping(source_stem, () if idx % 2 == 1 else cps, f"custom_name_{idx}")
-        for idx, (source_stem, cps) in enumerate(
-            zip(
-                (Path(name).stem for name in source_names),
-                (codepoints.from_filename(name) for name in source_names),
-            )
+        GlyphMapping(
+            svg_file=Path(input_file),
+            bitmap_file=None,
+            codepoints=(
+                () if idx % 2 == 1 else codepoints.from_filename(Path(input_file).name)
+            ),
+            glyph_name=f"custom_name_{idx}",
         )
+        for idx, input_file in enumerate(input_files)
     )
 
 
 def main(argv):
-    source_names = Path(argv[1]).read_text().splitlines()
+    input_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(source_names):
-            # filename, glyph_name, codepoint(s)
+        for gm in _glyphmappings(input_files):
+            # filename(s), glyph_name, codepoint(s)
             print(gm.csv_line())
 
 
