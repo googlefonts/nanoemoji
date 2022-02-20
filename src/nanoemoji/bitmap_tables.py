@@ -173,11 +173,10 @@ def make_cbdt_table(
     color_glyphs: Sequence[ColorGlyph],
 ):
 
-    min_gid, max_gid = reduce(
-        lambda a, c: (min(a[0], c.glyph_id), max(a[1], c.glyph_id)),
-        color_glyphs,
-        (sys.maxsize, -1),
-    )
+    # bitmap tables don't like it when we're out of order
+    color_glyphs = sorted(color_glyphs, key=lambda c: c.glyph_id)
+
+    min_gid, max_gid = color_glyphs[0].glyph_id, color_glyphs[-1].glyph_id
     assert max_gid - min_gid + 1 == len(
         color_glyphs
     ), "Below assumes color gyphs gids are consecutive"
