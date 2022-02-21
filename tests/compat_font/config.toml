@@ -1,5 +1,5 @@
 family = "Noto Color Emoji Compat Test"
-output_file = "NotoColorEmojiCompatTest-Regular.ttf"
+output_file = "Font.ttf"
 color_format = "glyf_colr_1_and_picosvg_and_cbdt"
 
 [axis.wght]
