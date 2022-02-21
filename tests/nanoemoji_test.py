@@ -198,13 +198,20 @@ def test_build_cbdt_font():
     assert "CBDT" in font
     assert "CBLC" in font
 
-
+@pytest.mark.parametrize(
+    "config_file",
+    [
+      "minimal_static/config_glyf_colr_1_and_picosvg_and_cbdt.toml",
+      # https://github.com/googlefonts/nanoemoji/issues/385
+      "compat_font/config.toml",
+    ],
+)
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
-def test_build_glyf_colr_1_and_picosvg_and_cbdt_font():
+def test_build_compat_font(config_file):
     tmp_dir = _run(
         (
             locate_test_file(
-                "minimal_static/config_glyf_colr_1_and_picosvg_and_cbdt.toml"
+                config_file
             ),
         )
     )

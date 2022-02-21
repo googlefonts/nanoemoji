@@ -1,0 +1,17 @@
+family = "Noto Color Emoji Compat Test"
+output_file = "NotoColorEmojiCompatTest-Regular.ttf"
+color_format = "glyf_colr_1_and_picosvg_and_cbdt"
+
+[axis.wght]
+name = "Weight"
+default = 400
+
+[master.regular]
+style_name = "Regular"
+srcs = [
+    "emoji_u0023.svg",
+    "emoji_u1f1e6_1f1e8.svg",
+]
+
+[master.regular.position]
+wght = 400
