@@ -696,8 +696,9 @@ def _picosvg_and_cbdt(
 ):
     picosvg = True
     compressed = False
-    make_cbdt_table(config, ttfont, color_glyphs)
+    # make the svg table first because it changes glyph order and cbdt cares
     make_svg_table(config, ttfont, color_glyphs, picosvg, compressed)
+    make_cbdt_table(config, ttfont, color_glyphs)
 
 
 def _ensure_codepoints_will_have_glyphs(ufo, glyph_inputs):

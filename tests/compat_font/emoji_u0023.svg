@@ -1,0 +1,8 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <rect x="2" y="2" width="6" height="2" fill="blue" />
+  <!-- partially out of bounds -->
+  <circle cx="9" cy="5" r="2" fill="darkgreen" />
+  <!-- entirely out of bounds -->
+  <circle cx="5" cy="13" r="3" fill="red" />
+</svg>
