@@ -757,9 +757,12 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(config, ufo, color_glyphs)
 
-    with open(config.fea_file) as f:
-        ufo.features.text = f.read()
-    logging.debug("fea:\n%s\n" % ufo.features.text)
+    if config.fea_file:
+      with open(config.fea_file) as f:
+          ufo.features.text = f.read()
+      logging.debug("fea:\n%s\n" % ufo.features.text)
+    else:
+      logging.debug("No fea")
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 

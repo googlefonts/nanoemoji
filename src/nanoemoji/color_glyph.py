@@ -316,7 +316,7 @@ def _painted_layers(
 
         if context.is_group():
             # flush child shapes into a new group
-            opacity = float(context.element.get("opacity"))
+            opacity = float(context.element.get("opacity", 1.))
             assert (
                 0.0 < opacity < 1.0
             ), f"{debug_hint} {context.path} should be transparent"
