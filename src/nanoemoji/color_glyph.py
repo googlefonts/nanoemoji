@@ -316,7 +316,7 @@ def _painted_layers(
 
         if context.is_group():
             # flush child shapes into a new group
-            opacity = float(context.element.get("opacity", 1.))
+            opacity = float(context.element.get("opacity", 1.0))
             assert (
                 0.0 < opacity < 1.0
             ), f"{debug_hint} {context.path} should be transparent"
@@ -421,7 +421,10 @@ class ColorGlyph(NamedTuple):
         logging.debug(
             " ColorGlyph for %s (%s)", svg_filename or bitmap_filename, codepoints
         )
-        base_glyph = ufo.newGlyph(ufo_glyph_name)
+        if ufo_glyph_name not in ufo:
+            base_glyph = ufo.newGlyph(ufo_glyph_name)
+        else:
+            base_glyph = ufo[ufo_glyph_name]
         # non-square aspect ratio == proportional width; square == monospace
         view_box = None
         if svg:

@@ -33,9 +33,7 @@ from picosvg.svg_meta import strip_ns
 FLAGS = flags.FLAGS
 
 
-flags.DEFINE_string(
-    "output_dir", None, "Output dir. Files written to <glyph name>.svg."
-)
+flags.DEFINE_string("output_dir", None, "Output dir. Files written to <glyph id>.svg.")
 flags.DEFINE_string(
     "log_level",
     "INFO",
@@ -83,7 +81,7 @@ def main(argv):
             glyph_name = font.getGlyphName(gid)
             width, _ = metrics[glyph_name]
             svg.svg_root.attrib["viewBox"] = f"0 0 {width} {height}"
-            dest_file = out_dir / f"{glyph_name}.svg"
+            dest_file = out_dir / f"{gid}.svg"
             with open(dest_file, "w") as f:
                 f.write(svg.tostring(pretty_print=True))
             logging.debug("Wrote %s", dest_file)

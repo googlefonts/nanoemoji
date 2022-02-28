@@ -14,31 +14,32 @@
 
 """Generates a glyphmap for svgs named by glyph id."""
 from absl import app
-from absl import flags
 from absl import logging
+from fontTools import ttLib
 from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import util
 from pathlib import Path
 
 
-FLAGS = flags.FLAGS
-
-
-flags.DEFINE_string(
-    "log_level",
-    "INFO",
-    "The threshold for what messages will be logged. One of DEBUG, INFO, WARN, "
-    "ERROR, or FATAL.",
-)
-
-
 def main(argv):
-    logging.set_verbosity(FLAGS.log_level)
-
     input_files = util.expand_ninja_response_files(argv[1:])
+    source_font = util.only(lambda a: a.endswith(".ttf"), argv)
+
+    glyph_order = ttLib.TTFont(source_font).getGlyphOrder()
+    input_files = sorted(
+        (Path(f) for f in input_files if f != source_font), key=lambda f: int(f.stem)
+    )
 
     for input_file in input_files:
-        print(GlyphMapping(svg_file=input_file, bitmap_file=None, codepoints=(), glyph_name=Path(input_file).stem).csv_line())
+        print(
+            GlyphMapping(
+                svg_file=input_file,
+                bitmap_file=None,
+                codepoints=(),
+                glyph_name=glyph_order[int(input_file.stem)],
+            ).csv_line()
+        )
+
 
 if __name__ == "__main__":
     app.run(main)
