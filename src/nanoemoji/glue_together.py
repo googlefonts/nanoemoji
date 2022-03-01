@@ -45,7 +45,6 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
         record.Paint.traverse(donor["COLR"].table, _collect_glyphs)
 
     for glyph_name in _glyphs_to_copy:
-        print("Copy glyph", glyph_name)
         target["glyf"].glyphs[glyph_name] = donor["glyf"].glyphs[glyph_name]
         target["hmtx"].metrics[glyph_name] = donor["hmtx"].metrics[glyph_name]
 

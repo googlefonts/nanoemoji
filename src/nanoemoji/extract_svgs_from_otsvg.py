@@ -20,6 +20,7 @@ from fontTools import ttLib
 from lxml import etree
 from nanoemoji import codepoints
 from nanoemoji.color_glyph import map_viewbox_to_otsvg_space
+from nanoemoji.extract_svgs import svg_glyphs
 from nanoemoji import util
 import os
 import shutil
@@ -62,8 +63,7 @@ def main(argv):
     # So use the font height (global) and width (per glyph) as the svg viewbox
     height = ascender - descender
 
-    for raw_svg, min_gid, max_gid in font["SVG "].docList:
-        svg = SVG.fromstring(raw_svg)
+    for gid, svg in svg_glyphs(font):
         svg_defs = etree.Element("defs")
         svg_g = etree.Element("g")
         svg_g.attrib["transform"] = f"translate(0, {ascender})"
@@ -77,14 +77,13 @@ def main(argv):
         svg.svg_root.append(svg_defs)
         svg.svg_root.append(svg_g)
 
-        for gid in range(min_gid, max_gid + 1):
-            glyph_name = font.getGlyphName(gid)
-            width, _ = metrics[glyph_name]
-            svg.svg_root.attrib["viewBox"] = f"0 0 {width} {height}"
-            dest_file = out_dir / f"{gid}.svg"
-            with open(dest_file, "w") as f:
-                f.write(svg.tostring(pretty_print=True))
-            logging.debug("Wrote %s", dest_file)
+        glyph_name = font.getGlyphName(gid)
+        width, _ = metrics[glyph_name]
+        svg.svg_root.attrib["viewBox"] = f"0 0 {width} {height}"
+        dest_file = out_dir / f"{gid}.svg"
+        with open(dest_file, "w") as f:
+            f.write(svg.tostring(pretty_print=True))
+        logging.debug("Wrote %s", dest_file)
 
 
 if __name__ == "__main__":

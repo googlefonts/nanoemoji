@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+  <defs>
+    <path d="M4,4 L8,4 L8,8 L4,8 L4,4 Z" id="B.0" fill="orange"/>
+  </defs>
+  <g id="glyph2" transform="matrix(120 0 0 120 37.5 -950)">
+    <use xlink:href="#B.0"/>
+  </g>
+  <g id="glyph3" transform="matrix(120 0 0 120 37.5 -950)">
+    <use xlink:href="#B.0" transform="matrix(1 0 0 0.75 0 0.25)"/>
+  </g>
+  <g id="glyph4" transform="matrix(120 0 0 120 37.5 -950)">
+    <path d="M5,9 L7,9 L7,9.5 L5,9.5 L5,9 Z" fill="blue"/>
+  </g>
+</svg>
