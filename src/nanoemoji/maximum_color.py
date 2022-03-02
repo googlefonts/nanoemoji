@@ -157,8 +157,6 @@ def main(argv):
     build_file = build_dir() / "build.ninja"
     build_dir().mkdir(parents=True, exist_ok=True)
 
-    print(build_dir())  # TEMPORARY
-
     color_table = _vector_color_table(font)
 
     if gen_ninja():
