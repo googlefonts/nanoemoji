@@ -14,7 +14,6 @@
 
 """Generates a glyphmap for svgs named by glyph id."""
 from absl import app
-from absl import logging
 from fontTools import ttLib
 from nanoemoji import config
 from nanoemoji import util
@@ -34,26 +33,26 @@ def main(argv):
         f.write(
             textwrap.dedent(
                 f"""
-        output_file = "COLR.ttf"
-        color_format = "glyf_colr_1"
-        upem = {upem}
-        width = 0  # from input width
-        ascender = {ascender}
-        descender = {descender}
-        keep_glyph_names = true
+            output_file = "COLR.ttf"
+            color_format = "glyf_colr_1"
+            upem = {upem}
+            width = 0  # from input width
+            ascender = {ascender}
+            descender = {descender}
+            keep_glyph_names = true
 
-        fea_file = ""
+            fea_file = ""
 
-        [axis.wght]
-        name = "Weight"
-        default = 400
+            [axis.wght]
+            name = "Weight"
+            default = 400
 
-        [master.regular]
-        style_name = "Regular"
+            [master.regular]
+            style_name = "Regular"
 
-        [master.regular.position]
-        wght = 400
-        """
+            [master.regular.position]
+            wght = 400
+            """
             )
         )
 

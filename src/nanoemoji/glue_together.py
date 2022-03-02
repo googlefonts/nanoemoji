@@ -35,7 +35,6 @@ flags.DEFINE_string("output_file", None, "Font assets are copied into.")
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # Copy all glyphs used by COLR over
     _glyphs_to_copy = set()
-    new_glyphorder = list(target.getGlyphOrder())
 
     def _collect_glyphs(paint):
         if paint.Format == ot.PaintFormat.PaintGlyph:
@@ -45,16 +44,15 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
         record.Paint.traverse(donor["COLR"].table, _collect_glyphs)
 
     for glyph_name in _glyphs_to_copy:
-        target["glyf"].glyphs[glyph_name] = donor["glyf"].glyphs[glyph_name]
-        target["hmtx"].metrics[glyph_name] = donor["hmtx"].metrics[glyph_name]
+        target["glyf"][glyph_name] = donor["glyf"][glyph_name]
 
-        # .notdef in particular likely to be in both
-        if glyph_name not in new_glyphorder:
-            new_glyphorder.append(glyph_name)
-
-    target.setGlyphOrder(new_glyphorder)
-    # glyf fails internal checks if not advised of new glyph orderings
-    target["glyf"].setGlyphOrder(new_glyphorder)
+        if glyph_name in target["hmtx"].metrics:
+            assert (
+                target["hmtx"][glyph_name] == donor["hmtx"][glyph_name]
+            ), f"Unexpected change in metrics for {glyph_name}"
+        else:
+            # new glyph, new metrics
+            target["hmtx"][glyph_name] = donor["hmtx"][glyph_name]
 
     target["CPAL"] = donor["CPAL"]
     target["COLR"] = donor["COLR"]

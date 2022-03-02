@@ -23,6 +23,7 @@ Sample usage:
 
 python -m nanoemoji.maximum_color MySvgFont.ttf"""
 from absl import app
+from absl import flags
 from absl import logging
 from fontTools import ttLib
 from nanoemoji.extract_svgs import svg_glyphs
@@ -40,6 +41,16 @@ from pathlib import Path
 
 _SVG2COLR_GLYPHMAP = "svg2colr.glyphmap"
 _SVG2COLR_CONFIG = "svg2colr.toml"
+
+
+FLAGS = flags.FLAGS
+
+
+flags.DEFINE_bool(
+    "destroy_non_color_glyphs",
+    True,
+    "If true feel free to obliterate any existing glyf/cff content, e.g. fallback glyphs",
+)
 
 
 def _vector_color_table(font: ttLib.TTFont) -> str:
@@ -149,6 +160,9 @@ def _write_svg_extract(nw: NinjaWriter, input_font: Path, font: ttLib.TTFont):
 def main(argv):
     if len(argv) != 2:
         raise ValueError("Must have one argument, a font file")
+
+    if not FLAGS.destroy_non_color_glyphs:
+        raise NotImplementedError("Retention of non-color glyphs not implemented yet")
 
     input_font = Path(argv[1])
     assert input_font.is_file()
