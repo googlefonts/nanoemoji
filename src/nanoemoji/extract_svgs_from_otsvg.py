@@ -56,7 +56,7 @@ def main(argv):
     ascender = font["OS/2"].sTypoAscender
     descender = font["OS/2"].sTypoDescender
     metrics = font["hmtx"].metrics
-    logging.debug("Writing svgs from %s with to %s", font_file, out_dir)
+    logging.debug("Writing svgs from %s to %s", font_file, out_dir)
     logging.debug("upem %d ascender %d descender %d", upem, ascender, descender)
 
     # We want a subsequent nanoemoji scale to be 1:1
