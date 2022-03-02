@@ -76,7 +76,7 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
     )
     nw.newline()
 
-    module_rule(nw, "write_glyphmap_for_glyph_svgs", "$in > $out")
+    module_rule(nw, "write_glyphmap_for_glyph_svgs", "--output_file $out $in")
     nw.newline()
 
     module_rule(nw, "write_config_for_glyph_svgs", "$in $out")
@@ -92,7 +92,7 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
 
     nw.rule(
         f"picosvg",
-        f"picosvg  --output_file $out $in",
+        f"picosvg --output_file $out $in",
     )
     nw.newline()
 

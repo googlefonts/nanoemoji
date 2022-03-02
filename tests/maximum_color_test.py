@@ -16,6 +16,7 @@
 
 from fontTools import ttLib
 import pytest
+import sys
 from test_helper import cleanup_temp_dirs, locate_test_file, run, run_nanoemoji
 
 
@@ -44,7 +45,7 @@ def test_build_colr_from_svg():
     # We must have COLR!
     run(
         (
-            "python",
+            sys.executable,
             "-m",
             "nanoemoji.maximum_color",
             "--build_dir",
