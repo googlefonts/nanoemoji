@@ -147,8 +147,14 @@ def test_build_glyf_colr_1_and_picosvg_font():
 
 
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
-def test_build_sbix_font():
-    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/config_sbix.toml"),))
+@pytest.mark.parametrize("use_zopflipng", [True, False])
+def test_build_sbix_font(use_zopflipng):
+    cmd = []
+    if not use_zopflipng:
+        cmd.append("--nouse_zopflipng")
+    cmd.append(locate_test_file("minimal_static/config_sbix.toml"))
+
+    tmp_dir = run_nanoemoji(cmd)
 
     font = TTFont(tmp_dir / "Font.ttf")
 
@@ -156,8 +162,14 @@ def test_build_sbix_font():
 
 
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
-def test_build_cbdt_font():
-    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/config_cbdt.toml"),))
+@pytest.mark.parametrize("use_zopflipng", [True, False])
+def test_build_cbdt_font(use_zopflipng):
+    cmd = []
+    if not use_zopflipng:
+        cmd.append("--nouse_zopflipng")
+    cmd.append(locate_test_file("minimal_static/config_cbdt.toml"))
+
+    tmp_dir = run_nanoemoji(cmd)
 
     font = TTFont(tmp_dir / "Font.ttf")
 
@@ -173,9 +185,15 @@ def test_build_cbdt_font():
         "compat_font/config.toml",
     ],
 )
+@pytest.mark.parametrize("use_zopflipng", [True, False])
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
-def test_build_compat_font(config_file):
-    tmp_dir = run_nanoemoji((locate_test_file(config_file),))
+def test_build_compat_font(config_file, use_zopflipng):
+    cmd = []
+    if not use_zopflipng:
+        cmd.append("--nouse_zopflipng")
+    cmd.append(locate_test_file(config_file))
+
+    tmp_dir = run_nanoemoji(cmd)
 
     font = TTFont(tmp_dir / "Font.ttf")
 

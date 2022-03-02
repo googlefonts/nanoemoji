@@ -217,6 +217,9 @@ def write_config_preamble(nw, font_config: FontConfig):
         )
         nw.newline()
 
+        if font_config.use_zopflipng:
+            nw.rule("zopflipng", f"{sys.executable} -m zopfli.png -y $in $out")
+
     for master in font_config.masters:
         write_font_rule(nw, font_config, master)
     if font_config.is_vf:
@@ -269,6 +272,10 @@ def bitmap_dir() -> Path:
     return build_dir() / "bitmap"
 
 
+def zopflipng_dir() -> Path:
+    return build_dir() / "zopflipng"
+
+
 def svg2png_dir() -> Path:
     return build_dir() / "imagediff" / "svg2png"
 
@@ -308,6 +315,10 @@ def picosvg_dest(clipped: bool, input_svg: Path) -> Path:
 
 def bitmap_dest(input_svg: Path) -> Path:
     return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, ".png")
+
+
+def zopflipng_dest(input_svg: Path) -> Path:
+    return _dest_for_src(zopflipng_dest, zopflipng_dir(), input_svg, ".png")
 
 
 def svg2png_dest(input_svg: Path) -> Path:
@@ -357,6 +368,18 @@ def write_bitmap_builds(
             continue
         bitmap_builds.add(dest)
         nw.build(dest, "write_bitmap", rel_build(svg_file))
+
+
+def write_zopflipng_builds(
+    zopflipng_builds: Set[Path], nw: NinjaWriter, master: MasterConfig
+):
+    os.makedirs(str(zopflipng_dir()), exist_ok=True)
+    for svg_file in master.sources:
+        dest = zopflipng_dest(svg_file)
+        if dest in zopflipng_builds:
+            continue
+        zopflipng_builds.add(dest)
+        nw.build(dest, "zopflipng", bitmap_dest(svg_file))
 
 
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
@@ -417,7 +440,8 @@ def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
     if font_config.has_untouchedsvgs:
         input_files.extend(rel_build(f) for f in master.sources)
     if font_config.has_bitmaps:
-        input_files.extend(bitmap_dest(f) for f in master.sources)
+        dest_func = zopflipng_dest if font_config.use_zopflipng else bitmap_dest
+        input_files.extend(dest_func(f) for f in master.sources)
     return input_files
 
 
@@ -576,6 +600,13 @@ def _run(argv):
                         write_bitmap_builds(
                             bitmap_builds, nw, font_config.clip_to_viewbox, master
                         )
+            nw.newline()
+
+            zopflipng_builds = set()
+            for font_config in font_configs:
+                for master in font_config.masters:
+                    if font_config.has_bitmaps and font_config.use_zopflipng:
+                        write_zopflipng_builds(zopflipng_builds, nw, master)
             nw.newline()
 
             for font_config in font_configs:

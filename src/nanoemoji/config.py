@@ -110,6 +110,9 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
     "bitmap_resolution", None, "Resolution of bitmap in pixels. Always square for now."
 )
+flags.DEFINE_bool(
+    "use_zopflipng", None, "Whether or not to compress PNGs using zopfli."
+)
 
 
 class Axis(NamedTuple):
@@ -159,6 +162,7 @@ class FontConfig(NamedTuple):
     fea_file: str = "features.fea"
     glyphmap_generator: str = "nanoemoji.write_glyphmap"
     bitmap_resolution: int = 128
+    use_zopflipng: bool = True
     pretty_print: bool = False
     axes: Tuple[Axis, ...] = ()
     masters: Tuple[MasterConfig, ...] = ()
@@ -257,6 +261,7 @@ def write(dest: Path, config: FontConfig):
         "fea_file": config.fea_file,
         "glyphmap_generator": config.glyphmap_generator,
         "bitmap_resolution": config.bitmap_resolution,
+        "use_zopflipng": config.use_zopflipng,
         "axis": {
             a.axisTag: {
                 "name": a.name,
@@ -342,6 +347,7 @@ def load(
     fea_file = _pop_flag(config, "fea_file")
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
     bitmap_resolution = _pop_flag(config, "bitmap_resolution")
+    use_zopflipng = _pop_flag(config, "use_zopflipng")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -421,6 +427,7 @@ def load(
         fea_file=fea_file,
         glyphmap_generator=glyphmap_generator,
         bitmap_resolution=bitmap_resolution,
+        use_zopflipng=use_zopflipng,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),

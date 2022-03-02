@@ -48,6 +48,7 @@ setup(
         "toml>=0.10.1",
         "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
+        "zopfli>=0.2.0",
     ],
     extras_require=extras_require,
     # this is so we can use the built-in dataclasses module
