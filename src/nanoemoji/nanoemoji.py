@@ -218,7 +218,11 @@ def write_config_preamble(nw, font_config: FontConfig):
         nw.newline()
 
         if font_config.use_zopflipng:
-            nw.rule("zopflipng", f"{sys.executable} -m zopfli.png -y $in $out")
+            nw.rule(
+                "zopflipng",
+                f"{sys.executable} -m zopfli.png -y"
+                f'{" -v" if FLAGS.verbosity > 0 else ""} $in $out',
+            )
 
     for master in font_config.masters:
         write_font_rule(nw, font_config, master)
