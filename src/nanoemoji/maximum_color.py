@@ -21,7 +21,7 @@ https://www.youtube.com/watch?v=HLddvNiXym4
 
 Sample usage:
 
-python -m nanoemoji.maximum_color MySvgFont.ttf"""
+maximum_color MySvgFont.ttf"""
 from absl import app
 from absl import flags
 from absl import logging
@@ -64,7 +64,7 @@ def _vector_color_table(font: ttLib.TTFont) -> str:
     if has_colr:
         return "COLR"
 
-    raise ValueError("Impossible")
+    raise AssertionError("Impossible")
 
 
 def svg_extract_dir() -> Path:
@@ -87,7 +87,13 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
     )
     nw.newline()
 
-    module_rule(nw, "write_glyphmap_for_glyph_svgs", "--output_file $out $in")
+    module_rule(
+        nw,
+        "write_glyphmap_for_glyph_svgs",
+        f"--output_file $out @$out.rsp",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
+    )
     nw.newline()
 
     module_rule(nw, "write_config_for_glyph_svgs", "$in $out")
@@ -119,7 +125,7 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
 def _write_svg_extract(nw: NinjaWriter, input_font: Path, font: ttLib.TTFont):
     # extract the svgs
     svg_extracts = [
-        rel_build(svg_extract_dir() / f"{gid}.svg") for gid, _ in svg_glyphs(font)
+        rel_build(svg_extract_dir() / f"{gid:05d}.svg") for gid, _ in svg_glyphs(font)
     ]
     nw.build(svg_extracts, "extract_svgs_from_otsvg", input_font)
     nw.newline()
@@ -157,7 +163,7 @@ def _write_svg_extract(nw: NinjaWriter, input_font: Path, font: ttLib.TTFont):
     nw.newline()
 
 
-def main(argv):
+def _run(argv):
     if len(argv) != 2:
         raise ValueError("Must have one argument, a font file")
 
@@ -187,5 +193,10 @@ def main(argv):
     maybe_run_ninja(build_file)
 
 
+def main():
+    # We don't seem to be __main__ when run as cli tool installed by setuptools
+    app.run(_run)
+
+
 if __name__ == "__main__":
-    app.run(main)
+    app.run(_run)

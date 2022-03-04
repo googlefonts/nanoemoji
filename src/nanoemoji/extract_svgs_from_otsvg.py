@@ -80,7 +80,7 @@ def main(argv):
         glyph_name = font.getGlyphName(gid)
         width, _ = metrics[glyph_name]
         svg.svg_root.attrib["viewBox"] = f"0 0 {width} {height}"
-        dest_file = out_dir / f"{gid}.svg"
+        dest_file = out_dir / f"{gid:05d}.svg"
         with open(dest_file, "w") as f:
             f.write(svg.tostring(pretty_print=True))
         logging.debug("Wrote %s", dest_file)

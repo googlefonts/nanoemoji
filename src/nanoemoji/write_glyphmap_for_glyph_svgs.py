@@ -29,7 +29,8 @@ flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 def main(argv):
     input_files = util.expand_ninja_response_files(argv[1:])
-    source_font = util.only(lambda a: a.endswith(".ttf"), argv)
+    del argv
+    source_font = util.only(lambda a: a.endswith(".ttf"), input_files)
 
     glyph_order = ttLib.TTFont(source_font).getGlyphOrder()
 
