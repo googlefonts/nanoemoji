@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+try:
+    import importlib.resources as resources  # pytype: disable=import-error
+except ImportError:
+    import importlib_resources as resources  # pytype: disable=import-error
 from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.glyph_reuse import GlyphReuseCache
@@ -44,14 +48,14 @@ from picosvg.svg_meta import ntos
 from picosvg.svg_transform import Affine2D
 from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
-import test_helper
 from lxml import etree
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
 
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
+ViewboxCallback = Callable[[str], Rect]  # f(glyph_name) -> Rect
 
 
 def _map_font_space_to_viewbox(
@@ -63,9 +67,8 @@ def _map_font_space_to_viewbox(
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
-    svg_tree = etree.parse(
-        str(test_helper.locate_test_file("colr_to_svg_template.svg"))
-    )
+    with resources.path("nanoemoji.data", "colr_to_svg_template.svg") as template_file:
+        svg_tree = etree.parse(str(template_file))
     svg_root = svg_tree.getroot()
     vbox = (view_box.x, view_box.y, view_box.w, view_box.h)
     svg_root.attrib["viewBox"] = " ".join(ntos(v) for v in vbox)
@@ -170,15 +173,13 @@ def _apply_gradient_ot_paint(
 def _colr_v0_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     glyph_name: str,
 ) -> etree.Element:
+    view_box, font_to_vbox = _view_box_and_transform(
+        ttfont, view_box_callback, glyph_name
+    )
     svg_root = _svg_root(view_box)
-    ascender = ttfont["OS/2"].sTypoAscender
-    descender = ttfont["OS/2"].sTypoDescender
-    width = ttfont["hmtx"][glyph_name][0]
-    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
-
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
         svg_path = etree.SubElement(svg_root, "path")
         paint = PaintSolid(_color(ttfont, glyph_layer.colorID))
@@ -267,20 +268,35 @@ def _colr_v1_paint_to_svg(
         raise NotImplementedError(ot_paint.Format)
 
 
+def _view_box_and_transform(
+    ttfont: ttLib.TTFont, view_box_callback: ViewboxCallback, glyph_name: str
+) -> Tuple[Rect, Affine2D]:
+    ascender = ttfont["OS/2"].sTypoAscender
+    descender = ttfont["OS/2"].sTypoDescender
+    width = ttfont["hmtx"][glyph_name][0]
+    # view_box = Rect(
+    #     0, 0, width * font_to_svg_scale, (ascender - descender) * font_to_svg_scale
+    # )
+    view_box = view_box_callback(glyph_name)
+    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+
+    return (view_box, font_to_vbox)
+
+
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
-    glyph_set = ttfont.getGlyphSet()
+    view_box, font_to_vbox = _view_box_and_transform(
+        ttfont, view_box_callback, glyph.BaseGlyph
+    )
     svg_root = _svg_root(view_box)
     svg_defs = svg_root[0]
-    ascender = ttfont["OS/2"].sTypoAscender
-    descender = ttfont["OS/2"].sTypoDescender
-    width = ttfont["hmtx"][glyph.BaseGlyph][0]
-    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+
     reuse_cache = _new_reuse_cache()
+    glyph_set = ttfont.getGlyphSet()
     _colr_v1_paint_to_svg(
         ttfont, glyph_set, svg_root, svg_defs, font_to_vbox, glyph.Paint, reuse_cache
     )
@@ -291,28 +307,46 @@ def _new_reuse_cache() -> ReuseCache:
     return ReuseCache(0.1, GlyphReuseCache(0.1))
 
 
-def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
+    colr = font["COLR"]
+    if colr.version == 0:
+        for glyph_name in colr.ColorLayers:
+            yield font.getGlyphID(glyph_name)
+    else:
+        for base_glyph in font["COLR"].table.BaseGlyphList:
+            yield font.getGlyphID(base_glyph.Glyph)
+
+
+def _colr_v0_to_svgs(
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
+) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g: SVG.fromstring(
-            etree.tostring(_colr_v0_glyph_to_svg(ttfont, glyph_set, view_box, g))
+            etree.tostring(
+                _colr_v0_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
+            )
         )
         for g in ttfont["COLR"].ColorLayers
     }
 
 
-def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+def _colr_v1_to_svgs(
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
+) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g.BaseGlyph: SVG.fromstring(
-            etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
+            etree.tostring(
+                _colr_v1_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
+            )
         )
         for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
 
 
 def colr_to_svg(
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     ttfont: ttLib.TTFont,
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
@@ -321,9 +355,9 @@ def colr_to_svg(
 
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
-        svgs = _colr_v0_to_svgs(view_box, ttfont)
+        svgs = _colr_v0_to_svgs(view_box_callback, ttfont)
     elif colr_version == 1:
-        svgs = _colr_v1_to_svgs(view_box, ttfont)
+        svgs = _colr_v1_to_svgs(view_box_callback, ttfont)
     else:
         raise NotImplementedError(colr_version)
 

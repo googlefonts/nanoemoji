@@ -14,11 +14,15 @@
 
 """Generates a glyphmap for svgs named by glyph id."""
 from absl import app
+from absl import flags
 from fontTools import ttLib
 from nanoemoji import config
 from nanoemoji import util
 from pathlib import Path
 import textwrap
+
+
+FLAGS = flags.FLAGS
 
 
 def main(argv):
@@ -34,7 +38,7 @@ def main(argv):
             textwrap.dedent(
                 f"""
             output_file = "COLR.ttf"
-            color_format = "glyf_colr_1"
+            color_format = "{FLAGS.color_format}"
             upem = {upem}
             width = 0  # from input width
             ascender = {ascender}

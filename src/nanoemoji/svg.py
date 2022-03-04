@@ -303,7 +303,9 @@ def _define_radial_gradient(
     return gradient_id
 
 
-def _map_gradient_coordinates(paint: Paint, affine: Affine2D) -> Paint:
+def _map_gradient_coordinates(
+    paint: _GradientPaint, affine: Affine2D
+) -> _GradientPaint:
     if isinstance(paint, PaintLinearGradient):
         return dataclasses.replace(
             paint,

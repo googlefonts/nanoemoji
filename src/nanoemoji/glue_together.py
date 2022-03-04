@@ -20,6 +20,7 @@ from absl import flags
 from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
+from nanoemoji.colr import paints_of_type
 import os
 
 
@@ -34,14 +35,9 @@ flags.DEFINE_string("output_file", None, "Font assets are copied into.")
 
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # Copy all glyphs used by COLR over
-    _glyphs_to_copy = set()
-
-    def _collect_glyphs(paint):
-        if paint.Format == ot.PaintFormat.PaintGlyph:
-            _glyphs_to_copy.add(paint.Glyph)
-
-    for record in donor["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
-        record.Paint.traverse(donor["COLR"].table, _collect_glyphs)
+    _glyphs_to_copy = {
+        p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)
+    }
 
     for glyph_name in _glyphs_to_copy:
         target["glyf"][glyph_name] = donor["glyf"][glyph_name]
@@ -62,9 +58,13 @@ def main(argv):
     target = ttLib.TTFont(FLAGS.target_font)
     donor = ttLib.TTFont(FLAGS.donor_font)
 
+    # TODO lookup, guess fn name, etc
     if FLAGS.color_table == "COLR":
         _copy_colr(target, donor)
     else:
+        # TODO: SVG support
+        # Note that nanoemoji svg reorders glyphs to pack svgs nicely
+        # The merged font may need to update to the donors glyph order for this to work
         raise ValueError(f"Unsupported color table '{FLAGS.color_table}'")
 
     target.save(FLAGS.output_file)
