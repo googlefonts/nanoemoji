@@ -30,7 +30,11 @@ from nanoemoji.png import PNG
 from pathlib import Path
 from picosvg.svg import SVG
 import pytest
+import shutil
 import tempfile
+
+
+RESVG_PATH = shutil.which("resvg")
 
 
 def test_data_dir() -> Path:
@@ -250,3 +254,55 @@ def svg_diff(actual_svg: SVG, expected_svg: SVG):
     print(f"A: {pretty_print(actual_svg.toetree())}")
     print(f"E: {pretty_print(expected_svg.toetree())}")
     assert actual_svg.tostring() == expected_svg.tostring()
+
+
+def run(cmd):
+    cmd = tuple(str(c) for c in cmd)
+    print("subprocess:", " ".join(cmd))  # very useful on failure
+    # We may need to find nanoemoji and (optionally) resvg
+    bin_paths = [str(Path(shutil.which("nanoemoji")).parent)]
+    if RESVG_PATH:
+        bin_paths.append(str(Path(RESVG_PATH).parent))
+    env = {
+        "PATH": os.pathsep.join(bin_paths),
+        # We may need to find test modules
+        "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
+    }
+    # Needed for windows CI to function; ref https://github.com/appveyor/ci/issues/1995
+    if "SYSTEMROOT" in os.environ:
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+
+    return subprocess.run(cmd, check=True, env=env)
+
+
+def run_nanoemoji(args, tmp_dir=None):
+    if not tmp_dir:
+        tmp_dir = mkdtemp()
+
+    run(
+        (
+            "nanoemoji",
+            "--build_dir",
+            str(tmp_dir),
+        )
+        + tuple(str(a) for a in args)
+    )
+
+    assert (tmp_dir / "build.ninja").is_file()
+
+    return tmp_dir
+
+
+_TEMPORARY_DIRS = set()
+
+
+def mkdtemp() -> Path:
+    tmp_dir = Path(tempfile.mkdtemp())
+    assert tmp_dir not in _TEMPORARY_DIRS
+    _TEMPORARY_DIRS.add(tmp_dir)
+    return tmp_dir
+
+
+def cleanup_temp_dirs():
+    while _TEMPORARY_DIRS:
+        shutil.rmtree(_TEMPORARY_DIRS.pop(), ignore_errors=True)

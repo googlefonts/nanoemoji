@@ -26,20 +26,15 @@ import pytest
 import shutil
 import subprocess
 import tempfile
-from test_helper import assert_expected_ttx, color_font_config, locate_test_file
-
-
-RESVG_PATH = shutil.which("resvg")
-
-
-_TEMPORARY_DIRS = set()
-
-
-def _mkdtemp() -> Path:
-    tmp_dir = Path(tempfile.mkdtemp())
-    assert tmp_dir not in _TEMPORARY_DIRS
-    _TEMPORARY_DIRS.add(tmp_dir)
-    return tmp_dir
+from test_helper import (
+    assert_expected_ttx,
+    color_font_config,
+    locate_test_file,
+    mkdtemp,
+    cleanup_temp_dirs,
+    run_nanoemoji,
+    RESVG_PATH,
+)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -49,8 +44,7 @@ def _cleanup_temporary_dirs():
     # automatically removes all the temp dirs at the end of the test module
     yield
     # teardown happens after the 'yield'
-    for tmp_dir in _TEMPORARY_DIRS:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+    cleanup_temp_dirs()
 
 
 def _svg_element_names(xpath, svg_content):
@@ -64,52 +58,22 @@ def _svg_element_attributes(xpath, svg_content):
     return SVG.fromstring(svg_content).xpath_one(xpath.replace("/", "/svg:")).attrib
 
 
-def _run(cmd, tmp_dir=None):
-    if not tmp_dir:
-        tmp_dir = _mkdtemp()
-
-    cmd = (
-        "nanoemoji",
-        "--build_dir",
-        str(tmp_dir),
-    ) + tuple(str(c) for c in cmd)
-    print("subprocess:", " ".join(cmd))  # very useful on failure
-    # We need to find nanoemoji and (optionally) resvg
-    bin_paths = [str(Path(shutil.which("nanoemoji")).parent)]
-    if RESVG_PATH:
-        bin_paths.append(str(Path(RESVG_PATH).parent))
-    env = {
-        "PATH": os.pathsep.join(bin_paths),
-        # We may need to find test modules
-        "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
-    }
-    # Needed for windows CI to function; ref https://github.com/appveyor/ci/issues/1995
-    if "SYSTEMROOT" in os.environ:
-        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
-
-    subprocess.run(cmd, check=True, env=env)
-
-    assert (tmp_dir / "build.ninja").is_file()
-
-    return tmp_dir
-
-
 def test_build_static_font_default_config_cli_svg_list():
-    tmp_dir = _run((locate_test_file("minimal_static/svg/61.svg"),))
+    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/svg/61.svg"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
     assert "fvar" not in font
 
 
 def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
-    config_file = _mkdtemp() / "config.toml"
+    config_file = mkdtemp() / "config.toml"
     font_config, _ = color_font_config(
         config_overrides, svgs, tmp_dir=config_file.parent
     )
     config.write(config_file, font_config)
     print(config_file, font_config)
 
-    _run((str(config_file),), tmp_dir=config_file.parent)
+    run_nanoemoji((str(config_file),), tmp_dir=config_file.parent)
     font = TTFont(config_file.parent / "Font.ttf")
     assert_expected_ttx(svgs, font, expected_ttx)
 
@@ -131,14 +95,14 @@ def test_build_static_font_unclipped():
 
 
 def test_build_variable_font():
-    tmp_dir = _run((locate_test_file("minimal_vf/config.toml"),))
+    tmp_dir = run_nanoemoji((locate_test_file("minimal_vf/config.toml"),))
 
     font = TTFont(tmp_dir / "MinimalVF.ttf")
     assert "fvar" in font
 
 
 def test_build_picosvg_font():
-    tmp_dir = _run((locate_test_file("minimal_static/config_picosvg.toml"),))
+    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/config_picosvg.toml"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
     # fill=none ellipse dropped, rect became path, everything is under a group
@@ -147,7 +111,9 @@ def test_build_picosvg_font():
 
 
 def test_build_untouchedsvg_font():
-    tmp_dir = _run((locate_test_file("minimal_static/config_untouchedsvg.toml"),))
+    tmp_dir = run_nanoemoji(
+        (locate_test_file("minimal_static/config_untouchedsvg.toml"),)
+    )
 
     font = TTFont(tmp_dir / "Font.ttf")
     assert "SVG " in font
@@ -170,7 +136,7 @@ def test_build_untouchedsvg_font():
 
 
 def test_build_glyf_colr_1_and_picosvg_font():
-    tmp_dir = _run(
+    tmp_dir = run_nanoemoji(
         (locate_test_file("minimal_static/config_glyf_colr_1_and_picosvg.toml"),)
     )
 
@@ -182,7 +148,7 @@ def test_build_glyf_colr_1_and_picosvg_font():
 
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 def test_build_sbix_font():
-    tmp_dir = _run((locate_test_file("minimal_static/config_sbix.toml"),))
+    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/config_sbix.toml"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
 
@@ -191,7 +157,7 @@ def test_build_sbix_font():
 
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 def test_build_cbdt_font():
-    tmp_dir = _run((locate_test_file("minimal_static/config_cbdt.toml"),))
+    tmp_dir = run_nanoemoji((locate_test_file("minimal_static/config_cbdt.toml"),))
 
     font = TTFont(tmp_dir / "Font.ttf")
 
@@ -209,7 +175,7 @@ def test_build_cbdt_font():
 )
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 def test_build_compat_font(config_file):
-    tmp_dir = _run((locate_test_file(config_file),))
+    tmp_dir = run_nanoemoji((locate_test_file(config_file),))
 
     font = TTFont(tmp_dir / "Font.ttf")
 
@@ -226,7 +192,7 @@ def test_the_curious_case_of_the_parentless_reused_el():
         for codepoints in ("0023_20e3", "1f170", "1f171")
     ]
 
-    tmp_dir = _run(
+    tmp_dir = run_nanoemoji(
         (
             "--color_format=picosvg",
             "--pretty_print",
@@ -250,7 +216,7 @@ def test_glyphmap_games():
         "emoji_u42.svg",
     ]
 
-    tmp_dir = _run(
+    tmp_dir = run_nanoemoji(
         (
             "--color_format=glyf_colr_1",
             "--keep_glyph_names",
@@ -273,7 +239,7 @@ def test_omit_empty_color_glyphs():
         "emoji_u42.svg",
     ]
 
-    tmp_dir = _run(
+    tmp_dir = run_nanoemoji(
         (
             "--color_format=glyf_colr_1_and_picosvg",
             "--pretty_print",
@@ -313,7 +279,7 @@ def test_path_to_src_matters():
         "multi_toml/b.toml",
     ]
 
-    tmp_dir = _run(tuple(locate_test_file(toml) for toml in tomls))
+    tmp_dir = run_nanoemoji(tuple(locate_test_file(toml) for toml in tomls))
 
     font_a = TTFont(tmp_dir / "A.ttf")
     font_b = TTFont(tmp_dir / "B.ttf")
@@ -330,7 +296,7 @@ def test_input_symlinks_support(tmp_path):
     # $ ln -s emoji_u66_69.svg emoji_u42.svg
     (tmp_path / "emoji_u66_69.svg").symlink_to(tmp_path / "emoji_u42.svg")
 
-    _run(
+    run_nanoemoji(
         (
             tmp_path / "emoji_u42.svg",  # glyph 'B'
             tmp_path / "emoji_u43.svg",  # glyph 'C'

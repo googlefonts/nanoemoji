@@ -1,0 +1,6 @@
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- two rects, one should reuse the other -->
+  <rect x="6" y="4" width="4" height="3" fill="orange" />
+  <rect x="5" y="9" width="2" height="0.5" fill="blue" />
+</svg>

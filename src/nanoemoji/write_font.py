@@ -733,33 +733,49 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     """Make a UFO and optionally a TTFont from svgs."""
     ufo = _ufo(config)
     _ensure_codepoints_will_have_glyphs(ufo, inputs)
-    base_gid = len(ufo.glyphOrder)
-    color_glyphs = tuple(
-        ColorGlyph.create(
-            config,
-            ufo,
-            str(glyph_input.svg_file) if glyph_input.svg_file else "",
-            base_gid + idx,
-            glyph_input.glyph_name,
-            glyph_input.codepoints,
-            glyph_input.svg,
-            str(glyph_input.bitmap_file) if glyph_input.bitmap_file else "",
-            glyph_input.bitmap,
+
+    color_glyphs = []
+    glyph_order = list(ufo.glyphOrder)
+    for glyph_input in inputs:
+        if glyph_input.glyph_name in glyph_order:
+            gid = glyph_order.index(glyph_input.glyph_name)
+        else:
+            gid = len(glyph_order)
+            glyph_order.append(glyph_input.glyph_name)
+
+        color_glyphs.append(
+            ColorGlyph.create(
+                config,
+                ufo,
+                str(glyph_input.svg_file) if glyph_input.svg_file else "",
+                gid,
+                glyph_input.glyph_name,
+                glyph_input.codepoints,
+                glyph_input.svg,
+                str(glyph_input.bitmap_file) if glyph_input.bitmap_file else "",
+                glyph_input.bitmap,
+            )
         )
-        for idx, glyph_input in enumerate(inputs)
-    )
+    color_glyphs = tuple(color_glyphs)
+
     # TODO: Optimize glyphOrder so that color glyphs sharing the same clip box
     # values are placed next to one another in continuous ranges, to minimize number
     # of COLRv1 ClipRecords
-    ufo.glyphOrder = ufo.glyphOrder + [g.ufo_glyph_name for g in color_glyphs]
+    ufo.glyphOrder = glyph_order
     for g in color_glyphs:
-        assert g.glyph_id == ufo.glyphOrder.index(g.ufo_glyph_name)
+        ufo_gid = ufo.glyphOrder.index(g.ufo_glyph_name)
+        assert (
+            g.glyph_id == ufo_gid
+        ), f"{g.ufo_glyph_name} is {ufo_gid} in ufo, {g.glyph_id} in ColorGlyph"
 
     _COLOR_FORMAT_GENERATORS[config.color_format].apply_ufo(config, ufo, color_glyphs)
 
-    with open(config.fea_file) as f:
-        ufo.features.text = f.read()
-    logging.debug("fea:\n%s\n" % ufo.features.text)
+    if config.fea_file:
+        with open(config.fea_file) as f:
+            ufo.features.text = f.read()
+        logging.debug("fea:\n%s\n" % ufo.features.text)
+    else:
+        logging.debug("No fea")
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 
