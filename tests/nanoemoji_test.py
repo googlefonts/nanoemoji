@@ -18,6 +18,7 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
+import operator
 import os
 from pathlib import Path
 from picosvg.svg import SVG
@@ -146,35 +147,41 @@ def test_build_glyf_colr_1_and_picosvg_font():
     assert "SVG " in font
 
 
+def _assert_table_size_cmp(table_tag, op, original_font, cmd):
+    tmp_dir = run_nanoemoji(cmd)
+    font = TTFont(next(tmp_dir.glob("*.ttf")))
+    new_size = len(font.getTableData(table_tag))
+    original_size = len(original_font.getTableData(table_tag))
+    assert op(new_size, original_size)
+
+
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_sbix_font(use_zopflipng):
-    cmd = []
-    if not use_zopflipng:
-        cmd.append("--nouse_zopflipng")
-    cmd.append(locate_test_file("minimal_static/config_sbix.toml"))
-
+    cmd = [locate_test_file("minimal_static/config_sbix.toml")]
     tmp_dir = run_nanoemoji(cmd)
-
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "sbix" in font
+
+    if not use_zopflipng:
+        # check building the same font without zopflipng produces a larger sbix table
+        _assert_table_size_cmp("sbix", operator.gt, font, ["--nouse_zopflipng"] + cmd)
 
 
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_zopflipng):
-    cmd = []
-    if not use_zopflipng:
-        cmd.append("--nouse_zopflipng")
-    cmd.append(locate_test_file("minimal_static/config_cbdt.toml"))
-
+    cmd = [locate_test_file("minimal_static/config_cbdt.toml")]
     tmp_dir = run_nanoemoji(cmd)
-
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "CBDT" in font
     assert "CBLC" in font
+
+    if not use_zopflipng:
+        # check building the same font without zopflipng produces a larger table
+        _assert_table_size_cmp("CBDT", operator.gt, font, ["--nouse_zopflipng"] + cmd)
 
 
 @pytest.mark.parametrize(
@@ -188,19 +195,18 @@ def test_build_cbdt_font(use_zopflipng):
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 @pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 def test_build_compat_font(config_file, use_zopflipng):
-    cmd = []
-    if not use_zopflipng:
-        cmd.append("--nouse_zopflipng")
-    cmd.append(locate_test_file(config_file))
-
+    cmd = [locate_test_file(config_file)]
     tmp_dir = run_nanoemoji(cmd)
-
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "COLR" in font
     assert "SVG " in font
     assert "CBDT" in font
     assert "CBLC" in font
+
+    if not use_zopflipng:
+        # check building the same font without zopflipng produces a larger bitmap table
+        _assert_table_size_cmp("CBDT", operator.gt, font, ["--nouse_zopflipng"] + cmd)
 
 
 def test_the_curious_case_of_the_parentless_reused_el():
