@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import sys
+from functools import lru_cache
 from lxml import etree
 from fontTools import ttLib
 from nanoemoji import codepoints
@@ -285,6 +286,11 @@ def run_nanoemoji(args, tmp_dir=None):
     assert (tmp_dir / "build.ninja").is_file()
 
     return tmp_dir
+
+
+@lru_cache()
+def run_nanoemoji_memoized(args, tmp_dir=None):
+    return run_nanoemoji(args, tmp_dir=tmp_dir)
 
 
 _TEMPORARY_DIRS = set()

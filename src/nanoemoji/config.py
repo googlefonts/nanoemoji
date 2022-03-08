@@ -113,6 +113,12 @@ flags.DEFINE_integer(
 flags.DEFINE_bool(
     "use_zopflipng", None, "Whether or not to compress PNGs using zopfli."
 )
+flags.DEFINE_bool(
+    "use_pngquant", None, "Whether or not to quantize PNGs using pngquant."
+)
+flags.DEFINE_string(
+    "pngquant_flags", None, "Additional options to pass on to pngquant."
+)
 
 
 class Axis(NamedTuple):
@@ -163,6 +169,10 @@ class FontConfig(NamedTuple):
     glyphmap_generator: str = "nanoemoji.write_glyphmap"
     bitmap_resolution: int = 128
     use_zopflipng: bool = True
+    use_pngquant: bool = True
+    # we default to the same PNGQUANTFLAGS used in noto-emoji's Makefile:
+    # https://github.com/googlefonts/noto-emoji/blob/9a5261d/Makefile#L24
+    pngquant_flags: str = "--speed 1 --skip-if-larger --quality 85-95"
     pretty_print: bool = False
     axes: Tuple[Axis, ...] = ()
     masters: Tuple[MasterConfig, ...] = ()
@@ -262,6 +272,8 @@ def write(dest: Path, config: FontConfig):
         "glyphmap_generator": config.glyphmap_generator,
         "bitmap_resolution": config.bitmap_resolution,
         "use_zopflipng": config.use_zopflipng,
+        "use_pngquant": config.use_pngquant,
+        "pngquant_flags": config.pngquant_flags,
         "axis": {
             a.axisTag: {
                 "name": a.name,
@@ -348,6 +360,8 @@ def load(
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
     bitmap_resolution = _pop_flag(config, "bitmap_resolution")
     use_zopflipng = _pop_flag(config, "use_zopflipng")
+    use_pngquant = _pop_flag(config, "use_pngquant")
+    pngquant_flags = _pop_flag(config, "pngquant_flags")
 
     axes = []
     for axis_tag, axis_config in config.pop("axis").items():
@@ -428,6 +442,8 @@ def load(
         glyphmap_generator=glyphmap_generator,
         bitmap_resolution=bitmap_resolution,
         use_zopflipng=use_zopflipng,
+        use_pngquant=use_pngquant,
+        pngquant_flags=pngquant_flags,
         axes=tuple(axes),
         masters=tuple(masters),
         source_names=tuple(sorted(source_names)),

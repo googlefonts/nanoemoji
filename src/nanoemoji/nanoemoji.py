@@ -52,7 +52,7 @@ import shlex
 import shutil
 import subprocess
 import sys
-from typing import List, NamedTuple, Optional, Tuple, Set, Sequence
+from typing import Callable, List, NamedTuple, Optional, Tuple, Set, Sequence
 
 
 FLAGS = flags.FLAGS
@@ -223,6 +223,15 @@ def write_config_preamble(nw, font_config: FontConfig):
             if FLAGS.verbosity:
                 zopfli_args = "-v " + zopfli_args
             nw.rule("zopflipng", f"{sys.executable} -m zopfli.png {zopfli_args}")
+            nw.newline()
+
+        if font_config.use_pngquant:
+            # always overwrite using --force
+            pngquant_args = f"-f {font_config.pngquant_flags}"
+            if FLAGS.verbosity:
+                pngquant_args = "-v " + pngquant_args
+            module_rule(nw, "pngquant", f"-i $in -o $out -- {pngquant_args}")
+            nw.newline()
 
     for master in font_config.masters:
         write_font_rule(nw, font_config, master)
@@ -280,6 +289,10 @@ def zopflipng_dir() -> Path:
     return build_dir() / "zopflipng"
 
 
+def pngquant_dir() -> Path:
+    return build_dir() / "pngquant"
+
+
 def svg2png_dir() -> Path:
     return build_dir() / "imagediff" / "svg2png"
 
@@ -323,6 +336,10 @@ def bitmap_dest(input_svg: Path) -> Path:
 
 def zopflipng_dest(input_svg: Path) -> Path:
     return _dest_for_src(zopflipng_dest, zopflipng_dir(), input_svg, ".png")
+
+
+def pngquant_dest(input_svg: Path) -> Path:
+    return _dest_for_src(pngquant_dest, pngquant_dir(), input_svg, ".png")
 
 
 def svg2png_dest(input_svg: Path) -> Path:
@@ -374,16 +391,22 @@ def write_bitmap_builds(
         nw.build(dest, "write_bitmap", rel_build(svg_file))
 
 
-def write_zopflipng_builds(
-    zopflipng_builds: Set[Path], nw: NinjaWriter, master: MasterConfig
+def write_compressed_bitmap_builds(
+    builds: Set[Path],
+    nw: NinjaWriter,
+    master: MasterConfig,
+    rule_name: str,
+    dest_dir: Path,
+    infile_fn: Callable[[Path], Path],
+    outfile_fn: Callable[[Path], Path],
 ):
-    os.makedirs(str(zopflipng_dir()), exist_ok=True)
+    os.makedirs(str(dest_dir), exist_ok=True)
     for svg_file in master.sources:
-        dest = zopflipng_dest(svg_file)
-        if dest in zopflipng_builds:
+        dest = outfile_fn(svg_file)
+        if dest in builds:
             continue
-        zopflipng_builds.add(dest)
-        nw.build(dest, "zopflipng", bitmap_dest(svg_file))
+        builds.add(dest)
+        nw.build(dest, rule_name, infile_fn(svg_file))
 
 
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
@@ -444,7 +467,13 @@ def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
     if font_config.has_untouchedsvgs:
         input_files.extend(rel_build(f) for f in master.sources)
     if font_config.has_bitmaps:
-        dest_func = zopflipng_dest if font_config.use_zopflipng else bitmap_dest
+        dest_func = bitmap_dest
+        if font_config.use_zopflipng:
+            dest_func = zopflipng_dest
+        elif font_config.use_pngquant:
+            dest_func = pngquant_dest
+        # zopflipng always happens after pngquant, so when both are true
+        # the final desired file is zopflipng_dest
         input_files.extend(dest_func(f) for f in master.sources)
     return input_files
 
@@ -599,18 +628,51 @@ def _run(argv):
 
             bitmap_builds = set()
             for font_config in font_configs:
-                for master in font_config.masters:
-                    if font_config.has_bitmaps:
-                        write_bitmap_builds(
-                            bitmap_builds, nw, font_config.clip_to_viewbox, master
-                        )
+                if font_config.has_bitmaps:
+                    assert not font_config.is_vf
+                    write_bitmap_builds(
+                        bitmap_builds,
+                        nw,
+                        font_config.clip_to_viewbox,  # currently unused
+                        font_config.masters[0],
+                    )
             nw.newline()
 
             zopflipng_builds = set()
+            pngquant_builds = set()
             for font_config in font_configs:
-                for master in font_config.masters:
-                    if font_config.has_bitmaps and font_config.use_zopflipng:
-                        write_zopflipng_builds(zopflipng_builds, nw, master)
+                if not font_config.has_bitmaps or not (
+                    font_config.use_zopflipng or font_config.use_pngquant
+                ):
+                    continue
+                assert not font_config.is_vf
+
+                master = font_config.masters[0]
+                if font_config.use_pngquant:
+                    write_compressed_bitmap_builds(
+                        pngquant_builds,
+                        nw,
+                        master,
+                        rule_name="pngquant",
+                        dest_dir=pngquant_dir(),
+                        infile_fn=bitmap_dest,
+                        outfile_fn=pngquant_dest,
+                    )
+
+                if font_config.use_zopflipng:
+                    zopflipng_infile_fn = bitmap_dest
+                    if font_config.use_pngquant:
+                        zopflipng_infile_fn = pngquant_dest
+                        nw.newline()
+                    write_compressed_bitmap_builds(
+                        zopflipng_builds,
+                        nw,
+                        master,
+                        rule_name="zopflipng",
+                        dest_dir=zopflipng_dir(),
+                        infile_fn=zopflipng_infile_fn,
+                        outfile_fn=zopflipng_dest,
+                    )
             nw.newline()
 
             for font_config in font_configs:
