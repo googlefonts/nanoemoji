@@ -34,6 +34,7 @@ from test_helper import (
     mkdtemp,
     cleanup_temp_dirs,
     run_nanoemoji,
+    run_nanoemoji_memoized,
 )
 
 
@@ -146,7 +147,8 @@ def test_build_glyf_colr_1_and_picosvg_font():
     assert "SVG " in font
 
 
-def _assert_table_size_cmp(table_tag, op, original_font, cmd):
+def _assert_table_size_cmp(table_tag, op, original_font, original_cmd, **options):
+    cmd = original_cmd + tuple(f"--{'' if v else 'no'}{k}" for k, v in options.items())
     tmp_dir = run_nanoemoji(cmd)
     font = TTFont(next(tmp_dir.glob("*.ttf")))
     new_size = len(font.getTableData(table_tag))
@@ -155,30 +157,46 @@ def _assert_table_size_cmp(table_tag, op, original_font, cmd):
 
 
 @pytest.mark.parametrize("use_zopflipng", [True, False])
-def test_build_sbix_font(use_zopflipng):
-    cmd = [locate_test_file("minimal_static/config_sbix.toml")]
-    tmp_dir = run_nanoemoji(cmd)
+@pytest.mark.parametrize("use_pngquant", [True, False])
+def test_build_sbix_font(use_pngquant, use_zopflipng):
+    cmd = (locate_test_file("minimal_static/config_sbix.toml"),)
+    tmp_dir = run_nanoemoji_memoized(cmd)
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "sbix" in font
 
-    if not use_zopflipng:
-        # check building the same font without zopflipng produces a larger sbix table
-        _assert_table_size_cmp("sbix", operator.gt, font, ["--nouse_zopflipng"] + cmd)
+    # check building the same font without zopflipng/pngquant produces a larger table
+    if not use_zopflipng or not use_pngquant:
+        _assert_table_size_cmp(
+            "sbix",
+            operator.gt,
+            font,
+            cmd,
+            use_pngquant=use_pngquant,
+            use_zopflipng=use_zopflipng,
+        )
 
 
 @pytest.mark.parametrize("use_zopflipng", [True, False])
-def test_build_cbdt_font(use_zopflipng):
-    cmd = [locate_test_file("minimal_static/config_cbdt.toml")]
-    tmp_dir = run_nanoemoji(cmd)
+@pytest.mark.parametrize("use_pngquant", [True, False])
+def test_build_cbdt_font(use_pngquant, use_zopflipng):
+    cmd = (locate_test_file("minimal_static/config_cbdt.toml"),)
+    tmp_dir = run_nanoemoji_memoized(cmd)
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "CBDT" in font
     assert "CBLC" in font
 
-    if not use_zopflipng:
-        # check building the same font without zopflipng produces a larger table
-        _assert_table_size_cmp("CBDT", operator.gt, font, ["--nouse_zopflipng"] + cmd)
+    # check building the same font without zopflipng/pngquant produces a larger table
+    if not use_zopflipng or not use_pngquant:
+        _assert_table_size_cmp(
+            "CBDT",
+            operator.gt,
+            font,
+            cmd,
+            use_pngquant=use_pngquant,
+            use_zopflipng=use_zopflipng,
+        )
 
 
 @pytest.mark.parametrize(
@@ -190,9 +208,10 @@ def test_build_cbdt_font(use_zopflipng):
     ],
 )
 @pytest.mark.parametrize("use_zopflipng", [True, False])
-def test_build_compat_font(config_file, use_zopflipng):
-    cmd = [locate_test_file(config_file)]
-    tmp_dir = run_nanoemoji(cmd)
+@pytest.mark.parametrize("use_pngquant", [True, False])
+def test_build_compat_font(config_file, use_pngquant, use_zopflipng):
+    cmd = (locate_test_file(config_file),)
+    tmp_dir = run_nanoemoji_memoized(cmd)
     font = TTFont(tmp_dir / "Font.ttf")
 
     assert "COLR" in font
@@ -200,9 +219,16 @@ def test_build_compat_font(config_file, use_zopflipng):
     assert "CBDT" in font
     assert "CBLC" in font
 
-    if not use_zopflipng:
-        # check building the same font without zopflipng produces a larger bitmap table
-        _assert_table_size_cmp("CBDT", operator.gt, font, ["--nouse_zopflipng"] + cmd)
+    # check building the same font without zopflipng/pngquant produces larger bitmaps
+    if not use_zopflipng or not use_pngquant:
+        _assert_table_size_cmp(
+            "CBDT",
+            operator.gt,
+            font,
+            cmd,
+            use_pngquant=use_pngquant,
+            use_zopflipng=use_zopflipng,
+        )
 
 
 def test_the_curious_case_of_the_parentless_reused_el():
