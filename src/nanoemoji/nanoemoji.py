@@ -227,10 +227,10 @@ def write_config_preamble(nw, font_config: FontConfig):
 
         if font_config.use_pngquant:
             # always overwrite using --force
-            pngquant_args = f"-f {font_config.pngquant_flags} -o $out $in"
+            pngquant_args = f"-f {font_config.pngquant_flags}"
             if FLAGS.verbosity:
                 pngquant_args = "-v " + pngquant_args
-            nw.rule("pngquant", f"pngquant {pngquant_args}")
+            module_rule(nw, "pngquant", f"-i $in -o $out -- {pngquant_args}")
             nw.newline()
 
     for master in font_config.masters:
