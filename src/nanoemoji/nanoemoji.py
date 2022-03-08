@@ -472,6 +472,8 @@ def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
             dest_func = zopflipng_dest
         elif font_config.use_pngquant:
             dest_func = pngquant_dest
+        # zopflipng always happens after pngquant, so when both are true
+        # the final desired file is zopflipng_dest
         input_files.extend(dest_func(f) for f in master.sources)
     return input_files
 
