@@ -34,7 +34,6 @@ from test_helper import (
     mkdtemp,
     cleanup_temp_dirs,
     run_nanoemoji,
-    RESVG_PATH,
 )
 
 
@@ -155,7 +154,6 @@ def _assert_table_size_cmp(table_tag, op, original_font, cmd):
     assert op(new_size, original_size)
 
 
-@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_sbix_font(use_zopflipng):
     cmd = [locate_test_file("minimal_static/config_sbix.toml")]
@@ -169,7 +167,6 @@ def test_build_sbix_font(use_zopflipng):
         _assert_table_size_cmp("sbix", operator.gt, font, ["--nouse_zopflipng"] + cmd)
 
 
-@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_zopflipng):
     cmd = [locate_test_file("minimal_static/config_cbdt.toml")]
@@ -193,7 +190,6 @@ def test_build_cbdt_font(use_zopflipng):
     ],
 )
 @pytest.mark.parametrize("use_zopflipng", [True, False])
-@pytest.mark.skipif(RESVG_PATH is None, reason="resvg not installed")
 def test_build_compat_font(config_file, use_zopflipng):
     cmd = [locate_test_file(config_file)]
     tmp_dir = run_nanoemoji(cmd)

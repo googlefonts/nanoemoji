@@ -39,13 +39,6 @@ jobs:
       with:
         python-version: ${{ matrix.config.python-version }}
 
-    - name: Install resvg
-      # We use a pre-compiled wheel because cargo install resvg takes too long:
-      # https://github.com/googlefonts/nanoemoji/pull/373
-      run: |
-        pip install --find-links https://github.com/anthrotype/resvg-wheels/releases/tag/v0.2.0 resvg
-        which resvg
-
     - name: Install tox
       run: pip install tox
 

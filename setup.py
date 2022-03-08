@@ -48,6 +48,7 @@ setup(
         "toml>=0.10.1",
         "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
+        "resvg-cli>=0.22.0.post3",
         "zopfli>=0.2.1",
     ],
     extras_require=extras_require,

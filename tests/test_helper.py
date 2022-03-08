@@ -34,9 +34,6 @@ import shutil
 import tempfile
 
 
-RESVG_PATH = shutil.which("resvg")
-
-
 def test_data_dir() -> Path:
     return Path(__file__).parent
 
@@ -259,12 +256,9 @@ def svg_diff(actual_svg: SVG, expected_svg: SVG):
 def run(cmd):
     cmd = tuple(str(c) for c in cmd)
     print("subprocess:", " ".join(cmd))  # very useful on failure
-    # We may need to find nanoemoji and (optionally) resvg
-    bin_paths = [str(Path(shutil.which("nanoemoji")).parent)]
-    if RESVG_PATH:
-        bin_paths.append(str(Path(RESVG_PATH).parent))
     env = {
-        "PATH": os.pathsep.join(bin_paths),
+        # We may need to find nanoemoji and other pip-installed cli tools
+        "PATH": str(Path(shutil.which("nanoemoji")).parent),
         # We may need to find test modules
         "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
     }

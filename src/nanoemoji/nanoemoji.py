@@ -539,7 +539,7 @@ def _run(argv):
     if any(fc.has_bitmaps for fc in font_configs) and not shutil.which("resvg"):
         raise RuntimeError(
             "'resvg' command-line tool not found on $PATH. "
-            "Try `cargo install resvg` or visit https://github.com/RazrFalcon/resvg."
+            "Try `pip install resvg-cli` or visit https://github.com/RazrFalcon/resvg."
         )
 
     required_dirs = [build_dir()]
