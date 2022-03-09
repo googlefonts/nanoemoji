@@ -17,7 +17,7 @@ from absl import app
 from absl import flags
 from absl import logging
 from fontTools import ttLib
-from nanoemoji.colr_to_svg import colr_to_svg
+from nanoemoji.colr_to_svg import colr_to_svg, glyph_region, map_font_space_to_viewbox
 from nanoemoji import util
 from pathlib import Path
 from picosvg.geometric_types import Rect
@@ -36,8 +36,8 @@ flags.DEFINE_string(
 
 
 def _view_box(font: ttLib.TTFont, glyph_name: str) -> Rect:
-    # TODO an intelligent viewbox
-    return Rect(0, 0, 128, 128)
+    # we want a viewbox that results in no scaling when translating from font-space
+    return glyph_region(font, glyph_name)
 
 
 def main(argv):

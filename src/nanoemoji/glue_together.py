@@ -22,6 +22,7 @@ from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
 from nanoemoji.colr import paints_of_type
 import os
+from typing import Iterable, Tuple
 
 
 FLAGS = flags.FLAGS
@@ -54,6 +55,32 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     target["COLR"] = donor["COLR"]
 
 
+def _svg_glyphs(font: ttLib.TTFont) -> Iterable[Tuple[int, str]]:
+    for _, min_gid, max_gid in font["SVG "].docList:
+        for gid in range(min_gid, max_gid + 1):
+            yield gid, font.getGlyphName(gid)
+
+
+def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
+    # SVG is exciting because nanoemoji likes to restructure glyph order
+    # To keep things simple, let's build a new glyph order that keeps all the svg font gids stable
+    target_glyph_order = list(target.getGlyphOrder())
+    svg_glyphs = {gn for _, gn in _svg_glyphs(donor)}
+    non_svg_target_glyphs = [gn for gn in target_glyph_order if gn not in svg_glyphs]
+    new_glyph_order = []
+
+    for svg_gid, svg_glyph_name in _svg_glyphs(donor):
+        # we want gid to remain stable so copy non-svg glyphs until that will be true
+        while len(new_glyph_order) < svg_gid:
+            new_glyph_order.append(non_svg_target_glyphs.pop(0))
+        new_glyph_order.append(svg_glyph_name)
+
+    new_glyph_order.extend(non_svg_target_glyphs)  # any leftovers?
+
+    target.setGlyphOrder(new_glyph_order)
+    target["SVG "] = donor["SVG "]
+
+
 def main(argv):
     target = ttLib.TTFont(FLAGS.target_font)
     donor = ttLib.TTFont(FLAGS.donor_font)
@@ -61,6 +88,8 @@ def main(argv):
     # TODO lookup, guess fn name, etc
     if FLAGS.color_table == "COLR":
         _copy_colr(target, donor)
+    elif FLAGS.color_table == "SVG":
+        _copy_svg(target, donor)
     else:
         # TODO: SVG support
         # Note that nanoemoji svg reorders glyphs to pack svgs nicely

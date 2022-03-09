@@ -151,7 +151,7 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
     module_rule(
         nw,
         "glue_together",
-        f"--color_table COLR --target_font {rel_build(input_font)} --donor_font $in --output_file $out",
+        f"--color_table COLR --target_font {input_font} --donor_font $in --output_file $out",
         rule_name="copy_colr_from_svg2colr",
     )
     nw.newline()
@@ -159,7 +159,7 @@ def _write_preamble(nw: NinjaWriter, input_font: Path):
     module_rule(
         nw,
         "glue_together",
-        f"--color_table SVG --target_font {rel_build(input_font)} --donor_font $in --output_file $out",
+        f"--color_table SVG --target_font {input_font} --donor_font $in --output_file $out",
         rule_name="copy_svg_from_colr2svg",
     )
     nw.newline()

@@ -56,9 +56,12 @@ _COLR_TO_SVG_TEMPLATE = r'<svg viewBox="TBD" xmlns="http://www.w3.org/2000/svg" 
 ViewboxCallback = Callable[[str], Rect]  # f(glyph_name) -> Rect
 
 
-def _map_font_space_to_viewbox(
-    view_box: Rect, ascender: int, descender: int, width: int
-) -> Affine2D:
+def map_font_space_to_viewbox(view_box: Rect, glyph_region: Rect) -> Affine2D:
+    ascender = glyph_region.h + glyph_region.y
+    descender = glyph_region.y
+    assert descender <= 0
+    width = glyph_region.w
+
     return color_glyph.map_viewbox_to_font_space(
         view_box, ascender, descender, width, Affine2D.identity()
     ).inverse()
@@ -264,17 +267,21 @@ def _colr_v1_paint_to_svg(
         raise NotImplementedError(ot_paint.Format)
 
 
+def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
+    return Rect(
+        0,
+        ttfont["OS/2"].sTypoDescender,
+        ttfont["hmtx"][glyph_name][0],
+        ttfont["OS/2"].sTypoAscender - ttfont["OS/2"].sTypoDescender,
+    )
+
+
 def _view_box_and_transform(
     ttfont: ttLib.TTFont, view_box_callback: ViewboxCallback, glyph_name: str
 ) -> Tuple[Rect, Affine2D]:
-    ascender = ttfont["OS/2"].sTypoAscender
-    descender = ttfont["OS/2"].sTypoDescender
-    width = ttfont["hmtx"][glyph_name][0]
-    # view_box = Rect(
-    #     0, 0, width * font_to_svg_scale, (ascender - descender) * font_to_svg_scale
-    # )
+
     view_box = view_box_callback(glyph_name)
-    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+    font_to_vbox = map_font_space_to_viewbox(view_box, glyph_region(ttfont, glyph_name))
 
     return (view_box, font_to_vbox)
 
@@ -310,9 +317,9 @@ def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
             yield font.getGlyphID(glyph_name)
     else:
         assert colr.version == 1
-        assert not colr.ColorLayers, "TODO: mixed v0/v1 support"
-        for base_glyph in font["COLR"].table.BaseGlyphList:
-            yield font.getGlyphID(base_glyph.Glyph)
+        assert not getattr(colr, "ColorLayers", ()), "TODO: mixed v0/v1 support"
+        for base_glyph in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
+            yield font.getGlyphID(base_glyph.BaseGlyph)
 
 
 def _colr_v0_to_svgs(
