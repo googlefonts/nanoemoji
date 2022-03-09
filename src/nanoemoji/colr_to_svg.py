@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import importlib.resources as resources  # pytype: disable=import-error
-except ImportError:
-    import importlib_resources as resources  # pytype: disable=import-error
 from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.glyph_reuse import GlyphReuseCache
@@ -55,6 +51,8 @@ from fontTools.ttLib.tables import otTables
 
 
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
+_COLR_TO_SVG_TEMPLATE = r'<svg viewBox="TBD" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/></svg>'
+
 ViewboxCallback = Callable[[str], Rect]  # f(glyph_name) -> Rect
 
 
@@ -67,9 +65,7 @@ def _map_font_space_to_viewbox(
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
-    with resources.path("nanoemoji.data", "colr_to_svg_template.svg") as template_file:
-        svg_tree = etree.parse(str(template_file))
-    svg_root = svg_tree.getroot()
+    svg_root = etree.fromstring(_COLR_TO_SVG_TEMPLATE)
     vbox = (view_box.x, view_box.y, view_box.w, view_box.h)
     svg_root.attrib["viewBox"] = " ".join(ntos(v) for v in vbox)
     return svg_root
@@ -313,6 +309,8 @@ def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
         for glyph_name in colr.ColorLayers:
             yield font.getGlyphID(glyph_name)
     else:
+        assert colr.version == 1
+        assert not colr.ColorLayers, "TODO: mixed v0/v1 support"
         for base_glyph in font["COLR"].table.BaseGlyphList:
             yield font.getGlyphID(base_glyph.Glyph)
 

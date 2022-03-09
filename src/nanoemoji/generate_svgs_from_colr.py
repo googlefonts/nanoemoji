@@ -36,7 +36,8 @@ flags.DEFINE_string(
 
 
 def _view_box(font: ttLib.TTFont, glyph_name: str) -> Rect:
-    pass
+    # TODO an intelligent viewbox
+    return Rect(0, 0, 128, 128)
 
 
 def main(argv):
