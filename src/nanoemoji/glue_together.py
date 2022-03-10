@@ -40,7 +40,7 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
         p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)
     }
 
-    for glyph_name in _glyphs_to_copy:
+    for glyph_name in sorted(_glyphs_to_copy):
         target["glyf"][glyph_name] = donor["glyf"][glyph_name]
 
         if glyph_name in target["hmtx"].metrics:
