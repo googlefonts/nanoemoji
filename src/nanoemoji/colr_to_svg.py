@@ -57,8 +57,10 @@ ViewboxCallback = Callable[[str], Rect]  # f(glyph_name) -> Rect
 
 
 def map_font_space_to_viewbox(view_box: Rect, glyph_region: Rect) -> Affine2D:
-    ascender = glyph_region.h + glyph_region.y
-    descender = glyph_region.y
+    # SVG, as some of us are very fond of forgetting, has +y going down
+    assert glyph_region.y <= 0
+    ascender = -glyph_region.y
+    descender = -(glyph_region.h - ascender)
     assert descender <= 0
     width = glyph_region.w
 
@@ -268,9 +270,12 @@ def _colr_v1_paint_to_svg(
 
 
 def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
+    """The area occupied by the glyph, NOT factoring in that Y flips.
+
+    map_font_space_to_viewbox handles font +y goes up => svg +y goes down."""
     return Rect(
         0,
-        ttfont["OS/2"].sTypoDescender,
+        -ttfont["OS/2"].sTypoAscender,
         ttfont["hmtx"][glyph_name][0],
         ttfont["OS/2"].sTypoAscender - ttfont["OS/2"].sTypoDescender,
     )
