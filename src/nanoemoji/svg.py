@@ -18,6 +18,7 @@ import dataclasses
 from io import BytesIO
 from itertools import groupby
 from fontTools import ttLib
+from functools import reduce
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
@@ -586,37 +587,28 @@ def _ensure_groups_grouped_in_glyph_order(
     # Cf. https://github.com/fonttools/fonttools/issues/2060
     _ensure_ttfont_fully_decompiled(ttfont)
 
-    # The glyph names in the TTFont may have been dropped (post table 3.0), so the
-    # names we see after decompiling the TTFont are made up and likely different
-    # from the input color glyph names. We only want to reorder the base color glyphs
-    # while keeping the current names: we can't change order and rename at the same time
-    # or else tables that contain mappings keyed by glyph name would blow up.
-    # Thus, we need to match the old and current names by their position in the
-    # font's current glyph order: i.e. we assume all color glyphs are placed in a
-    # continuous block starting at the first color glyph.
-    current_glyph_order = ttfont.getGlyphOrder()
-    min_color_gid = min(g.glyph_id for g in color_glyphs.values())
-    max_color_gid = max(g.glyph_id for g in color_glyphs.values())
-    current_color_glyph_names = current_glyph_order[min_color_gid : max_color_gid + 1]
-    assert len(color_glyph_order) == len(
-        current_color_glyph_names
-    ), f"{len(color_glyph_order)} != {len(current_color_glyph_names)}"
-    rename_map = {
-        color_glyph_order[i]: current_color_glyph_names[i]
-        for i in range(len(color_glyph_order))
-    }
+    # We kept glyph names stable when saving a font for svg so it's safe to match on
+    assert ttfont["post"].formatType == 2, "glyph names need to be stable"
 
-    glyph_order = current_glyph_order[:min_color_gid]
+    # everything that *isn't* shuffling
+    group_glyphs = reduce(lambda a, c: a | set(c), reuse_groups, set())
+    glyph_order = [g for g in ttfont.getGlyphOrder() if g not in group_glyphs]
+
+    # plus everything that is shuffling, in the order it needs to stay in
+    # update color glyph gid as we go
     gid = len(glyph_order)
     for group in reuse_groups:
         for glyph_name in group:
+            glyph_order.append(glyph_name)
             color_glyphs[glyph_name] = color_glyphs[glyph_name]._replace(glyph_id=gid)
             gid += 1
-        glyph_order.extend(rename_map[g] for g in group)
-    # don't forget any extra glyphs at the end (e.g. layers in mixed COLR+SVG font)
-    if len(glyph_order) < len(current_glyph_order):
-        glyph_order.extend(current_glyph_order[len(glyph_order) :])
-    assert len(glyph_order) == len(current_glyph_order)
+
+    assert len(glyph_order) == len(set(glyph_order)), ", ".join(glyph_order)
+    assert len(ttfont.getGlyphOrder()) == len(glyph_order) and set(
+        ttfont.getGlyphOrder()
+    ) == set(
+        glyph_order
+    ), f"lhs only {set(ttfont.getGlyphOrder()) - set(glyph_order)} rhs only {set(glyph_order) - set(ttfont.getGlyphOrder())}"
     ttfont.setGlyphOrder(glyph_order)
 
 

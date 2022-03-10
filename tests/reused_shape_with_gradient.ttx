@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
+    <GlyphID id="2" name="e000.0"/>
+    <GlyphID id="3" name="e000"/>
   </GlyphOrder>
 
   <hmtx>
@@ -55,9 +55,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000"/><!-- contains no outline data -->
-
-    <TTGlyph name="e000.0" xMin="39" yMin="39" xMax="61" yMax="61">
+    <TTGlyph name="e000" xMin="39" yMin="39" xMax="61" yMax="61">
       <contour>
         <pt x="61" y="50" on="1"/>
         <pt x="61" y="54" on="0"/>
@@ -74,6 +72,8 @@
       </contour>
       <instructions/>
     </TTGlyph>
+
+    <TTGlyph name="e000.0"/><!-- contains no outline data -->
 
   </glyf>
 
@@ -246,7 +246,7 @@
   </CPAL>
 
   <SVG>
-    <svgDoc endGlyphID="2" startGlyphID="2">
+    <svgDoc endGlyphID="3" startGlyphID="3">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
     <path d="M77.56,63.99 A13.56 13.56 0 1 1 50.44,63.99 A13.56 13.56 0 1 1 77.56,63.99 Z" id="e000.0"/>
@@ -268,7 +268,7 @@
       <stop offset="1" stop-color="#E53935"/>
     </radialGradient>
   </defs>
-  <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
+  <g id="glyph3" transform="matrix(0.781 0 0 0.781 0 -100)">
     <use xlink:href="#e000.0" fill="url(#g1)"/>
     <use xlink:href="#e000.0" y="36.94" fill="url(#g2)"/>
     <use xlink:href="#e000.0" y="-36.93" fill="url(#g4)"/>

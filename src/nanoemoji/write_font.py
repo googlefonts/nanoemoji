@@ -220,7 +220,12 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     _draw_notdef(config, ufo)
 
     # use 'post' format 3.0 for TTFs, shaving a kew KBs of unneeded glyph names
-    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = config.keep_glyph_names
+    # if we're building svgs keep glyph names to simplify operation on the resulting binary
+    keep = config.keep_glyph_names
+    if config.has_svgs and config.has_picosvgs:
+        keep = True
+        print("Force keep glyph names")
+    ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep
 
     return ufo
 
@@ -779,12 +784,15 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 
-    # Permit fixups where we can't express something adequately in UFO
-    _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
-        config, ufo, color_glyphs, ttfont
-    )
+    if ttfont is not None:
+        # Permit fixups where we can't express something adequately in UFO
+        _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
+            config, ufo, color_glyphs, ttfont
+        )
 
-    # TODO may wish to nuke 'post' glyph names
+        # some formats keep glyph order through to here
+        if not config.keep_glyph_names:
+            ttfont["post"].formatType = 3  # no glyph names
 
     return ufo, ttfont
 

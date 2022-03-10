@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
+    <GlyphID id="2" name="e000.0"/>
+    <GlyphID id="3" name="e000"/>
   </GlyphOrder>
 
   <hmtx>
@@ -55,9 +55,7 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000"/><!-- contains no outline data -->
-
-    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="e000" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
         <pt x="20" y="80" on="1"/>
         <pt x="20" y="60" on="1"/>
@@ -66,6 +64,8 @@
       </contour>
       <instructions/>
     </TTGlyph>
+
+    <TTGlyph name="e000.0"/><!-- contains no outline data -->
 
   </glyf>
 
@@ -126,12 +126,12 @@
   </CPAL>
 
   <SVG>
-    <svgDoc endGlyphID="2" startGlyphID="2">
+    <svgDoc endGlyphID="3" startGlyphID="3">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
     <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e000.0" fill="blue"/>
   </defs>
-  <g id="glyph2" transform="matrix(10 0 0 10 0 -100)">
+  <g id="glyph3" transform="matrix(10 0 0 10 0 -100)">
     <use xlink:href="#e000.0"/>
     <use xlink:href="#e000.0" x="2" y="2" opacity="0.8"/>
   </g>
