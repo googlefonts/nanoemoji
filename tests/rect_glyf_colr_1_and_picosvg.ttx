@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000.0"/>
-    <GlyphID id="3" name="e000"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.0"/>
   </GlyphOrder>
 
   <hmtx>

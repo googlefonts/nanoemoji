@@ -266,6 +266,7 @@ def _run(argv):
 
     if gen_ninja():
         logging.info(f"Generating {build_file.relative_to(build_dir())}")
+        input_font = input_font.resolve()  # we need a non-relative path
         with open(build_file, "w") as f:
             nw = NinjaWriter(f)
             _write_preamble(nw, input_font)

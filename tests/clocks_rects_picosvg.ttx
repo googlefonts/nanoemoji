@@ -6,8 +6,8 @@
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
     <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e002"/>
-    <GlyphID id="4" name="e001"/>
+    <GlyphID id="3" name="e001"/>
+    <GlyphID id="4" name="e002"/>
     <GlyphID id="5" name="e003"/>
   </GlyphOrder>
 

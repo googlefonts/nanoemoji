@@ -224,7 +224,6 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
     keep = config.keep_glyph_names
     if config.has_svgs and config.has_picosvgs:
         keep = True
-        print("Force keep glyph names")
     ufo.lib[ufo2ft.constants.KEEP_GLYPH_NAMES] = keep
 
     return ufo

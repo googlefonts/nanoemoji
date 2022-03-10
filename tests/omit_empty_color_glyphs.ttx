@@ -5,9 +5,9 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="B.0"/>
+    <GlyphID id="2" name="g_200c"/>
     <GlyphID id="3" name="B"/>
-    <GlyphID id="4" name="g_200c"/>
+    <GlyphID id="4" name="B.0"/>
   </GlyphOrder>
 
   <cmap>

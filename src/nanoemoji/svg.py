@@ -609,7 +609,8 @@ def _ensure_groups_grouped_in_glyph_order(
     ) == set(
         glyph_order
     ), f"lhs only {set(ttfont.getGlyphOrder()) - set(glyph_order)} rhs only {set(glyph_order) - set(ttfont.getGlyphOrder())}"
-    ttfont.setGlyphOrder(glyph_order)
+    assert ttfont.isLoaded("glyf")
+    ttfont["glyf"].glyphOrder = glyph_order
 
 
 def _use_href(use_el):

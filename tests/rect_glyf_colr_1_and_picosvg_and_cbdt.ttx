@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000.0"/>
-    <GlyphID id="3" name="e000"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e000.0"/>
   </GlyphOrder>
 
   <hmtx>
@@ -72,7 +72,7 @@
   <CBDT>
     <header version="3.0"/>
     <strikedata index="0">
-      <cbdt_bitmap_format_17 name="e000.0">
+      <cbdt_bitmap_format_17 name="e000">
         <SmallGlyphMetrics>
           <height value="128"/>
           <width value="128"/>
@@ -80,7 +80,7 @@
           <BearingY value="100"/>
           <Advance value="116"/>
         </SmallGlyphMetrics>
-        <extfileimagedata value="e000.0.png"/>
+        <extfileimagedata value="e000.png"/>
       </cbdt_bitmap_format_17>
     </strikedata>
   </CBDT>
@@ -128,7 +128,7 @@
       <!-- GlyphIds are written but not read. The firstGlyphIndex and
            lastGlyphIndex values will be recalculated by the compiler. -->
       <eblc_index_sub_table_1 imageFormat="17" firstGlyphIndex="2" lastGlyphIndex="2">
-        <glyphLoc id="2" name="e000.0"/>
+        <glyphLoc id="2" name="e000"/>
       </eblc_index_sub_table_1>
     </strike>
   </CBLC>
