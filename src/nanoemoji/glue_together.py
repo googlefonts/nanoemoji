@@ -21,6 +21,7 @@ from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
 from nanoemoji.colr import paints_of_type
+from nanoemoji.util import reorder_glyphs
 import os
 from typing import Iterable, Tuple
 
@@ -77,7 +78,7 @@ def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
 
     new_glyph_order.extend(non_svg_target_glyphs)  # any leftovers?
 
-    target.setGlyphOrder(new_glyph_order)
+    reorder_glyphs(target, new_glyph_order)
     target["SVG "] = donor["SVG "]
 
 

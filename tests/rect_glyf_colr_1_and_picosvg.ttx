@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
+    <GlyphID id="2" name="e000.0"/>
+    <GlyphID id="3" name="e000"/>
   </GlyphOrder>
 
   <hmtx>
@@ -55,7 +55,9 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
         <pt x="20" y="80" on="1"/>
         <pt x="20" y="60" on="1"/>
@@ -64,8 +66,6 @@
       </contour>
       <instructions/>
     </TTGlyph>
-
-    <TTGlyph name="e000.0"/><!-- contains no outline data -->
 
   </glyf>
 

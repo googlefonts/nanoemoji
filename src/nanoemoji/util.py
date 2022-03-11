@@ -14,9 +14,11 @@
 
 """Small helper functions."""
 
-import os
 import contextlib
+from fontTools import ttLib
 from functools import partial
+from io import BytesIO
+import os
 from pathlib import Path
 import shlex
 from typing import List
@@ -81,3 +83,32 @@ def file_printer(filename):
     else:
         with open(filename, "w") as f:
             yield partial(print, file=f)
+
+
+def ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
+    # A TTFont might be opened lazily and some tables only partially decompiled.
+    # So for this to work on any TTFont, we first compile everything to a temporary
+    # stream then reload with lazy=False. Input font is modified in-place.
+    tmp = BytesIO()
+    ttfont.save(tmp)
+    tmp.seek(0)
+    ttfont2 = ttLib.TTFont(tmp, lazy=False)
+    for tag in ttfont2.keys():
+        table = ttfont2[tag]
+        # cmap is exceptional in that it always loads subtables lazily upon getting
+        # their attributes, no matter the value of TTFont.lazy option.
+        # TODO: remove this hack once fixed in fonttools upstream
+        if tag == "cmap":
+            _ = [st.cmap for st in table.tables]
+        ttfont[tag] = table
+
+
+def reorder_glyphs(ttfont: ttLib.TTFont, glyph_order: List[str]):
+    # Changing the order of glyphs in a TTFont requires that all tables that use
+    # glyph indexes have been fully decompiled (loaded with lazy=False).
+    # Cf. https://github.com/fonttools/fonttools/issues/2060
+    ensure_ttfont_fully_decompiled(ttfont)
+    ttfont.setGlyphOrder(glyph_order)
+    # glyf table is special and needs its own glyphOrder...
+    assert ttfont.isLoaded("glyf")
+    ttfont["glyf"].glyphOrder = glyph_order

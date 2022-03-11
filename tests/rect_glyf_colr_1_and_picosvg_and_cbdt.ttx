@@ -5,8 +5,8 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000"/>
-    <GlyphID id="3" name="e000.0"/>
+    <GlyphID id="2" name="e000.0"/>
+    <GlyphID id="3" name="e000"/>
   </GlyphOrder>
 
   <hmtx>
@@ -55,7 +55,9 @@
 
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000" xMin="22" yMin="46" xMax="88" yMax="68">
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000.0" xMin="22" yMin="46" xMax="88" yMax="68">
       <contour>
         <pt x="22" y="68" on="1"/>
         <pt x="22" y="46" on="1"/>
@@ -65,14 +67,12 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.0"/><!-- contains no outline data -->
-
   </glyf>
 
   <CBDT>
     <header version="3.0"/>
     <strikedata index="0">
-      <cbdt_bitmap_format_17 name="e000">
+      <cbdt_bitmap_format_17 name="e000.0">
         <SmallGlyphMetrics>
           <height value="128"/>
           <width value="128"/>
@@ -80,7 +80,7 @@
           <BearingY value="100"/>
           <Advance value="116"/>
         </SmallGlyphMetrics>
-        <extfileimagedata value="e000.png"/>
+        <extfileimagedata value="e000.0.png"/>
       </cbdt_bitmap_format_17>
     </strikedata>
   </CBDT>
@@ -128,7 +128,7 @@
       <!-- GlyphIds are written but not read. The firstGlyphIndex and
            lastGlyphIndex values will be recalculated by the compiler. -->
       <eblc_index_sub_table_1 imageFormat="17" firstGlyphIndex="2" lastGlyphIndex="2">
-        <glyphLoc id="2" name="e000"/>
+        <glyphLoc id="2" name="e000.0"/>
       </eblc_index_sub_table_1>
     </strike>
   </CBLC>

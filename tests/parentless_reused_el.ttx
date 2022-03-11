@@ -7,9 +7,9 @@
     <GlyphID id="1" name=".space"/>
     <GlyphID id="2" name="g_20e3"/>
     <GlyphID id="3" name="g_23"/>
-    <GlyphID id="4" name="g_23_20e3"/>
-    <GlyphID id="5" name="g_1f170"/>
-    <GlyphID id="6" name="g_1f171"/>
+    <GlyphID id="4" name="g_1f170"/>
+    <GlyphID id="5" name="g_1f171"/>
+    <GlyphID id="6" name="g_23_20e3"/>
   </GlyphOrder>
 
   <SVG>

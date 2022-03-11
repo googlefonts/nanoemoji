@@ -39,6 +39,7 @@ from nanoemoji.paint import (
     PaintColrLayers,
     is_transform,
 )
+from nanoemoji.util import reorder_glyphs
 from picosvg.geometric_types import Rect
 from picosvg.svg import to_element, SVG, SVGTraverseContext
 from picosvg import svg_meta
@@ -584,11 +585,6 @@ def _ensure_groups_grouped_in_glyph_order(
 ):
     # svg requires glyphs in same doc have sequential gids; reshuffle to make this true.
 
-    # Changing the order of glyphs in a TTFont requires that all tables that use
-    # glyph indexes have been fully decompiled (loaded with lazy=False).
-    # Cf. https://github.com/fonttools/fonttools/issues/2060
-    _ensure_ttfont_fully_decompiled(ttfont)
-
     # We kept glyph names stable when saving a font for svg so it's safe to match on
     assert ttfont["post"].formatType == 2, "glyph names need to be stable"
 
@@ -611,8 +607,8 @@ def _ensure_groups_grouped_in_glyph_order(
     ) == set(
         glyph_order
     ), f"lhs only {set(ttfont.getGlyphOrder()) - set(glyph_order)} rhs only {set(glyph_order) - set(ttfont.getGlyphOrder())}"
-    assert ttfont.isLoaded("glyf")
-    ttfont["glyf"].glyphOrder = glyph_order
+
+    reorder_glyphs(ttfont, glyph_order)
 
 
 def _use_href(use_el):
