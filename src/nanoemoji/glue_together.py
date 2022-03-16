@@ -21,8 +21,9 @@ from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
 from nanoemoji.colr import paints_of_type
-from nanoemoji.util import reorder_glyphs
+from nanoemoji.util import load_fully, reorder_glyphs
 import os
+from pathlib import Path
 from typing import Iterable, Tuple
 
 
@@ -83,8 +84,8 @@ def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
 
 
 def main(argv):
-    target = ttLib.TTFont(FLAGS.target_font)
-    donor = ttLib.TTFont(FLAGS.donor_font)
+    target = load_fully(Path(FLAGS.target_font))
+    donor = load_fully(Path(FLAGS.donor_font))
 
     # TODO lookup, guess fn name, etc
     if FLAGS.color_table == "COLR":

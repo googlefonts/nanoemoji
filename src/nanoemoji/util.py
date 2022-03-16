@@ -15,13 +15,16 @@
 """Small helper functions."""
 
 import contextlib
+from fontTools.ttLib.tables import otBase
+from fontTools.ttLib.tables import otTables
+from fontTools.ttLib.tables import otConverters
 from fontTools import ttLib
 from functools import partial
 from io import BytesIO
 import os
 from pathlib import Path
 import shlex
-from typing import List
+from typing import Any, Callable, Iterable, List, NamedTuple, Tuple, Union
 
 
 def only(filter_fn, iterable):
@@ -85,30 +88,96 @@ def file_printer(filename):
             yield partial(print, file=f)
 
 
-def ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
-    # A TTFont might be opened lazily and some tables only partially decompiled.
-    # So for this to work on any TTFont, we first compile everything to a temporary
-    # stream then reload with lazy=False. Input font is modified in-place.
+def _assert_all_keys_loaded(font: ttLib.TTFont):
+    not_loaded = sorted(t for t in font.keys() if not font.isLoaded(t))
+    assert (
+        not not_loaded
+    ), f"Everything should be loaded, following aren't: {not_loaded}"
+
+
+def _reload(font: ttLib.TTFont, lazy: bool = True):
+    # Stream font to memory and load it back again
     tmp = BytesIO()
-    ttfont.save(tmp)
+    font.save(tmp)
     tmp.seek(0)
-    ttfont2 = ttLib.TTFont(tmp, lazy=False)
-    for tag in ttfont2.keys():
-        table = ttfont2[tag]
-        # cmap is exceptional in that it always loads subtables lazily upon getting
-        # their attributes, no matter the value of TTFont.lazy option.
-        # TODO: remove this hack once fixed in fonttools upstream
-        if tag == "cmap":
-            _ = [st.cmap for st in table.tables]
-        ttfont[tag] = table
+    return ttLib.TTFont(tmp, lazy=lazy)
 
 
-def reorder_glyphs(ttfont: ttLib.TTFont, glyph_order: List[str]):
+def load_fully(font: Union[Path, ttLib.TTFont]) -> ttLib.TTFont:
+    if isinstance(font, Path):
+        font = ttLib.TTFont(str(font), lazy=False)
+    else:
+        # A TTFont might be opened lazily and some tables only partially decompiled.
+        # If so, reload it
+        if font.lazy:
+            font = _reload(font, lazy=False)
+
+    font.ensureDecompiled()  # Do what you thought lazy=False meant
+
+    _assert_all_keys_loaded(font)
+
+    return font
+
+
+SubTablePath = Tuple[otBase.BaseTable.SubTableEntry, ...]
+
+# Given f(current frontier, new entries) -> new frontier
+AddToFrontierFn = Callable[[List[SubTablePath], List[SubTablePath]], List[SubTablePath]]
+
+
+def dfs_base_table(root: otBase.BaseTable) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(root, lambda current, new: new + current)
+
+
+def bfs_base_table(root: otBase.BaseTable) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(root, lambda current, new: current + new)
+
+
+def _traverse_ot_data(
+    root: otBase.BaseTable, add_to_frontier_fn: AddToFrontierFn
+) -> Iterable[SubTablePath]:
+    # no visited because general otData is forward-offset only and thus cannot cycle
+
+    frontier: List[SubTablePath] = [(otBase.BaseTable.SubTableEntry("", root),)]
+    while frontier:
+        # path is (value, attr_name) tuples. attr_name is attr of parent to get value
+        path = frontier.pop(0)
+        current = path[-1].value
+
+        yield path
+
+        new_frontier = []
+        for subtable_entry in current.iterSubTables():
+            if isinstance(subtable_entry.value, otBase.BaseTable):
+                new_frontier.append(path + (subtable_entry,))
+
+        frontier = add_to_frontier_fn(frontier, new_frontier)
+
+
+def reorder_glyphs(font: ttLib.TTFont, glyph_order: List[str]):
     # Changing the order of glyphs in a TTFont requires that all tables that use
     # glyph indexes have been fully decompiled (loaded with lazy=False).
     # Cf. https://github.com/fonttools/fonttools/issues/2060
-    ensure_ttfont_fully_decompiled(ttfont)
-    ttfont.setGlyphOrder(glyph_order)
+
+    _assert_all_keys_loaded(font)
+
+    font.setGlyphOrder(glyph_order)
     # glyf table is special and needs its own glyphOrder...
-    assert ttfont.isLoaded("glyf")
-    ttfont["glyf"].glyphOrder = glyph_order
+    font["glyf"].glyphOrder = glyph_order
+
+    # make sure reverse glyph order rebuilds too
+    font.getReverseGlyphMap(rebuild=True)
+
+    # TEMPORARY HOPEFULLY
+    # The glyphs in Coverage observably do not update properly, following logs:
+    # otTables.py:581] GSUB/GPOS Coverage is not sorted by glyph ids.
+    # Despite Coverage attempting self-repair resulting font will fail OTS.
+
+    # TODO also GSUB?
+    coverage_containers = {"GPOS"}
+    for tag in coverage_containers:
+        if tag in font.keys():
+            traverse_ot_data(font[tag].table, None)
+
+    # if coverage_containers & set(font.keys()):
+    #     assert False
