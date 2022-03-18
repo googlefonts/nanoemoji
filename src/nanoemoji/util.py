@@ -107,7 +107,7 @@ def load_fully(font: Union[Path, ttLib.TTFont]) -> ttLib.TTFont:
     else:
         # A TTFont might be opened lazily and some tables only partially decompiled.
         # If so, reload it
-        if font.lazy:
+        if font.lazy is not False:
             font = _reload(font, lazy=False)
 
     font.ensureDecompiled()  # Do what you thought lazy=False meant
