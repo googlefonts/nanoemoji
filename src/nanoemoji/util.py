@@ -16,7 +16,6 @@
 
 import contextlib
 from fontTools.ttLib.tables import otBase
-from fontTools.ttLib.tables import otTables
 from fontTools.ttLib.tables import otConverters
 from fontTools import ttLib
 from functools import partial
@@ -88,11 +87,10 @@ def file_printer(filename):
             yield partial(print, file=f)
 
 
-def _assert_all_keys_loaded(font: ttLib.TTFont):
+def require_fully_loaded(font: ttLib.TTFont):
     not_loaded = sorted(t for t in font.keys() if not font.isLoaded(t))
-    assert (
-        not not_loaded
-    ), f"Everything should be loaded, following aren't: {not_loaded}"
+    if not_loaded:
+        raise ValueError(f"Everything should be loaded, following aren't: {not_loaded}")
 
 
 def _reload(font: ttLib.TTFont, lazy: bool = True):
@@ -114,7 +112,7 @@ def load_fully(font: Union[Path, ttLib.TTFont]) -> ttLib.TTFont:
 
     font.ensureDecompiled()  # Do what you thought lazy=False meant
 
-    _assert_all_keys_loaded(font)
+    require_fully_loaded(font)
 
     return font
 
@@ -152,32 +150,3 @@ def _traverse_ot_data(
                 new_frontier.append(path + (subtable_entry,))
 
         frontier = add_to_frontier_fn(frontier, new_frontier)
-
-
-def reorder_glyphs(font: ttLib.TTFont, glyph_order: List[str]):
-    # Changing the order of glyphs in a TTFont requires that all tables that use
-    # glyph indexes have been fully decompiled (loaded with lazy=False).
-    # Cf. https://github.com/fonttools/fonttools/issues/2060
-
-    _assert_all_keys_loaded(font)
-
-    font.setGlyphOrder(glyph_order)
-    # glyf table is special and needs its own glyphOrder...
-    font["glyf"].glyphOrder = glyph_order
-
-    # make sure reverse glyph order rebuilds too
-    font.getReverseGlyphMap(rebuild=True)
-
-    # TEMPORARY HOPEFULLY
-    # The glyphs in Coverage observably do not update properly, following logs:
-    # otTables.py:581] GSUB/GPOS Coverage is not sorted by glyph ids.
-    # Despite Coverage attempting self-repair resulting font will fail OTS.
-
-    # TODO also GSUB?
-    coverage_containers = {"GPOS"}
-    for tag in coverage_containers:
-        if tag in font.keys():
-            traverse_ot_data(font[tag].table, None)
-
-    # if coverage_containers & set(font.keys()):
-    #     assert False

@@ -14,24 +14,14 @@
 
 
 from fontTools import ttLib
-from nanoemoji.util import dfs_base_table, SubTablePath
+from nanoemoji.reorder_glyphs import reorder_glyphs
+from nanoemoji.util import load_fully
 import os
 from pathlib import Path
 import pytest
 
 
-def _access_path(path: SubTablePath):
-    access_path = ""
-    for entry in path:
-        if not entry.name:
-            continue
-        access_path += entry.name
-        if entry.index is not None:
-            access_path += f"[{entry.index}]"
-    return access_path
-
-
-def test_traverse_ot_data():
+def test_flip_glyph_order():
     # TEMPORARY
     location = (
         Path.home()
@@ -39,9 +29,9 @@ def test_traverse_ot_data():
     )
     assert location.is_file()
 
-    font = ttLib.TTFont(location)
+    font = load_fully(ttLib.TTFont(location))
 
-    for path in dfs_base_table(font["GSUB"].table):
-        print(_access_path(path), type(path[-1].value))
+    # reverse the glyph order
+    reorder_glyphs(font, reversed(font.getGlyphOrder()))
 
     assert False, "TEMPORARY TEST"
