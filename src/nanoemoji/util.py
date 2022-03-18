@@ -14,6 +14,7 @@
 
 """Small helper functions."""
 
+from collections import deque
 import contextlib
 from fontTools.ttLib.tables import otBase
 from fontTools.ttLib.tables import otConverters
@@ -23,7 +24,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 import shlex
-from typing import Any, Callable, Iterable, List, NamedTuple, Tuple, Union
+from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
 
 
 def only(filter_fn, iterable):
@@ -119,34 +120,34 @@ def load_fully(font: Union[Path, ttLib.TTFont]) -> ttLib.TTFont:
 
 SubTablePath = Tuple[otBase.BaseTable.SubTableEntry, ...]
 
-# Given f(current frontier, new entries) -> new frontier
-AddToFrontierFn = Callable[[List[SubTablePath], List[SubTablePath]], List[SubTablePath]]
+# Given f(current frontier, new entries) add new entries to frontier
+AddToFrontierFn = Callable[[Deque[SubTablePath], List[SubTablePath]], None]
 
 
-def dfs_base_table(root: otBase.BaseTable) -> Iterable[SubTablePath]:
-    yield from _traverse_ot_data(root, lambda current, new: new + current)
+def dfs_base_table(root: otBase.BaseTable, root_accessor: str) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(root, root_accessor, lambda frontier, new: frontier.extendleft(reversed(new)))
 
 
-def bfs_base_table(root: otBase.BaseTable) -> Iterable[SubTablePath]:
-    yield from _traverse_ot_data(root, lambda current, new: current + new)
+def bfs_base_table(root: otBase.BaseTable, root_accessor: str) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(root, root_accessor, lambda frontier, new: frontier.extend(new))
 
 
 def _traverse_ot_data(
-    root: otBase.BaseTable, add_to_frontier_fn: AddToFrontierFn
+    root: otBase.BaseTable, root_accessor: str, add_to_frontier_fn: AddToFrontierFn
 ) -> Iterable[SubTablePath]:
     # no visited because general otData is forward-offset only and thus cannot cycle
 
-    frontier: List[SubTablePath] = [(otBase.BaseTable.SubTableEntry("", root),)]
+    frontier: Deque[SubTablePath] = deque()
+    frontier.append((otBase.BaseTable.SubTableEntry(root_accessor, root),))
     while frontier:
         # path is (value, attr_name) tuples. attr_name is attr of parent to get value
-        path = frontier.pop(0)
+        path = frontier.popleft()
         current = path[-1].value
 
         yield path
 
-        new_frontier = []
+        new_entries = []
         for subtable_entry in current.iterSubTables():
-            if isinstance(subtable_entry.value, otBase.BaseTable):
-                new_frontier.append(path + (subtable_entry,))
+            new_entries.append(path + (subtable_entry,))
 
-        frontier = add_to_frontier_fn(frontier, new_frontier)
+        add_to_frontier_fn(frontier, new_entries)

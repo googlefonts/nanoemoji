@@ -39,8 +39,6 @@ _REORDER_NEEDED = {
 def _access_path(path: SubTablePath):
     path_parts = []
     for entry in path:
-        if not entry.name:
-            continue
         path_part = entry.name
         if entry.index is not None:
             path_part += f"[{entry.index}]"
@@ -56,15 +54,13 @@ def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
     require_fully_loaded(font)
 
     font.setGlyphOrder(new_glyph_order)
-    # glyf table is special and needs its own glyphOrder...
-    font["glyf"].glyphOrder = new_glyph_order
 
     # TODO also GSUB, GDEF, MATH ... see Cosimo's Doc. For now just GPOS for testing purposes.
     coverage_containers = {"GPOS"}
     for tag in coverage_containers:
         if tag in font.keys():
-            for path in bfs_base_table(font[tag].table):
-                print(_access_path(path))
+            for path in bfs_base_table(font[tag].table, f"font[\"{tag}\"]"):
+                #print(_access_path(path))
                 value = path[-1].value
                 reorder_key = (type(value), getattr(value, "Format", None))
                 if reorder_key in _REORDER_NEEDED:
