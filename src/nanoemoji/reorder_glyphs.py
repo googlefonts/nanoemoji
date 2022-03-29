@@ -18,21 +18,52 @@ See https://docs.google.com/document/d/14b8bivUBdWSkeGLIVcqVLBVWNbXXFawguq52D2ol
 
 
 from fontTools import ttLib
+from fontTools.ttLib.tables import otBase
 from fontTools.ttLib.tables import otTables as ot
 from nanoemoji.util import bfs_base_table, require_fully_loaded, SubTablePath
-from typing import List
+from typing import List, NamedTuple, Optional
 
 
 _COVERAGE_ATTR = "Coverage"  # tables that have one coverage use this name
 
 
-# (Type, Optional Format) => List of (attr name of Coverage, optional attr name of list sorted by that coverage)
+class ReorderCoverage(NamedTuple):
+    # A list that is parallel to Coverage
+    parallel_list_attr: Optional[str] = None
+    coverage_attr: str = _COVERAGE_ATTR
+
+    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable):
+        print(
+            "OMG need to reorder", type(value), self
+        )  # TEMPORARY, but leave for Cosimo to find in review. It's a tradition.
+        coverage = getattr(value, self.coverage_attr)
+        parallel_list = range(len(coverage.glyphs))
+        if self.parallel_list_attr:
+            parallel_list = getattr(value, self.parallel_list_attr)
+            assert type(parallel_list) is list, f"{self.coverage_attr} should be a list"
+        assert len(parallel_list) == len(coverage.glyphs), "Nothing makes sense"
+
+        # sort
+        reordered = sorted(
+            ((g, e) for g, e in zip(coverage.glyphs, parallel_list)),
+            key=lambda t: font.getGlyphID(t[0]),
+        )
+
+        # update properties
+        sorted_glyphs, sorted_parallel_list = map(list, zip(*reordered))
+        coverage.glyphs = sorted_glyphs
+        if self.parallel_list_attr:
+            setattr(value, self.parallel_list_attr, sorted_parallel_list)
+
+
+# (Type, Optional Format) => List[ReorderCoverage]
 # See Cosimo's doc for context
-_REORDER_NEEDED = {
-    (ot.SinglePos, 1): [(_COVERAGE_ATTR, None)],
-    (ot.SinglePos, 2): [(_COVERAGE_ATTR, "Value")],
-    (ot.PairPos, 1): [(_COVERAGE_ATTR, "PairSet")],
-    (ot.PairPos, 2): [(_COVERAGE_ATTR, None)],
+_COVERAGE_REORDER = {
+    (ot.SinglePos, 1): [ReorderCoverage()],
+    (ot.SinglePos, 2): [ReorderCoverage(parallel_list_attr="Value")],
+    (ot.PairPos, 1): [ReorderCoverage(parallel_list_attr="PairSet")],
+    (ot.PairPos, 2): [ReorderCoverage()],
+    # TODO additional entries
 }
 
 
@@ -48,9 +79,8 @@ def _access_path(path: SubTablePath):
 
 def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
     # Changing the order of glyphs in a TTFont requires that all tables that use
-    # glyph indexes have been fully decompiled (loaded with lazy=False).
+    # glyph indexes have been fully.
     # Cf. https://github.com/fonttools/fonttools/issues/2060
-
     require_fully_loaded(font)
 
     font.setGlyphOrder(new_glyph_order)
@@ -59,9 +89,9 @@ def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
     coverage_containers = {"GPOS"}
     for tag in coverage_containers:
         if tag in font.keys():
-            for path in bfs_base_table(font[tag].table, f"font[\"{tag}\"]"):
-                #print(_access_path(path))
+            for path in bfs_base_table(font[tag].table, f'font["{tag}"]'):
+                # print(_access_path(path))
                 value = path[-1].value
                 reorder_key = (type(value), getattr(value, "Format", None))
-                if reorder_key in _REORDER_NEEDED:
-                    print("OMG need to reorder", reorder_key)
+                for reorder in _COVERAGE_REORDER.get(reorder_key, []):
+                    reorder.apply(font, value)

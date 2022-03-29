@@ -17,6 +17,7 @@
 from collections import deque
 import contextlib
 from fontTools.ttLib.tables import otBase
+from fontTools.ttLib.tables import otTables as ot
 from fontTools.ttLib.tables import otConverters
 from fontTools import ttLib
 from functools import partial
@@ -124,12 +125,20 @@ SubTablePath = Tuple[otBase.BaseTable.SubTableEntry, ...]
 AddToFrontierFn = Callable[[Deque[SubTablePath], List[SubTablePath]], None]
 
 
-def dfs_base_table(root: otBase.BaseTable, root_accessor: str) -> Iterable[SubTablePath]:
-    yield from _traverse_ot_data(root, root_accessor, lambda frontier, new: frontier.extendleft(reversed(new)))
+def dfs_base_table(
+    root: otBase.BaseTable, root_accessor: str
+) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(
+        root, root_accessor, lambda frontier, new: frontier.extendleft(reversed(new))
+    )
 
 
-def bfs_base_table(root: otBase.BaseTable, root_accessor: str) -> Iterable[SubTablePath]:
-    yield from _traverse_ot_data(root, root_accessor, lambda frontier, new: frontier.extend(new))
+def bfs_base_table(
+    root: otBase.BaseTable, root_accessor: str
+) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(
+        root, root_accessor, lambda frontier, new: frontier.extend(new)
+    )
 
 
 def _traverse_ot_data(

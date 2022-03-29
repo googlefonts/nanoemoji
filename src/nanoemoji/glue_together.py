@@ -21,7 +21,8 @@ from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
 from nanoemoji.colr import paints_of_type
-from nanoemoji.util import load_fully, reorder_glyphs
+from nanoemoji.reorder_glyphs import reorder_glyphs
+from nanoemoji.util import load_fully
 import os
 from pathlib import Path
 from typing import Iterable, Tuple
