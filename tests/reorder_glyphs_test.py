@@ -14,24 +14,60 @@
 
 
 from fontTools import ttLib
-from nanoemoji.reorder_glyphs import reorder_glyphs
+from nanoemoji.reorder_glyphs import _COVERAGE_REORDER, _sort_by_gid
 from nanoemoji.util import load_fully
 import os
 from pathlib import Path
 import pytest
 
 
-def test_flip_glyph_order():
-    # TEMPORARY
-    location = (
-        Path.home()
-        / "oss/bungee/fonts/Bungee_Color_Fonts/BungeeColor-Regular_colr_Windows.ttf"
-    )
-    assert location.is_file()
+def _dotted_converter(item, dotted_attr):
+    attr_names = dotted_attr.split(".")
+    assert attr_names
 
-    font = load_fully(ttLib.TTFont(location))
+    while attr_names:
+        attr_name = attr_names.pop(0)
+        item = item.getConverterByName(attr_name)
 
-    # reverse the glyph order
-    reorder_glyphs(font, reversed(font.getGlyphOrder()))
+        # Do we have to descend?
+        if attr_names:
+            item = item.tableClass()
 
-    assert False, "TEMPORARY TEST"
+    return item
+
+
+def test_metadata_is_valid():
+    for (clazz, fmt), reorders in _COVERAGE_REORDER.items():
+        instance = clazz()
+        instance.Format = fmt
+        assert (
+            instance.getConverters()
+        ), f"Lack of converters suggests {clazz} dislikes Format {fmt}"
+        for reorder in reorders:
+            assert (
+                _dotted_converter(instance, reorder.coverage_attr) is not None
+            ), f"No {clazz} {fmt} {reorder.coverage_attr}"
+            if reorder.parallel_list_attr:
+                assert (
+                    _dotted_converter(instance, reorder.parallel_list_attr) is not None
+                ), f"No {clazz} {fmt} {reorder.parallel_list_attr}"
+
+
+def test_sort_just_glyphs():
+    glyphs = ["a", "b", "c", "d"]
+    gids = [42, 0, 4, 1]
+
+    _sort_by_gid(lambda gn: gids[glyphs.index(gn)], glyphs, None)
+
+    assert glyphs == ["b", "d", "c", "a"]
+
+
+def test_sort_parallel_list():
+    glyphs = ["a", "b", "c", "d"]
+    parallel = ["aa", "bb", "cc", "dd"]
+    gids = [0, 42, 16, 2]
+
+    _sort_by_gid(lambda gn: gids[glyphs.index(gn)], glyphs, parallel)
+
+    assert glyphs == ["a", "d", "c", "b"]
+    assert parallel == ["aa", "dd", "cc", "bb"]
