@@ -33,8 +33,8 @@ flags.DEFINE_string("output_file", None, "Output filename.")
 
 
 def main(argv):
-    src_svg = util.only(lambda a: a.endswith(".svg"), argv)
-    font_file = util.only(lambda a: a.endswith(".ttf"), argv)
+    src_svg = util.only(argv, lambda a: a.endswith(".svg"))
+    font_file = util.only(argv, lambda a: a.endswith(".ttf"))
     text = "".join(
         chr(cp) for cp in codepoints.from_filename(os.path.basename(src_svg))
     )

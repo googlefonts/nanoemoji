@@ -28,7 +28,7 @@ import shlex
 from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
 
 
-def only(filter_fn, iterable):
+def only(iterable, filter_fn=lambda v: v):
     it = filter(filter_fn, iterable)
     result = next(it)
     assert next(it, None) is None

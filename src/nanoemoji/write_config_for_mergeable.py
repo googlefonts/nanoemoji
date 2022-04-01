@@ -26,8 +26,8 @@ FLAGS = flags.FLAGS
 
 
 def main(argv):
-    font_file = util.only(lambda a: a.endswith(".ttf"), argv)
-    config_file = Path(util.only(lambda a: a.endswith(".toml"), argv))
+    font_file = util.only(argv, lambda a: a.endswith(".ttf"))
+    config_file = Path(util.only(argv, lambda a: a.endswith(".toml")))
     font = ttLib.TTFont(font_file)
     upem = font["head"].unitsPerEm
     ascender = font["OS/2"].sTypoAscender
