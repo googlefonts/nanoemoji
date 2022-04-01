@@ -39,8 +39,8 @@ from nanoemoji.paint import (
     PaintColrLayers,
     is_transform,
 )
-from nanoemoji.util import reorder_glyphs
 from picosvg.geometric_types import Rect
+from nanoemoji.reorder_glyphs import reorder_glyphs
 from picosvg.svg import to_element, SVG, SVGTraverseContext
 from picosvg import svg_meta
 from picosvg.svg_reuse import normalize, affine_between

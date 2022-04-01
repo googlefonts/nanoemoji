@@ -14,17 +14,21 @@
 
 """Small helper functions."""
 
+from collections import deque
 import contextlib
+from fontTools.ttLib.tables import otBase
+from fontTools.ttLib.tables import otTables as ot
+from fontTools.ttLib.tables import otConverters
 from fontTools import ttLib
 from functools import partial
 from io import BytesIO
 import os
 from pathlib import Path
 import shlex
-from typing import List
+from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
 
 
-def only(filter_fn, iterable):
+def only(iterable, filter_fn=lambda v: v):
     it = filter(filter_fn, iterable)
     result = next(it)
     assert next(it, None) is None
@@ -85,30 +89,74 @@ def file_printer(filename):
             yield partial(print, file=f)
 
 
-def ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
-    # A TTFont might be opened lazily and some tables only partially decompiled.
-    # So for this to work on any TTFont, we first compile everything to a temporary
-    # stream then reload with lazy=False. Input font is modified in-place.
+def require_fully_loaded(font: ttLib.TTFont):
+    not_loaded = sorted(t for t in font.keys() if not font.isLoaded(t))
+    if not_loaded:
+        raise ValueError(f"Everything should be loaded, following aren't: {not_loaded}")
+
+
+def _reload(font: ttLib.TTFont, lazy: bool = True):
+    # Stream font to memory and load it back again
     tmp = BytesIO()
-    ttfont.save(tmp)
+    font.save(tmp)
     tmp.seek(0)
-    ttfont2 = ttLib.TTFont(tmp, lazy=False)
-    for tag in ttfont2.keys():
-        table = ttfont2[tag]
-        # cmap is exceptional in that it always loads subtables lazily upon getting
-        # their attributes, no matter the value of TTFont.lazy option.
-        # TODO: remove this hack once fixed in fonttools upstream
-        if tag == "cmap":
-            _ = [st.cmap for st in table.tables]
-        ttfont[tag] = table
+    return ttLib.TTFont(tmp, lazy=lazy)
 
 
-def reorder_glyphs(ttfont: ttLib.TTFont, glyph_order: List[str]):
-    # Changing the order of glyphs in a TTFont requires that all tables that use
-    # glyph indexes have been fully decompiled (loaded with lazy=False).
-    # Cf. https://github.com/fonttools/fonttools/issues/2060
-    ensure_ttfont_fully_decompiled(ttfont)
-    ttfont.setGlyphOrder(glyph_order)
-    # glyf table is special and needs its own glyphOrder...
-    assert ttfont.isLoaded("glyf")
-    ttfont["glyf"].glyphOrder = glyph_order
+def load_fully(font: Union[Path, ttLib.TTFont]) -> ttLib.TTFont:
+    if isinstance(font, Path):
+        font = ttLib.TTFont(str(font), lazy=False)
+    else:
+        # A TTFont might be opened lazily and some tables only partially decompiled.
+        # If so, reload it
+        if font.lazy is not False:
+            font = _reload(font, lazy=False)
+
+    font.ensureDecompiled()  # Do what you thought lazy=False meant
+
+    require_fully_loaded(font)
+
+    return font
+
+
+SubTablePath = Tuple[otBase.BaseTable.SubTableEntry, ...]
+
+# Given f(current frontier, new entries) add new entries to frontier
+AddToFrontierFn = Callable[[Deque[SubTablePath], List[SubTablePath]], None]
+
+
+def dfs_base_table(
+    root: otBase.BaseTable, root_accessor: str
+) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(
+        root, root_accessor, lambda frontier, new: frontier.extendleft(reversed(new))
+    )
+
+
+def bfs_base_table(
+    root: otBase.BaseTable, root_accessor: str
+) -> Iterable[SubTablePath]:
+    yield from _traverse_ot_data(
+        root, root_accessor, lambda frontier, new: frontier.extend(new)
+    )
+
+
+def _traverse_ot_data(
+    root: otBase.BaseTable, root_accessor: str, add_to_frontier_fn: AddToFrontierFn
+) -> Iterable[SubTablePath]:
+    # no visited because general otData is forward-offset only and thus cannot cycle
+
+    frontier: Deque[SubTablePath] = deque()
+    frontier.append((otBase.BaseTable.SubTableEntry(root_accessor, root),))
+    while frontier:
+        # path is (value, attr_name) tuples. attr_name is attr of parent to get value
+        path = frontier.popleft()
+        current = path[-1].value
+
+        yield path
+
+        new_entries = []
+        for subtable_entry in current.iterSubTables():
+            new_entries.append(path + (subtable_entry,))
+
+        add_to_frontier_fn(frontier, new_entries)

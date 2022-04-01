@@ -46,7 +46,7 @@ flags.DEFINE_string(
 def main(argv):
     logging.set_verbosity(FLAGS.log_level)
 
-    font_file = util.only(lambda a: a.endswith(".ttf"), argv)
+    font_file = util.only(argv, lambda a: a.endswith(".ttf"))
     out_dir = Path(FLAGS.output_dir)
     assert out_dir.is_dir(), f"{FLAGS.output_dir} is not a directory"
 

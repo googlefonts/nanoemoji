@@ -784,6 +784,9 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
     ttfont = _make_ttfont(config, ufo, color_glyphs)
 
     if ttfont is not None:
+        # apply_ttfont may wish to do things like reorder tables that require full load
+        ttfont = util.load_fully(ttfont)
+
         # Permit fixups where we can't express something adequately in UFO
         _COLOR_FORMAT_GENERATORS[config.color_format].apply_ttfont(
             config, ufo, color_glyphs, ttfont
