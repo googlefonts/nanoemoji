@@ -30,19 +30,26 @@ def _cleanup_temporary_dirs():
     cleanup_temp_dirs()
 
 
-def test_build_colr_from_svg():
+@pytest.mark.parametrize(
+    "color_format, expected_new_tables",
+    [
+        ("picosvg", {"COLR", "CPAL"}),
+        ("glyf_colr_1", {"SVG "}),
+    ],
+)
+def test_build_maximum_font(color_format, expected_new_tables):
     tmp_dir = run_nanoemoji(
         (
             "--color_format",
-            "picosvg",
+            color_format,
             locate_test_file("emoji_u42.svg"),
         )
     )
 
-    svg_font_file = tmp_dir / "Font.ttf"
-    assert svg_font_file.is_file()
+    initial_font_file = tmp_dir / "Font.ttf"
+    assert initial_font_file.is_file()
 
-    # We must have COLR!
+    # Moar color
     run(
         (
             sys.executable,
@@ -50,14 +57,13 @@ def test_build_colr_from_svg():
             "nanoemoji.maximum_color",
             "--build_dir",
             tmp_dir / "maximum_color",
-            svg_font_file,
+            initial_font_file,
         )
     )
 
     maxmium_font_file = tmp_dir / "maximum_color" / "Font.ttf"
     assert maxmium_font_file.is_file()
 
-    svg_font = ttLib.TTFont(svg_font_file)
-    maxmium_font_file = ttLib.TTFont(maxmium_font_file)
-
-    assert set(maxmium_font_file.keys()) == set(svg_font.keys()) | {"COLR", "CPAL"}
+    initial_font = ttLib.TTFont(initial_font_file)
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+    assert set(maximum_font.keys()) == set(initial_font.keys()) | expected_new_tables

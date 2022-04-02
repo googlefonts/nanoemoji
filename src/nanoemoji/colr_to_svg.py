@@ -44,29 +44,33 @@ from picosvg.svg_meta import ntos
 from picosvg.svg_transform import Affine2D
 from fontTools import ttLib
 from picosvg.geometric_types import Point, Rect
-import test_helper
 from lxml import etree
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
 
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
+_COLR_TO_SVG_TEMPLATE = r'<svg viewBox="TBD" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/></svg>'
+
+ViewboxCallback = Callable[[str], Rect]  # f(glyph_name) -> Rect
 
 
-def _map_font_space_to_viewbox(
-    view_box: Rect, ascender: int, descender: int, width: int
-) -> Affine2D:
+def map_font_space_to_viewbox(view_box: Rect, glyph_region: Rect) -> Affine2D:
+    # SVG, as some of us are very fond of forgetting, has +y going down
+    assert glyph_region.y <= 0
+    ascender = -glyph_region.y
+    descender = -(glyph_region.h - ascender)
+    assert descender <= 0
+    width = glyph_region.w
+
     return color_glyph.map_viewbox_to_font_space(
         view_box, ascender, descender, width, Affine2D.identity()
     ).inverse()
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
-    svg_tree = etree.parse(
-        str(test_helper.locate_test_file("colr_to_svg_template.svg"))
-    )
-    svg_root = svg_tree.getroot()
+    svg_root = etree.fromstring(_COLR_TO_SVG_TEMPLATE)
     vbox = (view_box.x, view_box.y, view_box.w, view_box.h)
     svg_root.attrib["viewBox"] = " ".join(ntos(v) for v in vbox)
     return svg_root
@@ -170,15 +174,13 @@ def _apply_gradient_ot_paint(
 def _colr_v0_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     glyph_name: str,
 ) -> etree.Element:
+    view_box, font_to_vbox = _view_box_and_transform(
+        ttfont, view_box_callback, glyph_name
+    )
     svg_root = _svg_root(view_box)
-    ascender = ttfont["OS/2"].sTypoAscender
-    descender = ttfont["OS/2"].sTypoDescender
-    width = ttfont["hmtx"][glyph_name][0]
-    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
-
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
         svg_path = etree.SubElement(svg_root, "path")
         paint = PaintSolid(_color(ttfont, glyph_layer.colorID))
@@ -267,20 +269,42 @@ def _colr_v1_paint_to_svg(
         raise NotImplementedError(ot_paint.Format)
 
 
+def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
+    """The area occupied by the glyph, NOT factoring in that Y flips.
+
+    map_font_space_to_viewbox handles font +y goes up => svg +y goes down."""
+    return Rect(
+        0,
+        -ttfont["OS/2"].sTypoAscender,
+        ttfont["hmtx"][glyph_name][0],
+        ttfont["OS/2"].sTypoAscender - ttfont["OS/2"].sTypoDescender,
+    )
+
+
+def _view_box_and_transform(
+    ttfont: ttLib.TTFont, view_box_callback: ViewboxCallback, glyph_name: str
+) -> Tuple[Rect, Affine2D]:
+
+    view_box = view_box_callback(glyph_name)
+    font_to_vbox = map_font_space_to_viewbox(view_box, glyph_region(ttfont, glyph_name))
+
+    return (view_box, font_to_vbox)
+
+
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
-    glyph_set = ttfont.getGlyphSet()
+    view_box, font_to_vbox = _view_box_and_transform(
+        ttfont, view_box_callback, glyph.BaseGlyph
+    )
     svg_root = _svg_root(view_box)
     svg_defs = svg_root[0]
-    ascender = ttfont["OS/2"].sTypoAscender
-    descender = ttfont["OS/2"].sTypoDescender
-    width = ttfont["hmtx"][glyph.BaseGlyph][0]
-    font_to_vbox = _map_font_space_to_viewbox(view_box, ascender, descender, width)
+
     reuse_cache = _new_reuse_cache()
+    glyph_set = ttfont.getGlyphSet()
     _colr_v1_paint_to_svg(
         ttfont, glyph_set, svg_root, svg_defs, font_to_vbox, glyph.Paint, reuse_cache
     )
@@ -291,28 +315,48 @@ def _new_reuse_cache() -> ReuseCache:
     return ReuseCache(0.1, GlyphReuseCache(0.1))
 
 
-def _colr_v0_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
+    colr = font["COLR"]
+    if colr.version == 0:
+        for glyph_name in colr.ColorLayers:
+            yield font.getGlyphID(glyph_name)
+    else:
+        assert colr.version == 1
+        assert not getattr(colr, "ColorLayers", ()), "TODO: mixed v0/v1 support"
+        for base_glyph in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
+            yield font.getGlyphID(base_glyph.BaseGlyph)
+
+
+def _colr_v0_to_svgs(
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
+) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g: SVG.fromstring(
-            etree.tostring(_colr_v0_glyph_to_svg(ttfont, glyph_set, view_box, g))
+            etree.tostring(
+                _colr_v0_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
+            )
         )
         for g in ttfont["COLR"].ColorLayers
     }
 
 
-def _colr_v1_to_svgs(view_box: Rect, ttfont: ttLib.TTFont) -> Dict[str, SVG]:
+def _colr_v1_to_svgs(
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
+) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g.BaseGlyph: SVG.fromstring(
-            etree.tostring(_colr_v1_glyph_to_svg(ttfont, glyph_set, view_box, g))
+            etree.tostring(
+                _colr_v1_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
+            )
         )
         for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
     }
 
 
 def colr_to_svg(
-    view_box: Rect,
+    view_box_callback: ViewboxCallback,
     ttfont: ttLib.TTFont,
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
@@ -321,9 +365,9 @@ def colr_to_svg(
 
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
-        svgs = _colr_v0_to_svgs(view_box, ttfont)
+        svgs = _colr_v0_to_svgs(view_box_callback, ttfont)
     elif colr_version == 1:
-        svgs = _colr_v1_to_svgs(view_box, ttfont)
+        svgs = _colr_v1_to_svgs(view_box_callback, ttfont)
     else:
         raise NotImplementedError(colr_version)
 

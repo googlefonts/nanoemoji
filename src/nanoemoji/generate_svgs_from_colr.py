@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generate SVG files from the SVG font table."""
+"""Creates svg files from a COLR table."""
 from absl import app
 from absl import flags
 from absl import logging
 from fontTools import ttLib
-from lxml import etree
-from nanoemoji import codepoints
-from nanoemoji.color_glyph import map_viewbox_to_otsvg_space
-from nanoemoji.extract_svgs import svg_glyphs
+from nanoemoji.colr_to_svg import colr_to_svg, glyph_region, map_font_space_to_viewbox
 from nanoemoji import util
-import os
-import shutil
-import subprocess
-import sys
 from pathlib import Path
-from picosvg.svg import SVG
-from picosvg.svg_meta import strip_ns
+from picosvg.geometric_types import Rect
 
 
 FLAGS = flags.FLAGS
@@ -43,6 +35,11 @@ flags.DEFINE_string(
 )
 
 
+def _view_box(font: ttLib.TTFont, glyph_name: str) -> Rect:
+    # we want a viewbox that results in no scaling when translating from font-space
+    return glyph_region(font, glyph_name)
+
+
 def main(argv):
     logging.set_verbosity(FLAGS.log_level)
 
@@ -51,39 +48,14 @@ def main(argv):
     assert out_dir.is_dir(), f"{FLAGS.output_dir} is not a directory"
 
     font = ttLib.TTFont(font_file)
-    assert "SVG " in font, f"No SVG table in {font_file}"
-    upem = font["head"].unitsPerEm
-    ascender = font["OS/2"].sTypoAscender
-    descender = font["OS/2"].sTypoDescender
-    metrics = font["hmtx"].metrics
+    assert "COLR" in font, f"No COLR table in {font_file}"
     logging.debug("Writing svgs from %s to %s", font_file, out_dir)
-    logging.debug("upem %d ascender %d descender %d", upem, ascender, descender)
 
-    # We want a subsequent nanoemoji scale to be 1:1
-    # So use the font height (global) and width (per glyph) as the svg viewbox
-    height = ascender - descender
-
-    for gid, svg in svg_glyphs(font):
-        svg_defs = etree.Element("defs")
-        svg_g = etree.Element("g")
-        svg_g.attrib["transform"] = f"translate(0, {ascender})"
-
-        for el in svg.svg_root:
-            if strip_ns(el.tag) == "defs":
-                svg_defs.append(el)
-            else:
-                svg_g.append(el)
-
-        svg.svg_root.append(svg_defs)
-        svg.svg_root.append(svg_g)
-
-        glyph_name = font.getGlyphName(gid)
-        width, _ = metrics[glyph_name]
-        svg.svg_root.attrib["viewBox"] = f"0 0 {width} {height}"
+    for glyph_name, svg in colr_to_svg(lambda gn: _view_box(font, gn), font).items():
+        gid = font.getGlyphID(glyph_name)
         dest_file = out_dir / f"{gid:05d}.svg"
         with open(dest_file, "w") as f:
             f.write(svg.tostring(pretty_print=True))
-        logging.debug("Wrote %s", dest_file)
 
 
 if __name__ == "__main__":

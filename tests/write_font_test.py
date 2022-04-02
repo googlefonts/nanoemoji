@@ -18,6 +18,7 @@ import enum
 import shutil
 from pathlib import Path
 from nanoemoji import write_font
+from nanoemoji.colr import paints_of_type
 from nanoemoji.config import _DEFAULT_CONFIG
 from nanoemoji.glyphmap import GlyphMapping
 from picosvg.svg_transform import Affine2D
@@ -564,3 +565,33 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
     else:
         assert all(g.bitmap_file is None for g in inputs)
         assert all(g.bitmap is None for g in inputs)
+
+
+def test_square_varied_hmetrics():
+    # square in varied width vbox
+    # https://codepen.io/rs42/pen/xxPBrRJ?editors=1100
+    svgs = (
+        "square_vbox_narrow.svg",
+        "square_vbox_square.svg",
+        "square_vbox_wide.svg",
+    )
+    config, glyph_inputs = test_helper.color_font_config({"width": 0}, svgs)
+    _, font = write_font._generate_color_font(config, glyph_inputs)
+
+    colr = font["COLR"]
+
+    glyph_names = {r.BaseGlyph for r in colr.table.BaseGlyphList.BaseGlyphPaintRecord}
+    assert (
+        len(glyph_names) == 3
+    ), f"Should have 3 color glyphs, got {names_of_colr_glyphs}"
+
+    glyphs = {p.Glyph for p in paints_of_type(font, ot.PaintFormat.PaintGlyph)}
+    assert (
+        len(glyphs) == 1
+    ), f"Should only be one glyph referenced from COLR, got {glyphs}"
+
+    glyph_widths = sorted(font["hmtx"][gn][0] for gn in glyph_names)
+    for i in range(len(glyph_widths) - 1):
+        assert (
+            glyph_widths[i] * 2 == glyph_widths[i + 1]
+        ), f"n+1 should double, fails at {i}; {glyph_widths}"

@@ -68,7 +68,12 @@ def rasterize_svg(input_file: Path, output_file: Path, resolution: int = 128) ->
     return PNG.read_from(output_file)
 
 
-def color_font_config(config_overrides, svgs, tmp_dir=None):
+def color_font_config(
+    config_overrides,
+    svgs,
+    tmp_dir=None,
+    codepoint_fn=lambda svg_file, idx: (0xE000 + idx,),
+):
     if tmp_dir is None:
         tmp_dir = Path(tempfile.gettempdir())
     svgs = tuple(locate_test_file(s) for s in svgs)
@@ -120,8 +125,8 @@ def color_font_config(config_overrides, svgs, tmp_dir=None):
             write_font.InputGlyph(
                 svg_file,
                 bitmap_file,
-                (0xE000 + idx,),
-                glyph_name((0xE000 + idx,)),
+                codepoint_fn(svg_file, idx),
+                glyph_name(codepoint_fn(svg_file, idx)),
                 svg,
                 bitmap,
             )

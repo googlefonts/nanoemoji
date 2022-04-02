@@ -15,8 +15,10 @@
 import pytest
 import test_helper
 from picosvg.svg import SVG
+from picosvg.svg_meta import ntos
+from picosvg.svg_transform import Affine2D
 from nanoemoji import write_font
-from colr_to_svg import colr_to_svg
+from nanoemoji.colr_to_svg import colr_to_svg
 
 
 # TODO otf test
@@ -60,6 +62,30 @@ from colr_to_svg import colr_to_svg
                 "descender": -250,
             },
         ),
+        # Roundtrip a narrow svg, retaining proportion
+        (
+            "square_vbox_narrow.svg",
+            "square_vbox_narrow_from_colr_1.svg",
+            {
+                "width": 0,
+            },
+        ),
+        # Roundtrip a square svg, retaining proportion
+        (
+            "square_vbox_square.svg",
+            "square_vbox_square_from_colr_1.svg",
+            {
+                "width": 0,
+            },
+        ),
+        # Roundtrip a wide svg, retaining proportion
+        (
+            "square_vbox_wide.svg",
+            "square_vbox_wide_from_colr_1.svg",
+            {
+                "width": 0,
+            },
+        ),
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
@@ -69,8 +95,11 @@ def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
     )
     _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = SVG.parse(str(test_helper.locate_test_file(svg_in)))
+    font_to_svg_scale = svg_before.view_box().h / config.upem
     svgs_from_font = tuple(
-        colr_to_svg(svg_before.view_box(), ttfont, rounding_ndigits=3).values()
+        colr_to_svg(
+            lambda _: svg_before.view_box(), ttfont, rounding_ndigits=3
+        ).values()
     )
     assert len(svgs_from_font) == 1
     svg_expected = SVG.parse(str(test_helper.locate_test_file(expected_svg_out)))

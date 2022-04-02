@@ -20,7 +20,12 @@ from absl import flags
 from absl import logging
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
+from nanoemoji.colr import paints_of_type
+from nanoemoji.reorder_glyphs import reorder_glyphs
+from nanoemoji.util import load_fully
 import os
+from pathlib import Path
+from typing import Iterable, Tuple
 
 
 FLAGS = flags.FLAGS
@@ -34,16 +39,11 @@ flags.DEFINE_string("output_file", None, "Font assets are copied into.")
 
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # Copy all glyphs used by COLR over
-    _glyphs_to_copy = set()
+    _glyphs_to_copy = {
+        p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)
+    }
 
-    def _collect_glyphs(paint):
-        if paint.Format == ot.PaintFormat.PaintGlyph:
-            _glyphs_to_copy.add(paint.Glyph)
-
-    for record in donor["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
-        record.Paint.traverse(donor["COLR"].table, _collect_glyphs)
-
-    for glyph_name in _glyphs_to_copy:
+    for glyph_name in sorted(_glyphs_to_copy):
         target["glyf"][glyph_name] = donor["glyf"][glyph_name]
 
         if glyph_name in target["hmtx"].metrics:
@@ -58,13 +58,45 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     target["COLR"] = donor["COLR"]
 
 
-def main(argv):
-    target = ttLib.TTFont(FLAGS.target_font)
-    donor = ttLib.TTFont(FLAGS.donor_font)
+def _svg_glyphs(font: ttLib.TTFont) -> Iterable[Tuple[int, str]]:
+    for _, min_gid, max_gid in font["SVG "].docList:
+        for gid in range(min_gid, max_gid + 1):
+            yield gid, font.getGlyphName(gid)
 
+
+def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
+    # SVG is exciting because nanoemoji likes to restructure glyph order
+    # To keep things simple, let's build a new glyph order that keeps all the svg font gids stable
+    target_glyph_order = list(target.getGlyphOrder())
+    svg_glyphs = {gn for _, gn in _svg_glyphs(donor)}
+    non_svg_target_glyphs = [gn for gn in target_glyph_order if gn not in svg_glyphs]
+    new_glyph_order = []
+
+    for svg_gid, svg_glyph_name in _svg_glyphs(donor):
+        # we want gid to remain stable so copy non-svg glyphs until that will be true
+        while len(new_glyph_order) < svg_gid:
+            new_glyph_order.append(non_svg_target_glyphs.pop(0))
+        new_glyph_order.append(svg_glyph_name)
+
+    new_glyph_order.extend(non_svg_target_glyphs)  # any leftovers?
+
+    reorder_glyphs(target, new_glyph_order)
+    target["SVG "] = donor["SVG "]
+
+
+def main(argv):
+    target = load_fully(Path(FLAGS.target_font))
+    donor = load_fully(Path(FLAGS.donor_font))
+
+    # TODO lookup, guess fn name, etc
     if FLAGS.color_table == "COLR":
         _copy_colr(target, donor)
+    elif FLAGS.color_table == "SVG":
+        _copy_svg(target, donor)
     else:
+        # TODO: SVG support
+        # Note that nanoemoji svg reorders glyphs to pack svgs nicely
+        # The merged font may need to update to the donors glyph order for this to work
         raise ValueError(f"Unsupported color table '{FLAGS.color_table}'")
 
     target.save(FLAGS.output_file)
