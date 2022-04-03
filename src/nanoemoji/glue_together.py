@@ -18,14 +18,17 @@ Both must use the same glyph names."""
 from absl import app
 from absl import flags
 from absl import logging
+import copy
 from fontTools.ttLib.tables import otTables as ot
+from fontTools.ttLib.tables.C_B_D_T_ import cbdt_bitmap_format_17 as CbdtBitmapFormat17
 from fontTools import ttLib
+from nanoemoji import bitmap_tables
 from nanoemoji.colr import paints_of_type
 from nanoemoji.reorder_glyphs import reorder_glyphs
 from nanoemoji.util import load_fully
 import os
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, List, Mapping, NamedTuple, Tuple
 
 
 FLAGS = flags.FLAGS
@@ -34,7 +37,11 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("target_font", None, "Font assets are copied into.")
 flags.DEFINE_string("donor_font", None, "Font from which assets are copied.")
 flags.DEFINE_string("color_table", None, "The color table to copy.")
-flags.DEFINE_string("output_file", None, "Font assets are copied into.")
+
+
+class CbdtGlyphInfo(NamedTuple):
+    data: CbdtBitmapFormat17
+    size: int
 
 
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
@@ -84,19 +91,105 @@ def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
     target["SVG "] = donor["SVG "]
 
 
+def _cbdt_data_and_sizes(ttfont: ttLib.TTFont) -> Mapping[str, CbdtGlyphInfo]:
+    data = {}
+    for strike_data in ttfont["CBDT"].strikeData:
+        data.update(strike_data)
+
+    sizes = {}
+    for strike in ttfont["CBLC"].strikes:
+        for sub_table in strike.indexSubTables:
+            for name, (start, end) in zip(sub_table.names, sub_table.locations):
+                sizes[name] = end - start
+
+    assert data.keys() == sizes.keys(), f"{data.keys()} != {sizes.keys()}"
+
+    return {
+        glyph_name: CbdtGlyphInfo(data[glyph_name], sizes[glyph_name])
+        for glyph_name in data
+    }
+
+
+def _copy_cbdt(target: ttLib.TTFont, donor: ttLib.TTFont):
+    cbdt_glyph_info = _cbdt_data_and_sizes(donor)
+
+    # reorder the bitmap table to match the targets glyph order
+    # we only support square bitmaps so the strikes are all the same
+    # other than glyph names so we can just construct a new
+    # order that matches that of target
+    donor_order = list(cbdt_glyph_info.keys())
+    only_in_donor = set(donor_order) - set(target.getGlyphOrder())
+    # confirm our core assumption that we successfully held glyph names stable
+    if only_in_donor:
+        raise ValueError(
+            f"Donor glyph names do not exist in target: {sorted(only_in_donor)}"
+        )
+    new_order = sorted(donor_order, key=target.getGlyphID)
+
+    # now we know the desired order, reshard into runs
+    # TODO duplicative of make_cbdt_table
+    # take the first strike as a template, then wipe out strikes and data
+    # so we can build it up again in a potentially different glyph order
+    strike_template = donor["CBLC"].strikes[0]
+    clbc_index_template = strike_template.indexSubTables[0]
+    strike_template.indexSubTables = []
+    cblc = donor["CBLC"]
+    cblc.strikes = []
+    cbdt = donor["CBDT"]
+    cbdt.strikeData = []
+
+    data_offset = bitmap_tables.CBDT_HEADER_SIZE
+    while new_order:
+        # grab the next run w/consecutive gids
+        min_gid = target.getGlyphID(new_order[0])
+        end = 1
+        while (
+            len(new_order) > end
+            and target.getGlyphID(new_order[end])
+            == target.getGlyphID(new_order[end - 1]) + 1
+        ):
+            end += 1
+        glyph_run = new_order[:end]
+        new_order = new_order[end:]
+        max_gid = target.getGlyphID(glyph_run[-1])
+
+        strike = copy.deepcopy(strike_template)
+        strike.bitmapSizeTable.min_gid = min_gid
+        strike.bitmapSizeTable.max_gid = max_gid
+
+        max_width = max(cbdt_glyph_info[gn].data.metrics.Advance for gn in glyph_run)
+        strike.bitmapSizeTable.hori.widthMax = max_width
+        strike.bitmapSizeTable.vert.widthMax = max_width
+
+        clbc_index = copy.deepcopy(clbc_index_template)
+        clbc_index.names = glyph_run
+        clbc_index.locations = []
+        for glyph_name in glyph_run:
+            clbc_index.locations.append(
+                (data_offset, data_offset + cbdt_glyph_info[glyph_name].size)
+            )
+            data_offset = clbc_index.locations[-1][-1]
+
+        strike.indexSubTables = [clbc_index]
+        cblc.strikes.append(strike)
+        cbdt.strikeData.append({gn: cbdt_glyph_info[gn].data for gn in glyph_run})
+
+    target["CBDT"] = cbdt
+    target["CBLC"] = cblc
+
+
 def main(argv):
     target = load_fully(Path(FLAGS.target_font))
     donor = load_fully(Path(FLAGS.donor_font))
 
-    # TODO lookup, guess fn name, etc
-    if FLAGS.color_table == "COLR":
+    donation = FLAGS.color_table.lower().strip()
+    if donation == "colr":
         _copy_colr(target, donor)
-    elif FLAGS.color_table == "SVG":
+    elif donation == "svg":
         _copy_svg(target, donor)
+    elif donation == "cbdt":
+        _copy_cbdt(target, donor)
     else:
-        # TODO: SVG support
-        # Note that nanoemoji svg reorders glyphs to pack svgs nicely
-        # The merged font may need to update to the donors glyph order for this to work
         raise ValueError(f"Unsupported color table '{FLAGS.color_table}'")
 
     target.save(FLAGS.output_file)

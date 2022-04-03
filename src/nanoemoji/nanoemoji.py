@@ -209,11 +209,11 @@ def _chrome_command() -> str:
 
 def write_config_preamble(nw, font_config: FontConfig):
     if font_config.has_bitmaps:
-        # TODO bitmap support for non-square svgs? - baby steps
+        # set height only, let width scale proportionally
         res = font_config.bitmap_resolution
         nw.rule(
             "write_bitmap",
-            f"resvg -h {res}  -w {res} $in $out",
+            f"resvg -h {res} $in $out",
         )
         nw.newline()
 

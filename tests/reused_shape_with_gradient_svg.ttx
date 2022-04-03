@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name=".space"/>
+    <GlyphID id="2" name="e000"/>
+  </GlyphOrder>
+
+  <hmtx>
+    <mtx name=".notdef" width="100" lsb="5"/>
+    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name="e000" width="100" lsb="0"/>
+  </hmtx>
+
+  <cmap>
+    <tableVersion version="0"/>
+    <cmap_format_4 platformID="0" platEncID="3" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+    <cmap_format_4 platformID="3" platEncID="1" language="0">
+      <map code="0x20" name=".space"/><!-- SPACE -->
+      <map code="0xe000" name="e000"/><!-- ???? -->
+    </cmap_format_4>
+  </cmap>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef" xMin="5" yMin="0" xMax="45" yMax="100">
+      <contour>
+        <pt x="5" y="0" on="1"/>
+        <pt x="5" y="100" on="1"/>
+        <pt x="45" y="100" on="1"/>
+        <pt x="45" y="0" on="1"/>
+      </contour>
+      <contour>
+        <pt x="10" y="5" on="1"/>
+        <pt x="40" y="5" on="1"/>
+        <pt x="40" y="95" on="1"/>
+        <pt x="10" y="95" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name=".space"/><!-- contains no outline data -->
+
+    <TTGlyph name="e000"/><!-- contains no outline data -->
+
+  </glyf>
+
+  <SVG>
+    <svgDoc endGlyphID="2" startGlyphID="2">
+      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+  <defs>
+    <path d="M77.56,63.99 A13.56 13.56 0 1 1 50.44,63.99 A13.56 13.56 0 1 1 77.56,63.99 Z" id="e000.0"/>
+    <radialGradient id="g1" cx="59.958" cy="61.112" r="13.562" gradientUnits="userSpaceOnUse">
+      <stop offset="0.014" stop-color="#FFEB3B"/>
+      <stop offset="0.626" stop-color="#FCCD31"/>
+      <stop offset="1" stop-color="#FBC02D"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="59.813" cy="60.675" r="13.562" gradientUnits="userSpaceOnUse">
+      <stop offset="0.005" stop-color="#81C784"/>
+      <stop offset="0.201" stop-color="#72BE76"/>
+      <stop offset="0.719" stop-color="#50A854"/>
+      <stop offset="1" stop-color="#43A047"/>
+    </radialGradient>
+    <radialGradient id="g4" cx="59.765" cy="60.435" r="13.562" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E57373"/>
+      <stop offset="0.197" stop-color="#E56564"/>
+      <stop offset="0.718" stop-color="#E54542"/>
+      <stop offset="1" stop-color="#E53935"/>
+    </radialGradient>
+  </defs>
+  <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
+    <use xlink:href="#e000.0" fill="url(#g1)"/>
+    <use xlink:href="#e000.0" y="36.94" fill="url(#g2)"/>
+    <use xlink:href="#e000.0" y="-36.93" fill="url(#g4)"/>
+  </g>
+</svg>
+]]>
+    </svgDoc>
+  </SVG>
+
+</ttFont>

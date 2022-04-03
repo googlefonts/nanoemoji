@@ -136,17 +136,6 @@ def test_build_untouchedsvg_font():
     assert transform != Affine2D.identity(), transform
 
 
-def test_build_glyf_colr_1_and_picosvg_font():
-    tmp_dir = run_nanoemoji(
-        (locate_test_file("minimal_static/config_glyf_colr_1_and_picosvg.toml"),)
-    )
-
-    font = TTFont(tmp_dir / "Font.ttf")
-
-    assert "COLR" in font
-    assert "SVG " in font
-
-
 def _assert_table_size_cmp(table_tag, op, original_font, original_cmd, **options):
     cmd = original_cmd + tuple(f"--{'' if v else 'no'}{k}" for k, v in options.items())
     tmp_dir = run_nanoemoji(cmd)
@@ -202,9 +191,8 @@ def test_build_cbdt_font(use_pngquant, use_zopflipng):
 @pytest.mark.parametrize(
     "config_file",
     [
-        "minimal_static/config_glyf_colr_1_and_picosvg_and_cbdt.toml",
         # https://github.com/googlefonts/nanoemoji/issues/385
-        "compat_font/config.toml",
+        "cbdt/config.toml",
     ],
 )
 @pytest.mark.parametrize("use_zopflipng", [True, False])
@@ -214,8 +202,6 @@ def test_build_compat_font(config_file, use_pngquant, use_zopflipng):
     tmp_dir = run_nanoemoji_memoized(cmd)
     font = TTFont(tmp_dir / "Font.ttf")
 
-    assert "COLR" in font
-    assert "SVG " in font
     assert "CBDT" in font
     assert "CBLC" in font
 
@@ -279,7 +265,14 @@ def test_glyphmap_games():
     )
 
 
-def test_omit_empty_color_glyphs():
+@pytest.mark.parametrize(
+    "color_format, expected_ttx",
+    [
+        ("glyf_colr_1", "omit_empty_color_glyphs_colr.ttx"),
+        ("picosvg", "omit_empty_color_glyphs_svg.ttx"),
+    ],
+)
+def test_omit_empty_color_glyphs(color_format, expected_ttx):
     svgs = [
         "emoji_u200c.svg",  # whitespace glyph, contains no paths
         "emoji_u42.svg",
@@ -287,7 +280,7 @@ def test_omit_empty_color_glyphs():
 
     tmp_dir = run_nanoemoji(
         (
-            "--color_format=glyf_colr_1_and_picosvg",
+            f"--color_format={color_format}",
             "--pretty_print",
             "--keep_glyph_names",
             *(locate_test_file(svg) for svg in svgs),
@@ -296,16 +289,17 @@ def test_omit_empty_color_glyphs():
 
     font = TTFont(tmp_dir / "Font.ttf")
 
-    colr = font["COLR"].table
-    assert len(colr.BaseGlyphList.BaseGlyphPaintRecord) == 1
-
-    svg = font["SVG "]
-    assert len(svg.docList) == 1
+    if "COLR" in font:
+        colr = font["COLR"].table
+        assert len(colr.BaseGlyphList.BaseGlyphPaintRecord) == 1
+    else:
+        svg = font["SVG "]
+        assert len(svg.docList) == 1
 
     assert_expected_ttx(
         svgs,
         font,
-        "omit_empty_color_glyphs.ttx",
+        expected_ttx,
         include_tables=["GlyphOrder", "cmap", "glyf", "COLR", "SVG "],
     )
 

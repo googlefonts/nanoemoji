@@ -37,7 +37,9 @@ flags.DEFINE_string(
 
 def _view_box(font: ttLib.TTFont, glyph_name: str) -> Rect:
     # we want a viewbox that results in no scaling when translating from font-space
-    return glyph_region(font, glyph_name)
+    region = glyph_region(font, glyph_name)
+    assert region.w > 0, f"0-width region for {glyph_name}"
+    return region
 
 
 def main(argv):
