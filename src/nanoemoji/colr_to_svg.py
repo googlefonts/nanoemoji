@@ -39,6 +39,7 @@ from nanoemoji.svg import (
     ReuseCache,
 )
 from nanoemoji.svg_path import SVGPathPen
+from nanoemoji.util import only
 from picosvg.svg import SVG
 from picosvg.svg_meta import ntos
 from picosvg.svg_transform import Affine2D
@@ -190,6 +191,23 @@ def _colr_v0_glyph_to_svg(
     return svg_root
 
 
+def _apply_transform(
+    transform: Affine2D, font_to_vbox: Affine2D, el: etree.Element
+) -> Affine2D:
+    if transform == Affine2D.identity():
+        return Affine2D.identity()
+
+    svg_transform = Affine2D.compose_ltr(
+        (font_to_vbox.inverse(), transform, font_to_vbox)
+    )
+    el.attrib["transform"] = _svg_matrix(svg_transform)
+    # we must reset the current user space when setting the 'transform'
+    # attribute on a <path>, since that already affects the gradients used
+    # and we don't want the transform to be applied twice to gradients:
+    # https://github.com/googlefonts/nanoemoji/issues/334
+    return Affine2D.identity()
+
+
 def _colr_v1_paint_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: Mapping[str, Any],
@@ -222,25 +240,17 @@ def _colr_v1_paint_to_svg(
         layer_glyph = ot_paint.Glyph
         svg_path = etree.SubElement(parent_el, "path")
 
-        # This only occurs if path is reused; we could wire up use. But for now ... not.
-        if transform != Affine2D.identity():
-            svg_transform = Affine2D.compose_ltr(
-                (font_to_vbox.inverse(), transform, font_to_vbox)
-            )
-            svg_path.attrib["transform"] = _svg_matrix(svg_transform)
-            # we must reset the current user space when setting the 'transform'
-            # attribute on a <path>, since that already affects the gradients used
-            # and we don't want the transform to be applied twice to gradients:
-            # https://github.com/googlefonts/nanoemoji/issues/334
-            transform = Affine2D.identity()
+        # Transform only occurs with reuse; we could wire up use. But for now ... not.
+        transform = _apply_transform(transform, font_to_vbox, svg_path)
 
         descend(svg_path, ot_paint.Paint)
-
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
+
     elif is_transform(ot_paint.Format):
         paint = Paint.from_ot(ot_paint)
         transform @= paint.gettransform()
         descend(parent_el, ot_paint.Paint)
+
     elif ot_paint.Format == PaintColrLayers.format:
         layerList = ttfont["COLR"].table.LayerList.Paint
         assert layerList, "Paint layers without a layer list :("
@@ -264,6 +274,19 @@ def _colr_v1_paint_to_svg(
         g = etree.SubElement(parent_el, "g")
         g.attrib["opacity"] = ntos(color.alpha)
         descend(g, ot_paint.SourcePaint)
+
+    elif ot_paint.Format == PaintColrGlyph.format:
+        el = parent_el
+        if transform != Affine2D.identity():
+            el = etree.SubElement(parent_el, "g")
+            # Transform only occurs with reuse; we could wire up use. But for now ... not.
+            transform = _apply_transform(transform, font_to_vbox, el)
+        base_rec = only(
+            r
+            for r in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
+            if r.BaseGlyph == ot_paint.Glyph
+        )
+        descend(el, base_rec.Paint)
 
     else:
         raise NotImplementedError(ot_paint.Format)

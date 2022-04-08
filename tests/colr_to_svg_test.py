@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fontTools.colorLib.builder import buildCPAL, LayerListBuilder
+from fontTools.colorLib.builder import buildCPAL, buildColrV1, LayerListBuilder
 from fontTools import ttLib
 from fontTools.ttLib.tables import _g_l_y_f
 from fontTools.ttLib.ttFont import newTable
@@ -20,6 +20,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables import otTables as ot
 from lxml import etree
 from nanoemoji.colr_to_svg import _colr_v1_paint_to_svg, _new_reuse_cache
+from nanoemoji.util import only
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 import pytest
@@ -44,15 +45,37 @@ def _buildPaint(source) -> ot.Paint:
 
 
 @pytest.mark.parametrize(
-    "paint_def, glyph_defs, expected_svg",
+    "glyph_to_convert, color_glyphs, monochrome_glyphs, expected_svg",
     [
+        # Solid filled box
         (
-            # Solid filled box
-            (
-                ot.PaintFormat.PaintGlyph,
-                (ot.PaintFormat.PaintSolid, 0),
-                "box",
-            ),
+            "color_box",
+            {
+                "color_box": (
+                    ot.PaintFormat.PaintGlyph,
+                    (ot.PaintFormat.PaintSolid, 0),
+                    "box",
+                ),
+            },
+            {"box": _draw_box},
+            """
+            <svg xmlns="http://www.w3.org/2000/svg">
+              <defs/>
+              <path d="M10,10 L90,10 L90,90 L10,90 Z"/>
+            </svg>
+            """,
+        ),
+        # Paint colr glyph
+        (
+            "paint_colr_glyph",
+            {
+                "paint_colr_glyph": (ot.PaintFormat.PaintColrGlyph, "color_box"),
+                "color_box": (
+                    ot.PaintFormat.PaintGlyph,
+                    (ot.PaintFormat.PaintSolid, 0),
+                    "box",
+                ),
+            },
             {"box": _draw_box},
             """
             <svg xmlns="http://www.w3.org/2000/svg">
@@ -63,8 +86,9 @@ def _buildPaint(source) -> ot.Paint:
         ),
     ],
 )
-def test_colr_v1_paint_to_svg(paint_def, glyph_defs, expected_svg):
-    paint = _build(ot.Paint, paint_def)
+def test_colr_v1_paint_to_svg(
+    glyph_to_convert, color_glyphs, monochrome_glyphs, expected_svg
+):
     actual_svg = SVG.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><defs/></svg>')
     expected_svg = SVG.fromstring(textwrap.dedent(expected_svg))
 
@@ -78,9 +102,11 @@ def test_colr_v1_paint_to_svg(paint_def, glyph_defs, expected_svg):
     head_table.unitsPerEm = 100
     maxp_table = font["maxp"] = newTable("maxp")
     maxp_table.numGlyphs = 1
+    colr_table = font["COLR"] = newTable("COLR")
+    colr_table.table = ot.COLR()
 
     # provide some simple shapes to play with
-    for glyph_name, draw_fn in glyph_defs.items():
+    for glyph_name, draw_fn in monochrome_glyphs.items():
         font.setGlyphOrder(font.getGlyphOrder() + [glyph_name])
         pen = TTGlyphPen(None)
         draw_fn(pen)
@@ -92,13 +118,19 @@ def test_colr_v1_paint_to_svg(paint_def, glyph_defs, expected_svg):
         glyph.recalcBounds(glyf_table)
         hmtx_table.metrics[glyph_name] = (head_table.unitsPerEm, glyph.xMin)
 
-    # palette 0: black, white
+    # palette 0: black, blue
     palettes = [
-        [(0, 0, 0, 1.0), (1, 1, 1, 1.0)],
-        [(0.1, 0.2, 0.3, 0.6), (0.4, 0.5, 0.6, 0.6)],
-        [(0.1, 0.2, 0.3, 0.3), (0.4, 0.5, 0.6, 0.3)],
+        [(0, 0, 0, 1.0), (0, 0, 1, 1.0)],
     ]
     font["CPAL"] = buildCPAL(palettes)
+
+    layers, base_glyphs = buildColrV1(color_glyphs)
+    colr_table.table.BaseGlyphList = base_glyphs
+    paint = only(
+        g.Paint
+        for g in base_glyphs.BaseGlyphPaintRecord
+        if g.BaseGlyph == glyph_to_convert
+    )
 
     _colr_v1_paint_to_svg(
         font,
