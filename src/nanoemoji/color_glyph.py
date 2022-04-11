@@ -350,7 +350,7 @@ def _painted_layers(
     return tuple(layers)
 
 
-def _color_glyph_advance_width(view_box: Rect, config: FontConfig) -> int:
+def _advance_width(view_box: Rect, config: FontConfig) -> int:
     # Scale advance width proportionally to viewbox aspect ratio.
     # Use the default advance width if it's larger than the proportional one.
     font_height = config.ascender - config.descender  # descender <= 0
@@ -429,10 +429,15 @@ class ColorGlyph(NamedTuple):
         view_box = None
         if svg:
             view_box = svg.view_box()
+        elif bitmap:
+            view_box = Rect(0, 0, *bitmap.size)
         if view_box is not None:
-            base_glyph.width = _color_glyph_advance_width(view_box, font_config)
+            base_glyph.width = _advance_width(view_box, font_config)
         else:
             base_glyph.width = font_config.width
+        assert (
+            base_glyph.width > 0
+        ), f"0 width for {ufo_glyph_name} (svg {svg_filename}, bitmap {bitmap_filename})"
 
         # Setup direct access to the glyph if possible
         if len(codepoints) == 1:

@@ -25,6 +25,7 @@ from pathlib import Path
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
+flags.DEFINE_bool("bitmaps", False, "True if bitmaps should be included in glyphmap")
 
 
 def main(argv):
@@ -35,17 +36,30 @@ def main(argv):
     glyph_order = ttLib.TTFont(source_font).getGlyphOrder()
 
     input_files = sorted(
-        (Path(f) for f in input_files if f != source_font), key=lambda f: int(f.stem)
+        (Path(f) for f in input_files if f != source_font),
+        key=lambda f: f.stem,
+        reverse=True,
     )
 
     with util.file_printer(FLAGS.output_file) as print:
-        for input_file in input_files:
+        while input_files:
+            svg_file = input_files.pop()
+            assert svg_file.suffix in {".png", ".svg"}, f"What is {svg_file}"
+            bitmap_file = None
+            if svg_file.suffix == ".png":
+                bitmap_file = svg_file
+                svg_file = input_files.pop()
+                assert svg_file.suffix == ".svg"
+                assert int(svg_file.stem) == int(
+                    bitmap_file.stem
+                ), f"Mismatched {svg_file}, {bitmap_file}"
+
             print(
                 GlyphMapping(
-                    svg_file=input_file,
-                    bitmap_file=None,
+                    svg_file=svg_file,
+                    bitmap_file=bitmap_file,
                     codepoints=(),
-                    glyph_name=glyph_order[int(input_file.stem)],
+                    glyph_name=glyph_order[int(svg_file.stem)],
                 ).csv_line()
             )
 

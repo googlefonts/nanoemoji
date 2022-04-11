@@ -5,15 +5,15 @@
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
     <GlyphID id="1" name=".space"/>
-    <GlyphID id="2" name="e000.0"/>
-    <GlyphID id="3" name="e000"/>
+    <GlyphID id="2" name="e000"/>
+    <GlyphID id="3" name="e001"/>
   </GlyphOrder>
 
   <hmtx>
-    <mtx name=".notdef" width="100" lsb="5"/>
-    <mtx name=".space" width="100" lsb="0"/>
+    <mtx name=".notdef" width="0" lsb="5"/>
+    <mtx name=".space" width="0" lsb="0"/>
     <mtx name="e000" width="110" lsb="0"/>
-    <mtx name="e000.0" width="110" lsb="22"/>
+    <mtx name="e001" width="73" lsb="0"/>
   </hmtx>
 
   <cmap>
@@ -21,10 +21,12 @@
     <cmap_format_4 platformID="0" platEncID="3" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
       <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
     </cmap_format_4>
     <cmap_format_4 platformID="3" platEncID="1" language="0">
       <map code="0x20" name=".space"/><!-- SPACE -->
       <map code="0xe000" name="e000"/><!-- ???? -->
+      <map code="0xe001" name="e001"/><!-- ???? -->
     </cmap_format_4>
   </cmap>
 
@@ -57,30 +59,32 @@
 
     <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000.0" xMin="22" yMin="46" xMax="88" yMax="68">
-      <contour>
-        <pt x="22" y="68" on="1"/>
-        <pt x="22" y="46" on="1"/>
-        <pt x="88" y="46" on="1"/>
-        <pt x="88" y="68" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
+    <TTGlyph name="e001"/><!-- contains no outline data -->
 
   </glyf>
 
   <CBDT>
     <header version="3.0"/>
     <strikedata index="0">
-      <cbdt_bitmap_format_17 name="e000.0">
+      <cbdt_bitmap_format_17 name="e000">
         <SmallGlyphMetrics>
           <height value="128"/>
           <width value="128"/>
           <BearingX value="0"/>
-          <BearingY value="100"/>
-          <Advance value="116"/>
+          <BearingY value="104"/>
+          <Advance value="128"/>
         </SmallGlyphMetrics>
-        <extfileimagedata value="e000.0.png"/>
+        <extfileimagedata value="e000.png"/>
+      </cbdt_bitmap_format_17>
+      <cbdt_bitmap_format_17 name="e001">
+        <SmallGlyphMetrics>
+          <height value="128"/>
+          <width value="85"/>
+          <BearingX value="0"/>
+          <BearingY value="104"/>
+          <Advance value="85"/>
+        </SmallGlyphMetrics>
+        <extfileimagedata value="e001.png"/>
       </cbdt_bitmap_format_17>
     </strikedata>
   </CBDT>
@@ -90,9 +94,9 @@
     <strike index="0">
       <bitmapSizeTable>
         <sbitLineMetrics direction="hori">
-          <ascender value="94"/>
-          <descender value="-22"/>
-          <widthMax value="116"/>
+          <ascender value="104"/>
+          <descender value="-24"/>
+          <widthMax value="128"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>
@@ -104,9 +108,9 @@
           <pad2 value="0"/>
         </sbitLineMetrics>
         <sbitLineMetrics direction="vert">
-          <ascender value="94"/>
-          <descender value="-22"/>
-          <widthMax value="116"/>
+          <ascender value="104"/>
+          <descender value="-24"/>
+          <widthMax value="128"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>
@@ -119,89 +123,19 @@
         </sbitLineMetrics>
         <colorRef value="0"/>
         <startGlyphIndex value="2"/>
-        <endGlyphIndex value="2"/>
-        <ppemX value="105"/>
-        <ppemY value="105"/>
+        <endGlyphIndex value="3"/>
+        <ppemX value="116"/>
+        <ppemY value="116"/>
         <bitDepth value="32"/>
         <flags value="1"/>
       </bitmapSizeTable>
       <!-- GlyphIds are written but not read. The firstGlyphIndex and
            lastGlyphIndex values will be recalculated by the compiler. -->
-      <eblc_index_sub_table_1 imageFormat="17" firstGlyphIndex="2" lastGlyphIndex="2">
-        <glyphLoc id="2" name="e000.0"/>
+      <eblc_index_sub_table_1 imageFormat="17" firstGlyphIndex="2" lastGlyphIndex="3">
+        <glyphLoc id="2" name="e000"/>
+        <glyphLoc id="3" name="e001"/>
       </eblc_index_sub_table_1>
     </strike>
   </CBLC>
-
-  <COLR>
-    <Version value="1"/>
-    <!-- BaseGlyphRecordCount=0 -->
-    <!-- LayerRecordCount=0 -->
-    <BaseGlyphList>
-      <!-- BaseGlyphCount=1 -->
-      <BaseGlyphPaintRecord index="0">
-        <BaseGlyph value="e000"/>
-        <Paint Format="1"><!-- PaintColrLayers -->
-          <NumLayers value="2"/>
-          <FirstLayerIndex value="0"/>
-        </Paint>
-      </BaseGlyphPaintRecord>
-    </BaseGlyphList>
-    <LayerList>
-      <!-- LayerCount=2 -->
-      <Paint index="0" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <PaletteIndex value="0"/>
-          <Alpha value="1.0"/>
-        </Paint>
-        <Glyph value="e000.0"/>
-      </Paint>
-      <Paint index="1" Format="14"><!-- PaintTranslate -->
-        <Paint Format="10"><!-- PaintGlyph -->
-          <Paint Format="2"><!-- PaintSolid -->
-            <PaletteIndex value="0"/>
-            <Alpha value="0.8"/>
-          </Paint>
-          <Glyph value="e000.0"/>
-        </Paint>
-        <dx value="22"/>
-        <dy value="-22"/>
-      </Paint>
-    </LayerList>
-    <ClipList Format="1">
-      <Clip>
-        <Glyph value="e000"/>
-        <ClipBox Format="1">
-          <xMin value="22"/>
-          <yMin value="24"/>
-          <xMax value="110"/>
-          <yMax value="68"/>
-        </ClipBox>
-      </Clip>
-    </ClipList>
-  </COLR>
-
-  <CPAL>
-    <version value="0"/>
-    <numPaletteEntries value="1"/>
-    <palette index="0">
-      <color index="0" value="#0000FFFF"/>
-    </palette>
-  </CPAL>
-
-  <SVG>
-    <svgDoc endGlyphID="3" startGlyphID="3">
-      <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
-  <defs>
-    <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e000.0" fill="blue"/>
-  </defs>
-  <g id="glyph3" transform="matrix(11 0 0 11 0 -90)">
-    <use xlink:href="#e000.0"/>
-    <use xlink:href="#e000.0" x="2" y="2" opacity="0.8"/>
-  </g>
-</svg>
-]]>
-    </svgDoc>
-  </SVG>
 
 </ttFont>

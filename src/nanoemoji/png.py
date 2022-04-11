@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from io import BytesIO
 import os
 from pathlib import Path
-from typing import Union
+from PIL import Image
+from typing import Tuple, Union
 
 
 class PNG(bytes):
@@ -29,7 +31,15 @@ class PNG(bytes):
         header = self[:8]
         if header != cls.SIGNATURE:
             raise ValueError("Invalid PNG file: bad signature {header!r}")
+        self._size = None
         return self
+
+    @property
+    def size(self) -> Tuple[int, int]:
+        if self._size is None:
+            with Image.open(BytesIO(self)) as image:
+                self._size = image.size
+        return self._size
 
     @classmethod
     def read_from(cls, path: Union[str, os.PathLike]) -> "PNG":

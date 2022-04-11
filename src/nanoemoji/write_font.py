@@ -163,23 +163,6 @@ _COLOR_FORMAT_GENERATORS = {
         lambda *args: _sbix_ttfont(*args),
         ".ttf",
     ),
-    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr
-    # Non-compressed picosvg because woff2 is likely
-    # Meant to be subset if used for network delivery
-    "glyf_colr_1_and_picosvg": ColorGenerator(
-        lambda *args: _colr_ufo(1, *args),
-        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
-        ".ttf",
-    ),
-    # https://github.com/googlefonts/nanoemoji/issues/260 svg, colr, cbdt; max compatibility
-    # Meant to be subset if used for network delivery
-    # Non-compressed picosvg because woff2 is likely
-    # cbdt because sbix is less x-platform than you'd guess (https://github.com/harfbuzz/harfbuzz/issues/2679)
-    "glyf_colr_1_and_picosvg_and_cbdt": ColorGenerator(
-        lambda *args: _colr_ufo(1, *args),
-        lambda *args: _picosvg_and_cbdt(*args),
-        ".ttf",
-    ),
 }
 assert _COLOR_FORMAT_GENERATORS.keys() == set(config._COLOR_FORMATS)
 

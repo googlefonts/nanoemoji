@@ -222,8 +222,15 @@ def test_vertical_metrics(ascender, descender, linegap):
         # https://github.com/googlefonts/nanoemoji/issues/334
         (
             ("reused_shape_with_gradient.svg",),
-            "reused_shape_with_gradient.ttx",
-            {"color_format": "glyf_colr_1_and_picosvg", "pretty_print": True},
+            "reused_shape_with_gradient_colr.ttx",
+            {"color_format": "glyf_colr_1", "pretty_print": True},
+        ),
+        # Check gradient coordinates are correctly transformed after shape reuse
+        # https://github.com/googlefonts/nanoemoji/issues/334
+        (
+            ("reused_shape_with_gradient.svg",),
+            "reused_shape_with_gradient_svg.ttx",
+            {"color_format": "picosvg", "pretty_print": True},
         ),
         # Confirm we can apply a user transform, override some basic metrics
         (
@@ -287,30 +294,20 @@ def test_vertical_metrics(ascender, descender, linegap):
             "reuse_shape_varying_fill.ttx",
             {"color_format": "picosvg", "pretty_print": True},
         ),
-        # Generate COLRv1 + SVG
-        (
-            ("rect.svg",),
-            "rect_glyf_colr_1_and_picosvg.ttx",
-            {"color_format": "glyf_colr_1_and_picosvg", "pretty_print": True},
-        ),
-        # Generate COLRv1 + SVG + cbdt
-        (
-            ("rect.svg",),
-            "rect_glyf_colr_1_and_picosvg_and_cbdt.ttx",
-            # we end up with out of bounds line metrics with default ascender/descender
-            {
-                "color_format": "glyf_colr_1_and_picosvg_and_cbdt",
-                "pretty_print": True,
-                "ascender": 90,
-                "descender": -20,
-            },
-        ),
         # Generate simple cbdt
         (
             ("rect2.svg",),
             "rect_cbdt.ttx",
             # we end up with out of bounds line metrics with default ascender/descender
             {"color_format": "cbdt", "ascender": 90, "descender": -20},
+        ),
+        # Generate proportional cbdt
+        (
+            ("rect2.svg", "narrow_rects/a.svg"),
+            "proportional_cbdt.ttx",
+            # we end up with out of bounds line metrics with default ascender/descender
+            # width 0 forces sizing entirely from the input box proportions
+            {"color_format": "cbdt", "ascender": 90, "descender": -20, "width": 0},
         ),
         # Generate simple sbix
         (
@@ -508,8 +505,6 @@ class InputFormat(enum.Flag):
         ("picosvgz", InputFormat.SVG),
         ("untouchedsvg", InputFormat.SVG),
         ("untouchedsvgz", InputFormat.SVG),
-        ("glyf_colr_1_and_picosvg", InputFormat.SVG),
-        ("glyf_colr_1_and_picosvg_and_cbdt", InputFormat.SVG | InputFormat.PNG),
     ],
 )
 def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_format):
@@ -518,8 +513,7 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
     # formats don't use that so their InputGlyph.svg attribute is None.
     # https://github.com/googlefonts/nanoemoji/issues/378
     # Also check that inputs have their 'bitmap' attribute set to the PNG bytes for
-    # all the color formats that include that, including hybrid vector+bitmap formats
-    # e.g. `glyf_colr_1_and_picosvg_and_cbdt`.
+    # all the color formats that include that.
     expected_has_svgs = bool(expected_input_format & InputFormat.SVG)
     expected_has_bitmaps = bool(expected_input_format & InputFormat.PNG)
 

@@ -11,7 +11,7 @@
   <hmtx>
     <mtx name=".notdef" width="100" lsb="5"/>
     <mtx name=".space" width="100" lsb="0"/>
-    <mtx name="e000" width="100" lsb="0"/>
+    <mtx name="e000" width="110" lsb="0"/>
   </hmtx>
 
   <cmap>
@@ -66,7 +66,7 @@
           <width value="128"/>
           <BearingX value="0"/>
           <BearingY value="104"/>
-          <Advance value="116"/>
+          <Advance value="128"/>
         </SmallGlyphMetrics>
         <extfileimagedata value="e000.png"/>
       </cbdt_bitmap_format_17>
@@ -80,7 +80,7 @@
         <sbitLineMetrics direction="hori">
           <ascender value="104"/>
           <descender value="-24"/>
-          <widthMax value="116"/>
+          <widthMax value="128"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>
@@ -94,7 +94,7 @@
         <sbitLineMetrics direction="vert">
           <ascender value="104"/>
           <descender value="-24"/>
-          <widthMax value="116"/>
+          <widthMax value="128"/>
           <caretSlopeNumerator value="0"/>
           <caretSlopeDenominator value="0"/>
           <caretOffset value="0"/>

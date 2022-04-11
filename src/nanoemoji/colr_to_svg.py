@@ -51,6 +51,7 @@ from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
 
+_FOREGROUND_COLOR_INDEX = 0xFFFF
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
 _COLR_TO_SVG_TEMPLATE = r'<svg viewBox="TBD" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/></svg>'
 
@@ -95,7 +96,12 @@ def _draw_svg_path(
 
 
 def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
-    cpal_color = ttfont["CPAL"].palettes[0][palette_index]
+    palette = ttfont["CPAL"].palettes[0]
+    if palette_index == _FOREGROUND_COLOR_INDEX:
+        return colors.Color.fromstring("black")  # as good a guess as any
+    if palette_index >= len(palette):
+        raise IndexError(f"{palette_index} illegal in palette of {len(palette)}")
+    cpal_color = palette[palette_index]
     return colors.Color(
         red=cpal_color.red,
         green=cpal_color.green,
@@ -296,10 +302,13 @@ def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
     """The area occupied by the glyph, NOT factoring in that Y flips.
 
     map_font_space_to_viewbox handles font +y goes up => svg +y goes down."""
+    width = ttfont["hmtx"][glyph_name][0]
+    if width == 0:
+        width = ttfont["glyf"][glyph_name].xMax
     return Rect(
         0,
         -ttfont["OS/2"].sTypoAscender,
-        ttfont["hmtx"][glyph_name][0],
+        width,
         ttfont["OS/2"].sTypoAscender - ttfont["OS/2"].sTypoDescender,
     )
 
@@ -309,7 +318,12 @@ def _view_box_and_transform(
 ) -> Tuple[Rect, Affine2D]:
 
     view_box = view_box_callback(glyph_name)
-    font_to_vbox = map_font_space_to_viewbox(view_box, glyph_region(ttfont, glyph_name))
+    assert view_box.w > 0, f"0-width viewBox for {glyph_name}?!"
+
+    region = glyph_region(ttfont, glyph_name)
+    assert region.w > 0, f"0-width region for {glyph_name}?!"
+
+    font_to_vbox = map_font_space_to_viewbox(view_box, region)
 
     return (view_box, font_to_vbox)
 

@@ -26,6 +26,33 @@ Requires Python 3.7 or greater.
 | [sbix](https://docs.microsoft.com/en-us/typography/opentype/spec/sbix) | Yes | Only for Mac Safari due to https://github.com/harfbuzz/harfbuzz/issues/2679#issuecomment-1021419864. Only square bitmaps. Uses [`resvg`](https://github.com/RazrFalcon/resvg).|
 | [CBDT](https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt) | Yes |  Only square bitmaps. Uses [`resvg`](https://github.com/RazrFalcon/resvg).|
 
+### Adding color tables to existing fonts
+
+:warning: _under active development, doubtless full of bugs_
+
+Given at least one vector color table (COLR or SVG) the other vector color table and bitmap table(s)
+can be generated:
+
+```shell
+# Adds COLR to a font with SVG and vice versa
+maxmium_color my_colr_font.ttf
+
+# Adds COLR to a font with SVG and vice versa, and generates a CBDT table
+maxmium_color --bitmaps my_colr_font.ttf
+```
+
+The intended result is a font that will Just Work in any modern browser:
+
+| Color table | Target browser | Notes |
+| --- | --- | --- |
+| COLR | Chrome 98+ | https://developer.chrome.com/blog/colrv1-fonts/ |
+| SVG | Firefox, Safari | |
+| CBDT | Chrome <98 | Only generated if you pass `--bitmaps` to `maximum_color`|
+
+Note that at time of writing Chrome 98+ prefers CBDT to COLR. Also CBDT is
+huge. So ... maybe take the resulting font and subset it per-browser if at
+all possible. Wouldn't it be nice if Google Fonts did that for you?
+
 ## Releasing
 
 See https://googlefonts.github.io/python#make-a-release.
