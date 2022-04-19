@@ -249,6 +249,13 @@ def write_preamble(nw):
         )
         nw.newline()
 
+    module_rule(
+        nw,
+        "write_part_file",
+        f"--reuse_tolerance $reuse_tolerance --output_file $out $in",
+    )
+    nw.newline()
+
     nw.newline()
 
 
@@ -305,6 +312,10 @@ def picosvg_dest(clipped: bool, input_svg: Path) -> Path:
     return _dest_for_src(picosvg_dest, out_dir, input_svg, ".svg")
 
 
+def part_file_dest(picosvg_file: Path) -> Path:
+    return picosvg_file.with_suffix(".parts.json")
+
+
 def bitmap_dest(input_svg: Path) -> Path:
     return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, ".png")
 
@@ -337,6 +348,7 @@ def write_picosvg_builds(
     picosvg_builds: Set[Path],
     nw: NinjaWriter,
     clipped: bool,
+    reuse_tolerance: float,
     master: MasterConfig,
 ):
     rule_name = "picosvg_unclipped"
@@ -349,6 +361,13 @@ def write_picosvg_builds(
             continue
         picosvg_builds.add(svg_file)
         nw.build(dest, rule_name, rel_build(svg_file))
+
+        nw.build(
+            part_file_dest(dest),
+            "write_part_file",
+            dest,
+            variables={"reuse_tolerance": reuse_tolerance},
+        )
 
 
 def write_bitmap_builds(
@@ -623,7 +642,11 @@ def _run(argv):
                 for master in font_config.masters:
                     if font_config.has_picosvgs:
                         write_picosvg_builds(
-                            picosvg_builds, nw, font_config.clip_to_viewbox, master
+                            picosvg_builds,
+                            nw,
+                            font_config.clip_to_viewbox,
+                            font_config.reuse_tolerance,
+                            master,
                         )
             nw.newline()
 
