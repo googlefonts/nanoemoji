@@ -29,10 +29,12 @@ import textwrap
 
 
 def _draw_box(pen):
-    pen.moveTo((10, 10))
-    pen.lineTo((90, 10))
-    pen.lineTo((90, 90))
-    pen.lineTo((10, 90))
+    x1, y1 = (10, 10)
+    x2, y2 = (90, 90)
+    pen.moveTo((x1, y1))
+    pen.lineTo((x2, y1))
+    pen.lineTo((x2, y2))
+    pen.lineTo((x1, y2))
     pen.closePath()
 
 
@@ -84,6 +86,51 @@ def _buildPaint(source) -> ot.Paint:
             </svg>
             """,
         ),
+        # PaintComposite as nanoemoji uses it for group opacity
+        (
+            "composite",
+            {
+                "composite": {
+                    "Format": int(ot.PaintFormat.PaintComposite),
+                    "CompositeMode": "src_in",
+                    "SourcePaint": (
+                        ot.PaintFormat.PaintColrLayers,
+                        [
+                            (
+                                ot.PaintFormat.PaintGlyph,
+                                (ot.PaintFormat.PaintSolid, 0, 0.8),
+                                "box",
+                            ),
+                            (
+                                ot.PaintFormat.PaintTranslate,
+                                (
+                                    ot.PaintFormat.PaintGlyph,
+                                    (ot.PaintFormat.PaintSolid, 0),
+                                    "box",
+                                ),
+                                10,
+                                10,
+                            ),
+                        ],
+                    ),
+                    "BackdropPaint": {
+                        "Format": ot.PaintFormat.PaintSolid,
+                        "PaletteIndex": 0,
+                        "Alpha": 0.5,
+                    },
+                },
+            },
+            {"box": _draw_box},
+            """
+            <svg xmlns="http://www.w3.org/2000/svg">
+              <defs/>
+              <g opacity="0.5">
+                <path opacity="0.8" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+                <path transform="translate(10, 10)" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+              </g>
+            </svg>
+            """,
+        ),
     ],
 )
 def test_colr_v1_paint_to_svg(
@@ -118,6 +165,8 @@ def test_colr_v1_paint_to_svg(
         glyph.recalcBounds(glyf_table)
         hmtx_table.metrics[glyph_name] = (head_table.unitsPerEm, glyph.xMin)
 
+    print(hmtx_table.metrics)
+
     # palette 0: black, blue
     palettes = [
         [(0, 0, 0, 1.0), (0, 0, 1, 1.0)],
@@ -125,6 +174,7 @@ def test_colr_v1_paint_to_svg(
     font["CPAL"] = buildCPAL(palettes)
 
     layers, base_glyphs = buildColrV1(color_glyphs)
+    colr_table.table.LayerList = layers
     colr_table.table.BaseGlyphList = base_glyphs
     paint = only(
         g.Paint
