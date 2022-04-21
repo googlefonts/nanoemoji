@@ -818,7 +818,9 @@ def main(argv):
         config_file = Path(FLAGS.config_file)
     font_config = config.load(config_file)
     if len(font_config.masters) != 1:
-        raise ValueError("write_font expects only one master")
+        raise ValueError(
+            f"write_font expects only one master, {config_file} has {len(font_config.masters)}"
+        )
 
     inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
 

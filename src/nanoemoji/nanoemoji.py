@@ -52,7 +52,18 @@ import shlex
 import shutil
 import subprocess
 import sys
-from typing import Callable, List, NamedTuple, Optional, Tuple, Set, Sequence
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Set,
+    Sequence,
+)
 
 
 FLAGS = flags.FLAGS
@@ -96,32 +107,12 @@ def _fea_file(font_config: FontConfig) -> Path:
     return _per_config_file(font_config, ".fea")
 
 
-def _font_rule(font_config: FontConfig) -> str:
-    suffix = "_font"
-    if font_config.is_vf:
-        suffix = "_vfont"
-    return Path(font_config.output_file).stem + suffix
-
-
-def _ufo_rule(font_config: FontConfig, master: MasterConfig) -> str:
-    return (
-        "write_"
-        + Path(font_config.output_file).stem
-        + "_"
-        + master.style_name.lower()
-        + "_ufo"
-    )
-
-
 def _ufo_config(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, "." + master.output_ufo + ".toml")
 
 
-def _glyphmap_rule(font_config: FontConfig, master: MasterConfig) -> str:
-    master_part = ""
-    if font_config.is_vf:
-        master_part = "_" + master.style_name.lower()
-    return "write_" + Path(font_config.output_file).stem + master_part + "_glyphmap"
+def _glyphmap_rule(font_config: FontConfig) -> str:
+    return font_config.glyphmap_generator
 
 
 def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
@@ -131,40 +122,40 @@ def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, master_part + ".glyphmap")
 
 
-def write_font_rule(nw, font_config: FontConfig, master: MasterConfig):
+def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
+    master_part = ""
     if font_config.is_vf:
-        rule_name = _ufo_rule(font_config, master)
-        config_file = _ufo_config(font_config, master)
-    else:
-        rule_name = _font_rule(font_config)
-        config_file = _config_file(font_config)
+        master_part = "." + master.output_ufo
+    return _per_config_file(font_config, master_part + ".glyphmap")
 
+
+def write_glyphmap_rule(nw, glyphmap_generator):
     module_rule(
         nw,
-        "write_font",
-        " ".join(
-            (
-                f"--config_file {rel_build(config_file)}",
-                f"--fea_file {rel_build(_fea_file(font_config))}",
-                f"--glyphmap_file {rel_build(_glyphmap_file(font_config, master))}",
-            )
-        ),
-        rule_name=rule_name,
-    )
-    nw.newline()
-
-
-def write_glyphmap_rule(nw, font_config: FontConfig, master: MasterConfig):
-    module_rule(
-        nw,
-        font_config.glyphmap_generator,
+        glyphmap_generator,
         f"--output_file $out @$out.rsp",
         rspfile="$out.rsp",
         rspfile_content="$in",
-        rule_name=_glyphmap_rule(font_config, master),
         allow_external=True,
     )
     nw.newline()
+
+
+@functools.lru_cache()
+def _chrome_command() -> str:
+    cmd, validator = {
+        "Linux": ("google-chrome", shutil.which),
+        "Darwin": (
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            lambda s: Path(s).is_file(),
+        ),
+        "Windows": ("chrome", shutil.which),
+    }[platform.system()]
+
+    if not validator(cmd):
+        raise ValueError(f"{cmd} failed validation")
+
+    return shlex.quote(cmd)
 
 
 def write_preamble(nw):
@@ -189,59 +180,43 @@ def write_preamble(nw):
     module_rule(nw, "write_fea", "--output_file $out $in")
     nw.newline()
 
+    # set height only, let width scale proportionally
+    nw.rule(
+        "write_bitmap",
+        f"resvg -h $res $in $out",
+    )
+    nw.newline()
 
-@functools.lru_cache()
-def _chrome_command() -> str:
-    cmd, validator = {
-        "Linux": ("google-chrome", shutil.which),
-        "Darwin": (
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            lambda s: Path(s).is_file(),
-        ),
-        "Windows": ("chrome", shutil.which),
-    }[platform.system()]
+    # -y is to always overwrite existing output without Y/N interactive prompt
+    zopfli_verbose = ""
+    if FLAGS.verbosity:
+        zopfli_verbose = "-v"
+    nw.rule(
+        "zopflipng",
+        f"{sys.executable} -m zopfli.png {zopfli_verbose} -y $in $out",
+    )
+    nw.newline()
 
-    if not validator(cmd):
-        raise ValueError(f"{cmd} failed validation")
+    # always overwrite using --force
+    pngquant_verbose = ""
+    if FLAGS.verbosity:
+        pngquant_verbose = "-v"
+    module_rule(
+        nw, "pngquant", f"-i $in -o $out -- -f {pngquant_verbose} $pngquant_flags"
+    )
+    nw.newline()
 
-    return shlex.quote(cmd)
+    module_rule(
+        nw,
+        "write_font",
+        f"--config_file $config_file --fea_file $fea_file --glyphmap_file $glyphmap_file $in",
+    )
 
-
-def write_config_preamble(nw, font_config: FontConfig):
-    if font_config.has_bitmaps:
-        # set height only, let width scale proportionally
-        res = font_config.bitmap_resolution
-        nw.rule(
-            "write_bitmap",
-            f"resvg -h {res} $in $out",
-        )
-        nw.newline()
-
-        if font_config.use_zopflipng:
-            # -y is to always overwrite existing output without Y/N interactive prompt
-            zopfli_args = "-y $in $out"
-            if FLAGS.verbosity:
-                zopfli_args = "-v " + zopfli_args
-            nw.rule("zopflipng", f"{sys.executable} -m zopfli.png {zopfli_args}")
-            nw.newline()
-
-        if font_config.use_pngquant:
-            # always overwrite using --force
-            pngquant_args = f"-f {font_config.pngquant_flags}"
-            if FLAGS.verbosity:
-                pngquant_args = "-v " + pngquant_args
-            module_rule(nw, "pngquant", f"-i $in -o $out -- {pngquant_args}")
-            nw.newline()
-
-    for master in font_config.masters:
-        write_font_rule(nw, font_config, master)
-    if font_config.is_vf:
-        module_rule(
-            nw,
-            "write_variable_font",
-            f"--config_file {_config_file(font_config)} $in",
-            rule_name=_font_rule(font_config),
-        )
+    module_rule(
+        nw,
+        "write_variable_font",
+        f"--config_file $config_file $in",
+    )
 
     if FLAGS.gen_svg_font_diffs:
         res = FLAGS.svg_font_diff_resolution
@@ -249,7 +224,7 @@ def write_config_preamble(nw, font_config: FontConfig):
             (
                 _chrome_command(),
                 "--headless",
-                f"--window-size={res},{res}",
+                f"--window-size=$res,$res",
                 "--force-device-scale-factor=1",
                 "--virtual-time-budget=1000",
                 "--enable-features=COLRV1Fonts",  # unnecessary for 98+
@@ -260,7 +235,7 @@ def write_config_preamble(nw, font_config: FontConfig):
         nw.rule("screenshot", chrome_screenshot)
         nw.rule("copy_font_to_screenshot_dir", "cp $in $out")
         module_rule(
-            nw, "write_font2png_html", f"--resolution {res} --output_file $out $in"
+            nw, "write_font2png_html", f"--resolution $res --output_file $out $in"
         )
         module_rule(nw, "write_pngdiff", f"--output_file $out $in")
         module_rule(
@@ -380,6 +355,7 @@ def write_bitmap_builds(
     bitmap_builds: Set[Path],
     nw: NinjaWriter,
     clipped: bool,
+    resolution: int,
     master: MasterConfig,
 ):
     os.makedirs(str(bitmap_dir()), exist_ok=True)
@@ -388,7 +364,9 @@ def write_bitmap_builds(
         if dest in bitmap_builds:
             continue
         bitmap_builds.add(dest)
-        nw.build(dest, "write_bitmap", rel_build(svg_file))
+        nw.build(
+            dest, "write_bitmap", rel_build(svg_file), variables={"res": resolution}
+        )
 
 
 def write_compressed_bitmap_builds(
@@ -399,14 +377,18 @@ def write_compressed_bitmap_builds(
     dest_dir: Path,
     infile_fn: Callable[[Path], Path],
     outfile_fn: Callable[[Path], Path],
+    variables: Optional[Mapping[str, Any]] = None,
 ):
+    if variables is None:
+        variables = {}
+
     os.makedirs(str(dest_dir), exist_ok=True)
     for svg_file in master.sources:
         dest = outfile_fn(svg_file)
         if dest in builds:
             continue
         builds.add(dest)
-        nw.build(dest, rule_name, infile_fn(svg_file))
+        nw.build(dest, rule_name, infile_fn(svg_file), variables=variables)
 
 
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
@@ -420,11 +402,16 @@ def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
 
 
 def write_svg_font_diff_build(
-    nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path]
+    nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path], resolution: int
 ):
     # render each svg => png
     for svg_file in svg_files:
-        nw.build(svg2png_dest(svg_file), "screenshot", rel_build(svg_file))
+        nw.build(
+            svg2png_dest(svg_file),
+            "screenshot",
+            rel_build(svg_file),
+            variables={"res": resolution},
+        )
     nw.newline()
 
     # copy the output font to the screenshot directory
@@ -437,7 +424,12 @@ def write_svg_font_diff_build(
             font_for_screenshots,
             rel_build(svg_file),
         ]
-        nw.build(font2png_html_dest(svg_file), "write_font2png_html", inputs)
+        nw.build(
+            font2png_html_dest(svg_file),
+            "write_font2png_html",
+            inputs,
+            variables={"res": resolution},
+        )
     nw.newline()
 
     # render the html container => png
@@ -501,38 +493,48 @@ def write_glyphmap_build(
 ):
     nw.build(
         rel_build(_glyphmap_file(font_config, master)),
-        _glyphmap_rule(font_config, master),
+        _glyphmap_rule(font_config),
         _input_files(font_config, master),
     )
     nw.newline()
 
 
-def _inputs_to_font_build(font_config: FontConfig, master: MasterConfig) -> List[Path]:
-    return [
-        rel_build(_config_file(font_config)),
-        rel_build(_fea_file(font_config)),
-        rel_build(_glyphmap_file(font_config, master)),
-    ]
+def _variables_for_font_build(
+    font_config: FontConfig, master: MasterConfig, config_file: Path
+) -> MutableMapping[str, Any]:
+    return {
+        "config_file": rel_build(config_file),
+        "fea_file": rel_build(_fea_file(font_config)),
+        "glyphmap_file": rel_build(_glyphmap_file(font_config, master)),
+    }
 
 
 def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConfig):
     ufo_config = font_config._replace(output_file=master.output_ufo, masters=(master,))
     ufo_config = _update_sources(ufo_config)
-    config.write(build_dir() / _ufo_config(font_config, master), ufo_config)
+    ufo_config_file = _ufo_config(font_config, master)
+    config.write(build_dir() / ufo_config_file, ufo_config)
+    variables = _variables_for_font_build(font_config, master, ufo_config_file)
+    variables["config_file"] = rel_build(ufo_config_file)
     nw.build(
         master.output_ufo,
-        _ufo_rule(font_config, master),
-        _inputs_to_font_build(font_config, master),
+        "write_font",
+        implicit=list(variables.values()),
+        variables=variables,
     )
     nw.newline()
 
 
 def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
     assert len(font_config.masters) == 1
+    variables = _variables_for_font_build(
+        font_config, font_config.default(), _config_file(font_config)
+    )
     nw.build(
         font_config.output_file,
-        _font_rule(font_config),
-        _inputs_to_font_build(font_config, font_config.default()),
+        "write_font",
+        implicit=list(variables.values()),
+        variables=variables,
     )
     nw.newline()
 
@@ -540,9 +542,10 @@ def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
 def write_variable_font_build(nw: NinjaWriter, font_config: FontConfig):
     nw.build(
         font_config.output_file,
-        _font_rule(font_config),
-        [rel_build(_fea_file(font_config))]
+        "write_variable_font",
+        implicit=[rel_build(_fea_file(font_config))]
         + [m.output_ufo for m in font_config.masters],
+        variables={"config_file": rel_build(_config_file(font_config))},
     )
     nw.newline()
 
@@ -601,14 +604,12 @@ def _run(argv):
             nw = NinjaWriter(f)
             write_preamble(nw)
 
-            # Separate loops for separate content to keep related rules together
+            for glyphmap_generator in sorted(
+                {fc.glyphmap_generator for fc in font_configs}
+            ):
+                write_glyphmap_rule(nw, glyphmap_generator)
 
-            for font_config in font_configs:
-                for master in font_config.masters:
-                    write_glyphmap_rule(nw, font_config, master)
-
-            for font_config in font_configs:
-                write_config_preamble(nw, font_config)
+            # After rules, builds
 
             for font_config in font_configs:
                 write_fea_build(nw, font_config)
@@ -634,6 +635,7 @@ def _run(argv):
                         bitmap_builds,
                         nw,
                         font_config.clip_to_viewbox,  # currently unused
+                        font_config.bitmap_resolution,
                         font_config.masters[0],
                     )
             nw.newline()
@@ -657,6 +659,7 @@ def _run(argv):
                         dest_dir=pngquant_dir(),
                         infile_fn=bitmap_dest,
                         outfile_fn=pngquant_dest,
+                        variables={"pngquant_flags": font_config.pngquant_flags},
                     )
 
                 if font_config.use_zopflipng:
@@ -679,7 +682,10 @@ def _run(argv):
                 if FLAGS.gen_svg_font_diffs:
                     assert not font_config.is_vf
                     write_svg_font_diff_build(
-                        nw, font_config.output_file, font_config.masters[0].sources
+                        nw,
+                        font_config.output_file,
+                        font_config.masters[0].sources,
+                        font_config.bitmap_resolution,
                     )
 
                 for master in font_config.masters:

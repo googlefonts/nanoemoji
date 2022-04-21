@@ -19,6 +19,7 @@ from fontTools.ttLib.tables import otTables as ot
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
 from nanoemoji.glyph import glyph_name
+from nanoemoji.util import only
 import operator
 import os
 from pathlib import Path
@@ -30,6 +31,7 @@ import subprocess
 import tempfile
 from test_helper import (
     assert_expected_ttx,
+    bool_flag,
     color_font_config,
     locate_test_file,
     mkdtemp,
@@ -39,14 +41,26 @@ from test_helper import (
 )
 
 
-@pytest.fixture(scope="module", autouse=True)
+# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    result = outcome.get_result()
+    setattr(item, result.when + "_result", result)
+
+
+@pytest.fixture()
 def _cleanup_temporary_dirs():
     # The mkdtemp() docs say the user is responsible for deleting the directory
     # and its contents when done with it. So we use an autouse fixture that
     # automatically removes all the temp dirs at the end of the test module
     yield
     # teardown happens after the 'yield'
-    cleanup_temp_dirs()
+    if result.node.setup_result.passed and result.node.setup_call.passed:
+        cleanup_temp_dirs()
+    else:
+        print("NOT cleaning up temp dirs to ease troubleshooting")
 
 
 def _svg_element_names(xpath, svg_content):
@@ -138,16 +152,18 @@ def test_build_untouchedsvg_font():
 
 
 def _assert_table_size_cmp(table_tag, op, original_font, original_cmd, **options):
-    cmd = original_cmd + tuple(f"--{'' if v else 'no'}{k}" for k, v in options.items())
+    cmd = original_cmd + tuple(bool_flag(k, v) for k, v in options.items())
     tmp_dir = run_nanoemoji(cmd)
-    font = TTFont(next(tmp_dir.glob("*.ttf")))
+    font = TTFont(only(tmp_dir.glob("*.ttf")))
     new_size = len(font.getTableData(table_tag))
     original_size = len(original_font.getTableData(table_tag))
-    assert op(new_size, original_size)
+    assert op(
+        new_size, original_size
+    ), f"{table_tag} was {original_size}, now {new_size}"
 
 
-@pytest.mark.parametrize("use_zopflipng", [True, False])
 @pytest.mark.parametrize("use_pngquant", [True, False])
+@pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_sbix_font(use_pngquant, use_zopflipng):
     cmd = (locate_test_file("minimal_static/config_sbix.toml"),)
     tmp_dir = run_nanoemoji_memoized(cmd)
@@ -167,8 +183,8 @@ def test_build_sbix_font(use_pngquant, use_zopflipng):
         )
 
 
-@pytest.mark.parametrize("use_zopflipng", [True, False])
 @pytest.mark.parametrize("use_pngquant", [True, False])
+@pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_pngquant, use_zopflipng):
     cmd = (locate_test_file("minimal_static/config_cbdt.toml"),)
     tmp_dir = run_nanoemoji_memoized(cmd)
@@ -196,8 +212,8 @@ def test_build_cbdt_font(use_pngquant, use_zopflipng):
         "cbdt/config.toml",
     ],
 )
-@pytest.mark.parametrize("use_zopflipng", [True, False])
 @pytest.mark.parametrize("use_pngquant", [True, False])
+@pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_compat_font(config_file, use_pngquant, use_zopflipng):
     cmd = (locate_test_file(config_file),)
     tmp_dir = run_nanoemoji_memoized(cmd)

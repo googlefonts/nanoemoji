@@ -311,3 +311,11 @@ def mkdtemp() -> Path:
 def cleanup_temp_dirs():
     while _TEMPORARY_DIRS:
         shutil.rmtree(_TEMPORARY_DIRS.pop(), ignore_errors=True)
+
+
+def bool_flag(name: str, value: bool) -> str:
+    result = "--"
+    if not value:
+        result += "no"
+    result += name
+    return result
