@@ -131,6 +131,42 @@ def _buildPaint(source) -> ot.Paint:
             </svg>
             """,
         ),
+        # other kinds of PaintComposite are dropped for now, only BackdropPaint is kept
+        # https://github.com/googlefonts/nanoemoji/issues/409
+        (
+            "composite",
+            {
+                "composite": {
+                    "Format": ot.PaintFormat.PaintComposite,
+                    "CompositeMode": "soft_light",
+                    "SourcePaint": {
+                        "Format": ot.PaintFormat.PaintLinearGradient,
+                        "ColorLine": {
+                            "Extend": "pad",
+                            "ColorStop": [(0.0, 1, 0.5), (0.5, 2, 0.5), (1.0, 3, 0.5)],
+                        },
+                        "x0": 47,
+                        "y0": 790,
+                        "x1": 890,
+                        "y1": -342,
+                        "x2": -1085,
+                        "y2": -53,
+                    },
+                    "BackdropPaint": (
+                        ot.PaintFormat.PaintGlyph,
+                        (ot.PaintFormat.PaintSolid, 0),
+                        "box",
+                    ),
+                },
+            },
+            {"box": _draw_box},
+            """
+            <svg xmlns="http://www.w3.org/2000/svg">
+              <defs/>
+              <path d="M10,10 L90,10 L90,90 L10,90 Z"/>
+            </svg>
+            """,
+        ),
     ],
 )
 def test_colr_v1_paint_to_svg(

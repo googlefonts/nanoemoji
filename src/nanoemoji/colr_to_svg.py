@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl import logging
 from nanoemoji import colors
 from nanoemoji import color_glyph
 from nanoemoji.glyph_reuse import GlyphReuseCache
@@ -265,21 +266,29 @@ def _colr_v1_paint_to_svg(
         ]:
             descend(parent_el, child_paint)
 
-    elif ot_paint.Format == PaintComposite.format and (
-        ot_paint.CompositeMode == CompositeMode.SRC_IN
-        and ot_paint.BackdropPaint.Format == PaintSolid.format
-    ):
-        # Only simple group opacity for now
-        color = _color(
-            ttfont,
-            ot_paint.BackdropPaint.PaletteIndex,
-            ot_paint.BackdropPaint.Alpha,
+    elif ot_paint.Format == PaintComposite.format:
+        if (
+            ot_paint.CompositeMode == CompositeMode.SRC_IN
+            and ot_paint.BackdropPaint.Format == PaintSolid.format
+        ):
+            # Special-case simple PaintComposite for group opacity
+            color = _color(
+                ttfont,
+                ot_paint.BackdropPaint.PaletteIndex,
+                ot_paint.BackdropPaint.Alpha,
+            )
+            if color[:3] == (0, 0, 0):
+                g = etree.SubElement(parent_el, "g")
+                g.attrib["opacity"] = ntos(color.alpha)
+                descend(g, ot_paint.SourcePaint)
+                return
+
+        # https://github.com/googlefonts/nanoemoji/issues/409
+        logging.warning(
+            "PaintComposite => SVG not supported at the moment; "
+            "only BackdropPaint is kept."
         )
-        if color[:3] != (0, 0, 0):
-            raise NotImplementedError(color)
-        g = etree.SubElement(parent_el, "g")
-        g.attrib["opacity"] = ntos(color.alpha)
-        descend(g, ot_paint.SourcePaint)
+        descend(parent_el, ot_paint.BackdropPaint)
 
     elif ot_paint.Format == PaintColrGlyph.format:
         el = parent_el
