@@ -64,6 +64,13 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     target["CPAL"] = donor["CPAL"]
     target["COLR"] = donor["COLR"]
 
+    # Adding new glyphs to glyf table automatically appends to the TTFont's
+    # glyphOrder list, however the cached map from names to glyph IDs is not
+    # updated, so TTFont.getGlyphID will return incorrect result until
+    # we force it to be rebuilt, e.g. like so:
+    # https://github.com/fonttools/fonttools/issues/2605
+    target.getReverseGlyphMap(rebuild=True)
+
 
 def _svg_glyphs(font: ttLib.TTFont) -> Iterable[Tuple[int, str]]:
     for _, min_gid, max_gid in font["SVG "].docList:
