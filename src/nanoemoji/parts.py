@@ -48,31 +48,31 @@ def _is_iterable_of(thing, desired_type) -> bool:
 Shape = NewType("Shape", str)
 
 
+# A normalized SVG style path
+NormalizedShape = NewType("NormalizedShape", str)
+
+
 # A set of shapes that normalize to the same path
-# Only the d attribute of the SVGPath is populated
-@dataclasses.dataclass
-class ShapeSet:
-    normalized: Shape
-    shapes: Set[Shape] = dataclasses.field(default_factory=set)
+ShapeSet = NewType("ShapeSet", Set[Shape])
 
 
 @dataclasses.dataclass
 class ReuseableParts:
     version: Tuple[int, int, int] = (1, 0, 0)
     reuse_tolerance: float = dataclasses.field(default_factory=_default_tolerence)
-    shape_sets: MutableMapping[Shape, ShapeSet] = dataclasses.field(
+    shape_sets: MutableMapping[NormalizedShape, ShapeSet] = dataclasses.field(
         default_factory=dict
     )
 
-    def _add_norm_path(self, norm: Shape, shape: Shape):
+    def _add_norm_path(self, norm: NormalizedShape, shape: Shape):
         if norm not in self.shape_sets:
-            self.shape_sets[norm] = ShapeSet(norm)
-        self.shape_sets[norm].shapes.add(shape)
+            self.shape_sets[norm] = ShapeSet(set())
+        self.shape_sets[norm].add(shape)
 
     def _add(self, shape: Shape):
-        norm = shape
+        norm = NormalizedShape(shape)
         if self.reuse_tolerance != -1:
-            norm = Shape(normalize(SVGPath(d=shape), self.reuse_tolerance).d)
+            norm = NormalizedShape(normalize(SVGPath(d=shape), self.reuse_tolerance).d)
         self._add_norm_path(norm, shape)
 
     def add(self, source: PathSource):
@@ -80,9 +80,9 @@ class ReuseableParts:
             source = ReuseableParts.load(source)
 
         if isinstance(source, ReuseableParts):
-            for shape_set in source.shape_sets.values():
-                for shape in shape_set.shapes:
-                    self._add_norm_path(shape_set.normalized, shape)
+            for normalized, shape_set in source.shape_sets.items():
+                for shape in shape_set:
+                    self._add_norm_path(normalized, shape)
         else:
             if not _is_iterable_of(source, SVGShape):
                 source = (source,)
@@ -97,8 +97,7 @@ class ReuseableParts:
             "version": ".".join(str(v) for v in self.version),
             "reuse_tolerance": self.reuse_tolerance,
             "shape_sets": [
-                {"normalized": n, "shapes": list(s.shapes)}
-                for n, s in self.shape_sets.items()
+                {"normalized": n, "shapes": list(s)} for n, s in self.shape_sets.items()
             ],
         }
         return json.dumps(json_dict, indent=2)
@@ -117,11 +116,11 @@ class ReuseableParts:
             assert parts.version == (1, 0, 0), f"Bad version {parts.version}"
             parts.reuse_tolerance = float(json_dict.pop("reuse_tolerance"))
             for shape_set_json in json_dict.pop("shape_sets"):
-                norm = Shape(str(shape_set_json.pop("normalized")))
-                shapes = {Shape(s) for s in shape_set_json.pop("shapes")}
+                norm = NormalizedShape(shape_set_json.pop("normalized"))
+                shapes = ShapeSet({Shape(s) for s in shape_set_json.pop("shapes")})
                 if shape_set_json:
                     raise ValueError(f"Unconsumed input {shape_set_json}")
-                parts.shape_sets[norm] = ShapeSet(norm, shapes)
+                parts.shape_sets[norm] = shapes
             if json_dict:
                 raise ValueError(f"Unconsumed input {json_dict}")
 
