@@ -20,7 +20,7 @@ from pathlib import Path
 from picosvg.svg import SVG
 from picosvg.svg_reuse import normalize
 from picosvg.svg_types import SVGPath, SVGShape
-from typing import Iterable, List, MutableMapping, Set, Tuple, Union
+from typing import Iterable, List, MutableMapping, NewType, Set, Tuple, Union
 
 
 PathSource = Union[SVGShape, Iterable[SVGShape], "ReuseableParts", Path]
@@ -44,9 +44,8 @@ def _is_iterable_of(thing, desired_type) -> bool:
         return True
 
 
-@dataclasses.dataclass(frozen=True)
-class Shape:
-    d: str  # an SVG style path, e.g. the d attribute of <svg:path/>
+# an SVG style path, e.g. the d attribute of <svg:path/>
+Shape = NewType("Shape", str)
 
 
 # A set of shapes that normalize to the same path
@@ -73,7 +72,7 @@ class ReuseableParts:
     def _add(self, shape: Shape):
         norm = shape
         if self.reuse_tolerance != -1:
-            norm = Shape(normalize(SVGPath(d=shape.d), self.reuse_tolerance).d)
+            norm = Shape(normalize(SVGPath(d=shape), self.reuse_tolerance).d)
         self._add_norm_path(norm, shape)
 
     def add(self, source: PathSource):
@@ -98,7 +97,7 @@ class ReuseableParts:
             "version": ".".join(str(v) for v in self.version),
             "reuse_tolerance": self.reuse_tolerance,
             "shape_sets": [
-                {"normalized": n.d, "shapes": [p.d for p in s.shapes]}
+                {"normalized": n, "shapes": list(s.shapes)}
                 for n, s in self.shape_sets.items()
             ],
         }
