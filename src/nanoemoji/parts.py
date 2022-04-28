@@ -23,7 +23,7 @@ from picosvg.svg_types import SVGPath, SVGShape
 from typing import Iterable, List, MutableMapping, NewType, Set, Tuple, Union
 
 
-PathSource = Union[SVGShape, Iterable[SVGShape], "ReuseableParts", Path]
+PathSource = Union[SVGShape, Iterable[SVGShape], "ReuseableParts"]
 
 
 @lru_cache(maxsize=1)
@@ -76,9 +76,6 @@ class ReuseableParts:
         self._add_norm_path(norm, shape)
 
     def add(self, source: PathSource):
-        if isinstance(source, Path):
-            source = ReuseableParts.load(source)
-
         if isinstance(source, ReuseableParts):
             for normalized, shape_set in source.shape_sets.items():
                 for shape in shape_set:

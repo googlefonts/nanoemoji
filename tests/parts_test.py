@@ -78,7 +78,7 @@ def test_merge():
 
 def test_file_io():
     parts = ReuseableParts()
-    parts.add(locate_test_file("rect.svg"))
+    parts.add(ReuseableParts.load(locate_test_file("rect.svg")))
     check_num_shapes(parts, 1)
 
     tmp_dir = mkdtemp()
