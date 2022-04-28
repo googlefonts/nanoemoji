@@ -435,9 +435,6 @@ class ColorGlyph(NamedTuple):
             base_glyph.width = _advance_width(view_box, font_config)
         else:
             base_glyph.width = font_config.width
-        assert (
-            base_glyph.width > 0
-        ), f"0 width for {ufo_glyph_name} (svg {svg_filename}, bitmap {bitmap_filename})"
 
         # Setup direct access to the glyph if possible
         if len(codepoints) == 1:
