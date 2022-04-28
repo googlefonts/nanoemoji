@@ -18,6 +18,7 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
+from nanoemoji.glyph import glyph_name
 import operator
 import os
 from pathlib import Path
@@ -368,3 +369,50 @@ def test_input_symlinks_support(tmp_path):
     assert len(ligatures["f"]) == 1
     assert ligatures["f"][0].Component == ["i"]
     assert ligatures["f"][0].LigGlyph == "f_i"
+
+
+@pytest.mark.parametrize(
+    "color_format",
+    [
+        "glyf_colr_1",
+        "picosvg",
+        # TODO: This is disabled because CBDT currently forces width=0 to xMax
+        # https://github.com/googlefonts/nanoemoji/issues/404
+        # "cbdt",
+    ],
+)
+def test_glyph_with_zero_advance_width(color_format, tmp_path):
+    cp = 0x0301
+    gname = glyph_name(cp)
+    acutecomb_svg = locate_test_file(f"u{cp:04x}.svg")
+
+    assert SVG.parse(acutecomb_svg).view_box() == (0, 0, 0, 1200)
+
+    run_nanoemoji(
+        (
+            acutecomb_svg,
+            "--width=0",
+            "--noclip_to_viewbox",
+            "--keep_glyph_names",
+            f"--color_format={color_format}",
+        ),
+        tmp_dir=tmp_path,
+    )
+
+    font = TTFont(tmp_path / "Font.ttf")
+
+    if "COLR" in font:
+        colr = font["COLR"].table
+        assert len(colr.BaseGlyphList.BaseGlyphPaintRecord) == 1
+        assert colr.BaseGlyphList.BaseGlyphPaintRecord[0].BaseGlyph == gname
+    if "SVG " in font:
+        svg = font["SVG "]
+        assert len(svg.docList) == 1
+        gid = font.getGlyphID(gname)
+        assert svg.docList[0][1:] == [gid, gid]  # [start, end]
+    if "CBDT" in font:
+        cbdt = font["CBDT"]
+        assert len(cbdt.strikeData) == 1
+        assert list(cbdt.strikeData[0].keys()) == [gname]
+
+    assert font["hmtx"][gname] == (0, 0)
