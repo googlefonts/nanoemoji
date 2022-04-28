@@ -153,7 +153,7 @@ def _chrome_command() -> str:
     }[platform.system()]
 
     if not validator(cmd):
-        raise ValueError(f"{cmd} failed validation")
+        raise ValueError(f"Chrome ({cmd}) not found")
 
     return shlex.quote(cmd)
 
