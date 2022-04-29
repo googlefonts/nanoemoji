@@ -105,8 +105,8 @@ class ReuseableParts:
         parts = cls()
         if first == "<":
             svg = SVG.fromstring(string).topicosvg()
-            for path in svg.xpath("//svg:path"):
-                parts.add(SVGPath(d=path.attrib["d"]))
+            for shape in svg.shapes():
+                parts.add(SVGPath(d=shape.as_path().d))
         elif first == "{":
             json_dict = json.loads(string)
             parts.version = tuple(int(v) for v in json_dict.pop("version").split("."))
