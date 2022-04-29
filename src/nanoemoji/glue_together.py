@@ -46,12 +46,20 @@ class CbdtGlyphInfo(NamedTuple):
 
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # Copy all glyphs used by COLR over
-    _glyphs_to_copy = {
-        p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)
-    }
+    glyphs_to_copy = sorted(
+        {p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)}
+    )
 
-    for glyph_name in sorted(_glyphs_to_copy):
-        target["glyf"][glyph_name] = donor["glyf"][glyph_name]
+    # We avoid using the glyf table's `__setitem__` for it appends to the TTFont's
+    # glyphOrder list without also invalidating the {glyphNames:glyphID} cache,
+    # which means TTFont.getGlyphID could return incorrect result.
+    # Instead we set the new glyphs directly inside the glyf's `glyphs` dict and
+    # call TTFont.setGlyphOrder at the end, which automatically triggers a rebuild
+    # of glyphID cache.
+    # https://github.com/fonttools/fonttools/issues/2605
+    target_glyphs = target["glyf"].glyphs
+    for glyph_name in glyphs_to_copy:
+        target_glyphs[glyph_name] = donor["glyf"][glyph_name]
 
         if glyph_name in target["hmtx"].metrics:
             assert (
@@ -60,6 +68,8 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
         else:
             # new glyph, new metrics
             target["hmtx"][glyph_name] = donor["hmtx"][glyph_name]
+
+    target.setGlyphOrder(target.getGlyphOrder() + glyphs_to_copy)
 
     target["CPAL"] = donor["CPAL"]
     target["COLR"] = donor["COLR"]
