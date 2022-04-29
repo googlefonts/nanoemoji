@@ -152,7 +152,7 @@ class ReusableParts:
             source.checkpicosvg()
             source_box = source.view_box()
             transform = scale_viewbox_to_font_metrics(
-                self.view_box, source_box.h, 0, source_box.w
+                source_box, self.view_box.h, 0, self.view_box.w
             )
             shapes = tuple(s.as_path() for s in source.shapes())
         else:

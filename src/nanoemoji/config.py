@@ -158,7 +158,7 @@ class FontConfig(NamedTuple):
     transform: Affine2D = Affine2D.identity()
     version_major: int = 1
     version_minor: int = 0
-    reuse_tolerance: float = 0.1
+    reuse_tolerance: float = 0.05
     ignore_reuse_error: bool = True
     keep_glyph_names: bool = False
     clip_to_viewbox: bool = True

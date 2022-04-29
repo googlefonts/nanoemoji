@@ -14,8 +14,8 @@
     <mtx name=".notdef" width="100" lsb="5"/>
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="20"/>
-    <mtx name="e000.0" width="100" lsb="20"/>
-    <mtx name="e000.1" width="100" lsb="40"/>
+    <mtx name="e000.0" width="100" lsb="40"/>
+    <mtx name="e000.1" width="100" lsb="20"/>
   </hmtx>
 
   <cmap>
@@ -65,18 +65,18 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
+    <TTGlyph name="e000.0" xMin="40" yMin="40" xMax="100" yMax="60">
       <contour>
-        <pt x="20" y="80" on="1"/>
-        <pt x="20" y="60" on="1"/>
-        <pt x="80" y="60" on="1"/>
-        <pt x="80" y="80" on="1"/>
+        <pt x="40" y="60" on="1"/>
+        <pt x="40" y="40" on="1"/>
+        <pt x="100" y="40" on="1"/>
+        <pt x="100" y="60" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="e000.1" xMin="40" yMin="40" xMax="100" yMax="60">
-      <component glyphName="e000.0" x="20" y="-20" flags="0x4"/>
+    <TTGlyph name="e000.1" xMin="20" yMin="60" xMax="80" yMax="80">
+      <component glyphName="e000.0" x="-20" y="20" flags="0x4"/>
     </TTGlyph>
 
   </glyf>
@@ -84,8 +84,8 @@
   <COLR>
     <version value="0"/>
     <ColorGlyph name="e000">
-      <layer colorID="1" name="e000.0"/>
-      <layer colorID="0" name="e000.1"/>
+      <layer colorID="1" name="e000.1"/>
+      <layer colorID="0" name="e000.0"/>
     </ColorGlyph>
   </COLR>
 

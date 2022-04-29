@@ -16,76 +16,97 @@
 
 
 from absl import logging
-from picosvg.svg_reuse import normalize, affine_between
+import dataclasses
+from nanoemoji import parts
+from nanoemoji.parts import ReuseResult, ReusableParts
+from picosvg.geometric_types import Rect
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 from typing import (
+    MutableMapping,
     NamedTuple,
     Optional,
+    Set,
 )
 from .fixed import fixed_safe
 
 
-class ReuseResult(NamedTuple):
-    glyph_name: str
-    transform: Affine2D
-
-
+@dataclasses.dataclass
 class GlyphReuseCache:
-    def __init__(self, reuse_tolerance: float):
-        self._reuse_tolerance = reuse_tolerance
-        self._known_glyphs = set()
-        self._reusable_paths = {}
+    _reusable_parts: ReusableParts
+    _shape_to_glyph: MutableMapping[parts.Shape, str] = dataclasses.field(
+        default_factory=dict
+    )
+    _glyph_to_shape: MutableMapping[str, parts.Shape] = dataclasses.field(
+        default_factory=dict
+    )
 
-        # normalize tries to remap first two significant vectors to [1 0], [0 1]
-        # reuse tolerence is relative to viewbox, which is typically much larger
-        # than the space normalize operates in. TODO: better default.
-        self._normalize_tolerance = self._reuse_tolerance / 10
+    def try_reuse(self, path: str, path_view_box: Rect) -> ReuseResult:
+        assert path[0].upper() == "M", path
 
-    def try_reuse(self, path: str) -> Optional[ReuseResult]:
-        """Try to reproduce path as the transformation of another glyph.
+        path = SVGPath(d=path)
+        if path_view_box != self._reusable_parts.view_box:
+            print(path, path_view_box, self._reusable_parts.view_box)
+            path = path.apply_transform(
+                Affine2D.rect_to_rect(path_view_box, self._reusable_parts.view_box)
+            )
 
-        Path is expected to be in font units.
-
-        Returns (glyph name, transform) if possible, None if not.
-        """
-        assert (
-            not path in self._known_glyphs
-        ), f"{path} isn't a path, it's a glyph name we've seen before"
-        assert path.startswith("M"), f"{path} doesn't look like a path"
-
-        if self._reuse_tolerance == -1:
-            return None
-
-        norm_path = normalize(SVGPath(d=path), self._normalize_tolerance).d
-        if norm_path not in self._reusable_paths:
-            return None
-
-        glyph_name, glyph_path = self._reusable_paths[norm_path]
-        affine = affine_between(
-            SVGPath(d=glyph_path), SVGPath(d=path), self._reuse_tolerance
-        )
-        if affine is None:
-            logging.warning("affine_between failed: %s %s ", glyph_path, path)
-            return None
+        maybe_reuse = self._reusable_parts.try_reuse(path)
 
         # https://github.com/googlefonts/nanoemoji/issues/313 avoid out of bounds affines
-        if not fixed_safe(*affine):
+        if maybe_reuse is not None and not fixed_safe(*maybe_reuse.transform):
             logging.warning(
-                "affine_between overflows Fixed: %s %s, %s", glyph_path, path, affine
+                "affine_between overflows Fixed: %s %s, %s",
+                path,
+                maybe_reuse.shape,
+                maybe_reuse.transform,
             )
-            return None
+            maybe_reuse = None
+        if maybe_reuse is None:
+            maybe_reuse = ReuseResult(Affine2D.identity(), parts.as_shape(path))
+        return maybe_reuse
 
-        return ReuseResult(glyph_name, affine)
+    def set_glyph_for_path(self, glyph_name: str, path: str):
+        norm = self._reusable_parts.normalize(path)
+        assert norm in self._reusable_parts.shape_sets, f"No shape set for {path}"
+        shape = parts.as_shape(SVGPath(d=path))
+        assert (
+            shape in self._reusable_parts.shape_sets[norm]
+        ), f"Not present in shape set: {path}"
 
-    def add_glyph(self, glyph_name, glyph_path):
-        assert glyph_path.startswith("M"), f"{glyph_path} doesn't look like a path"
-        if self._reuse_tolerance != -1:
-            norm_path = normalize(SVGPath(d=glyph_path), self._normalize_tolerance).d
-        else:
-            norm_path = glyph_path
-        self._reusable_paths[norm_path] = (glyph_name, glyph_path)
-        self._known_glyphs.add(glyph_name)
+        if self._shape_to_glyph.get(shape, glyph_name) != glyph_name:
+            raise ValueError(f"{shape} cannot be associated with glyphs")
+        if self._glyph_to_shape.get(glyph_name, shape) != shape:
+            raise ValueError(f"{glyph_name} cannot be associated with multiple shapes")
 
-    def is_known_glyph(self, glyph_name):
-        return glyph_name in self._known_glyphs
+        self._shape_to_glyph[shape] = glyph_name
+        self._glyph_to_shape[glyph_name] = shape
+
+    def get_glyph_for_path(self, path: str) -> str:
+        return self._shape_to_glyph[parts.as_shape(SVGPath(d=path))]
+
+    def forget_glyph_path_associations(self):
+        self._shape_to_glyph.clear()
+        self._glyph_to_shape.clear()
+
+    def consuming_glyphs(self, path: str) -> Set[str]:
+        norm = self._reusable_parts.normalize(path)
+        assert (
+            norm in self._reusable_parts.shape_sets
+        ), f"{path} not associated with any parts!"
+        return {
+            self._shape_to_glyph[shape]
+            for shape in self._reusable_parts.shape_sets[norm]
+        }
+
+    def is_known_glyph(self, glyph_name: str):
+        return glyph_name in self._glyph_to_shape
+
+    def is_known_path(self, path: str):
+        return parts.as_shape(SVGPath(d=path)) in self._shape_to_glyph
+
+    def view_box(self) -> Rect:
+        """
+        The box within which the shapes in this cache exist.
+        """
+        return self._reusable_parts.view_box

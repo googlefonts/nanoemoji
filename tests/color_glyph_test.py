@@ -13,9 +13,10 @@
 # limitations under the License.
 
 from nanoemoji.colors import Color
-from nanoemoji.color_glyph import ColorGlyph
+from nanoemoji.color_glyph import map_viewbox_to_font_space, ColorGlyph
 from nanoemoji.config import FontConfig
 from nanoemoji.paint import *
+from picosvg.geometric_types import Rect
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 import dataclasses
@@ -126,7 +127,16 @@ def test_transform_and_width(
         config, ufo, "duck", 1, "glyph_name", [0x0042], SVG.fromstring(svg_str)
     )
 
-    assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
+    assert (
+        map_viewbox_to_font_space(
+            Rect(*(int(s) for s in view_box.split(" "))),
+            ufo.info.ascender,
+            ufo.info.descender,
+            color_glyph.ufo_glyph.width,
+            config.transform,
+        )
+        == pytest.approx(expected_transform)
+    )
     assert ufo[color_glyph.ufo_glyph_name].width == expected_width
 
 
