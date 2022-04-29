@@ -21,6 +21,7 @@ from nanoemoji import write_font
 from nanoemoji.colr import paints_of_type
 from nanoemoji.config import _DEFAULT_CONFIG
 from nanoemoji.glyphmap import GlyphMapping
+from nanoemoji.parts import ReusableParts
 from picosvg.svg_transform import Affine2D
 from ufo2ft.constants import COLR_CLIP_BOXES_KEY
 from fontTools.ttLib.tables import otTables as ot
@@ -37,10 +38,10 @@ import test_helper
 )
 @pytest.mark.parametrize("keep_glyph_names", [True, False])
 def test_keep_glyph_names(svgs, color_format, keep_glyph_names):
-    config, glyph_inputs = test_helper.color_font_config(
+    config, parts, glyph_inputs = test_helper.color_font_config(
         {"color_format": color_format, "keep_glyph_names": keep_glyph_names}, svgs
     )
-    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ufo, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
 
     assert len(ufo.glyphOrder) == len(ttfont.getGlyphOrder())
@@ -83,10 +84,10 @@ def test_version(color_format, version_major, version_minor, expected):
     else:
         version_minor = 0
 
-    config, glyph_inputs = test_helper.color_font_config(
+    config, parts, glyph_inputs = test_helper.color_font_config(
         config_overrides, ("rect.svg", "one-o-clock.svg")
     )
-    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ufo, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
 
     assert ufo.info.versionMajor == version_major
@@ -112,10 +113,10 @@ def test_vertical_metrics(ascender, descender, linegap):
         "descender": descender,
         "linegap": linegap,
     }
-    config, glyph_inputs = test_helper.color_font_config(
+    config, parts, glyph_inputs = test_helper.color_font_config(
         config_overrides, ("rect.svg", "one-o-clock.svg")
     )
-    ufo, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ufo, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
 
     hhea = ttfont["hhea"]
@@ -327,8 +328,8 @@ def test_vertical_metrics(ascender, descender, linegap):
     ],
 )
 def test_write_font_binary(svgs, expected_ttx, config_overrides):
-    config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
-    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    config, parts, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
+    _, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
     ttfont = test_helper.reload_font(ttfont)
     # sanity check the font
     # glyf should not have identical-except-name entries except .notdef and .space
@@ -386,8 +387,8 @@ def test_write_font_binary(svgs, expected_ttx, config_overrides):
 )
 def test_ufo_color_base_glyph_bounds(svgs, config_overrides, expected_clip_boxes):
     config_overrides = {"output_file": "font.ufo", **config_overrides}
-    config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
-    ufo, _ = write_font._generate_color_font(config, glyph_inputs)
+    config, parts, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
+    ufo, _ = write_font._generate_color_font(config, parts, glyph_inputs)
 
     base_glyph_names = [f"e{str(i).zfill(3)}" for i in range(len(svgs))]
     for base_glyph_name in base_glyph_names:
@@ -411,8 +412,10 @@ class TestCurrentColor:
     # https://github.com/googlefonts/nanoemoji/issues/380
     @staticmethod
     def generate_color_font(svgs, config_overrides):
-        config, glyph_inputs = test_helper.color_font_config(config_overrides, svgs)
-        _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+        config, parts, glyph_inputs = test_helper.color_font_config(
+            config_overrides, svgs
+        )
+        _, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
         return test_helper.reload_font(ttfont)
 
     @pytest.mark.parametrize(
@@ -569,23 +572,86 @@ def test_square_varied_hmetrics():
         "square_vbox_square.svg",
         "square_vbox_wide.svg",
     )
-    config, glyph_inputs = test_helper.color_font_config({"width": 0}, svgs)
-    _, font = write_font._generate_color_font(config, glyph_inputs)
+    config, parts, glyph_inputs = test_helper.color_font_config({"width": 0}, svgs)
+    parts.compute_donors()
+
+    _, font = write_font._generate_color_font(config, parts, glyph_inputs)
 
     colr = font["COLR"]
 
     glyph_names = {r.BaseGlyph for r in colr.table.BaseGlyphList.BaseGlyphPaintRecord}
     assert (
         len(glyph_names) == 3
-    ), f"Should have 3 color glyphs, got {names_of_colr_glyphs}"
+    ), f"Should have 3 color glyphs, got {names_of_colr_glyphs}\n{test_helper.ttx(font)}"
 
     glyphs = {p.Glyph for p in paints_of_type(font, ot.PaintFormat.PaintGlyph)}
     assert (
         len(glyphs) == 1
-    ), f"Should only be one glyph referenced from COLR, got {glyphs}"
+    ), f"Should only be one glyph referenced from COLR, got {glyphs}\n{test_helper.ttx(font)}"
 
     glyph_widths = sorted(font["hmtx"][gn][0] for gn in glyph_names)
     for i in range(len(glyph_widths) - 1):
         assert (
             glyph_widths[i] * 2 == glyph_widths[i + 1]
-        ), f"n+1 should double, fails at {i}; {glyph_widths}"
+        ), f"n+1 should double, fails at {i}; {glyph_widths}\n{test_helper.ttx(font)}"
+
+
+# scaling was at one point causing lookup in part file to fail
+# TODO this doesn't reproduce the problem :(
+def test_inconsistent_viewbox():
+    # rect 1000 will cause part merge to scale
+    svgs = (
+        "circle.svg",
+        "rect_1000.svg",
+    )
+
+    config, parts, glyph_inputs = test_helper.color_font_config({
+        "upem": 1024,
+        "ascender": 950,
+        "descender": -250,
+        "width": 1275,
+    }, svgs)
+    parts.compute_donors()
+
+    # just compiling without error will suffice :)
+    write_font._generate_color_font(config, parts, glyph_inputs)
+
+
+def test_reuse_with_inconsistent_viewbox():
+    svgs = (
+        "rect.svg",
+        "rect_10x.svg",
+    )
+    config, parts, glyph_inputs = test_helper.color_font_config({}, svgs)
+    parts.compute_donors()
+
+    _, font = write_font._generate_color_font(config, parts, glyph_inputs)
+
+    # There should be only one glyph referenced by COLR
+    glyphs = {p.Glyph for p in paints_of_type(font, ot.PaintFormat.PaintGlyph)}
+    assert len(glyphs) == 1, str(glyphs)
+
+
+# Reduced version of real problem observed with the demo fonts repo
+# where an affine with massive coordinates was produced (dx = 54033)
+def test_reuse_with_real_inconsistent_viewbox():
+    svgs = (
+        "rect_10.svg",
+        "rect_1000.svg",
+    )
+    config, parts, glyph_inputs = test_helper.color_font_config(
+        {
+            "upem": 1024,
+            "ascender": 950,
+            "descender": -250,
+            "width": 1275,
+        },
+        svgs,
+    )
+    parts.compute_donors()
+
+    _, font = write_font._generate_color_font(config, parts, glyph_inputs)
+
+    # There should be only one glyph referenced by COLR
+    glyphs = {p.Glyph for p in paints_of_type(font, ot.PaintFormat.PaintGlyph)}
+    assert len(glyphs) == 1, str(glyphs)

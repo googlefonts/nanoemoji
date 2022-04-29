@@ -165,7 +165,7 @@
           <xy value="0.0"/>
           <yy value="1.0"/>
           <dx value="0.0"/>
-          <dy value="-28.859"/>
+          <dy value="-28.85938"/>
         </Transform>
       </Paint>
       <Paint index="2" Format="12"><!-- PaintTransform -->
@@ -210,7 +210,7 @@
           <xy value="0.0"/>
           <yy value="1.0"/>
           <dx value="0.0"/>
-          <dy value="28.852"/>
+          <dy value="28.85156"/>
         </Transform>
       </Paint>
     </LayerList>

@@ -19,7 +19,6 @@ from absl import logging
 from fontTools import ttLib
 from lxml import etree
 from nanoemoji import codepoints
-from nanoemoji.color_glyph import map_viewbox_to_otsvg_space
 from nanoemoji.extract_svgs import svg_glyphs
 from nanoemoji import util
 import os

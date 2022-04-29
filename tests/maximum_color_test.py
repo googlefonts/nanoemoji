@@ -24,16 +24,6 @@ from test_helper import cleanup_temp_dirs, locate_test_file, run, run_nanoemoji
 from typing import Tuple
 
 
-@pytest.fixture(scope="module", autouse=True)
-def _cleanup_temporary_dirs():
-    # The mkdtemp() docs say the user is responsible for deleting the directory
-    # and its contents when done with it. So we use an autouse fixture that
-    # automatically removes all the temp dirs at the end of the test module
-    yield
-    # teardown happens after the 'yield'
-    cleanup_temp_dirs()
-
-
 def _build_initial_font(color_format: str) -> Path:
     tmp_dir = run_nanoemoji(
         (
