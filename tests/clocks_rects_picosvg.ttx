@@ -117,15 +117,15 @@
     <svgDoc endGlyphID="5" startGlyphID="4">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-    <path d="M2,2 L8,2 L8,4 L2,4 L2,2 Z" id="e001.0"/>
+    <path d="M51.2,51.2 L128,51.2 L128,76.8 L51.2,76.8 L51.2,51.2 Z" id="e001.0"/>
   </defs>
   <g id="glyph4" transform="matrix(10 0 0 10 0 -100)">
-    <use xlink:href="#e001.0" fill="blue"/>
-    <use xlink:href="#e001.0" x="2" y="2" fill="blue" opacity="0.8"/>
+    <use xlink:href="#e001.0" fill="blue" x="-25.6" y="-25.6"/>
+    <use xlink:href="#e001.0" fill="blue" opacity="0.8"/>
   </g>
   <g id="glyph5" transform="matrix(10 0 0 10 0 -100)">
-    <use xlink:href="#e001.0" fill="purple"/>
-    <use xlink:href="#e001.0" x="2" y="2" fill="darkgreen" opacity="0.8"/>
+    <use xlink:href="#e001.0" x="-25.6" y="-25.6" fill="purple"/>
+    <use xlink:href="#e001.0" fill="darkgreen" opacity="0.8"/>
   </g>
 </svg>
 ]]>

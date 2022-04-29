@@ -61,12 +61,12 @@
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-    <path d="M40,10 L60,10 L60,30 L40,30 L40,10 Z" id="e000.0"/>
+    <path d="M40,70 L60,70 L60,90 L40,90 L40,70 Z" id="e000.0"/>
   </defs>
   <g id="glyph2" transform="translate(0, -100)">
-    <use xlink:href="#e000.0" fill="yellow"/>
-    <use xlink:href="#e000.0" y="30" fill="red"/>
-    <use xlink:href="#e000.0" y="60" fill="blue"/>
+    <use xlink:href="#e000.0" fill="yellow" y="-60"/>
+    <use xlink:href="#e000.0" y="-30" fill="red"/>
+    <use xlink:href="#e000.0" fill="blue"/>
   </g>
 </svg>
 ]]>

@@ -53,6 +53,10 @@ def draw_svg_path(
                     pen.endPath()
             closed = False
 
+        for arg in args:
+            if not -32768 <= arg <= 32767:
+                assert False, path.d
+
         # pens expect args as 2-tuples; we use the 'grouper' itertools recipe
         # https://docs.python.org/3.8/library/itertools.html#recipes
         assert len(args) % 2 == 0

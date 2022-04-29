@@ -208,8 +208,17 @@ def write_preamble(nw):
 
     module_rule(
         nw,
+        "write_combined_part_files",
+        f"--output_file $out  @$out.rsp",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
+    )
+    nw.newline()
+
+    module_rule(
+        nw,
         "write_font",
-        f"--config_file $config_file --fea_file $fea_file --glyphmap_file $glyphmap_file $in",
+        f"--config_file $config_file --fea_file $fea_file --glyphmap_file $glyphmap_file --part_file $part_file $in",
     )
 
     module_rule(
@@ -252,7 +261,7 @@ def write_preamble(nw):
     module_rule(
         nw,
         "write_part_file",
-        f"--reuse_tolerance $reuse_tolerance --output_file $out $in",
+        f"--reuse_tolerance $reuse_tolerance --upem $upem --output_file $out $in",
     )
     nw.newline()
 
@@ -344,30 +353,41 @@ def diff_png_dest(input_svg: Path) -> Path:
     return _dest_for_src(diff_png_dest, diff_bitmap_dir(), input_svg, ".png")
 
 
+def master_part_file_dest() -> Path:
+    return Path("parts-merged.json")
+
+
 def write_picosvg_builds(
     picosvg_builds: Set[Path],
     nw: NinjaWriter,
-    clipped: bool,
-    reuse_tolerance: float,
+    font_config: FontConfig,
     master: MasterConfig,
-):
+) -> Tuple[Set[Path], Set[Path]]:
     rule_name = "picosvg_unclipped"
-    if clipped:
+    if font_config.clip_to_viewbox:
         rule_name = "picosvg_clipped"
+
+    picosvgs = set()
+    part_files = set()
     for svg_file in master.sources:
         svg_file = abspath(svg_file)
-        dest = picosvg_dest(clipped, svg_file)
+        dest = picosvg_dest(font_config.clip_to_viewbox, svg_file)
         if svg_file in picosvg_builds:
             continue
         picosvg_builds.add(svg_file)
         nw.build(dest, rule_name, rel_build(svg_file))
 
+        part_dest = part_file_dest(dest)
         nw.build(
-            part_file_dest(dest),
+            part_dest,
             "write_part_file",
             dest,
-            variables={"reuse_tolerance": reuse_tolerance},
+            variables={"reuse_tolerance": font_config.reuse_tolerance, "upem": font_config.upem},
         )
+
+        picosvgs.add(dest)
+        part_files.add(part_dest)
+    return (picosvgs, part_files)
 
 
 def write_bitmap_builds(
@@ -525,6 +545,7 @@ def _variables_for_font_build(
         "config_file": rel_build(config_file),
         "fea_file": rel_build(_fea_file(font_config)),
         "glyphmap_file": rel_build(_glyphmap_file(font_config, master)),
+        "part_file": master_part_file_dest(),
     }
 
 
@@ -637,20 +658,28 @@ def _run(argv):
                 for master in font_config.masters:
                     write_glyphmap_build(nw, font_config, master)
 
-            picosvg_builds = set()
+            picosvg_builds = set()  # svgs for which we already made a picosvg
+            part_files = set()
             for font_config in font_configs:
                 for master in font_config.masters:
                     if font_config.has_picosvgs:
-                        write_picosvg_builds(
+                        _, parts = write_picosvg_builds(
                             picosvg_builds,
                             nw,
-                            font_config.clip_to_viewbox,
-                            font_config.reuse_tolerance,
+                            font_config,
                             master,
                         )
+                        part_files |= parts
             nw.newline()
 
-            bitmap_builds = set()
+            # Write a combined part file (potentially empty)
+            nw.build(
+                master_part_file_dest(),
+                "write_combined_part_files",
+                sorted(part_files),
+            )
+
+            bitmap_builds = set()  # svgs for which we already made a bitmap
             for font_config in font_configs:
                 if font_config.has_bitmaps:
                     assert not font_config.is_vf
@@ -663,8 +692,8 @@ def _run(argv):
                     )
             nw.newline()
 
-            zopflipng_builds = set()
-            pngquant_builds = set()
+            zopflipng_builds = set()  # svgs for which we already made a zopflipng
+            pngquant_builds = set()  # svgs for which we already made a pngquant
             for font_config in font_configs:
                 if not font_config.has_bitmaps or not (
                     font_config.use_zopflipng or font_config.use_pngquant
