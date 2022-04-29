@@ -19,7 +19,6 @@ import re
 import shutil
 import subprocess
 import sys
-from functools import lru_cache
 from lxml import etree
 from fontTools import ttLib
 from nanoemoji import codepoints
@@ -293,12 +292,17 @@ def run_nanoemoji(args, tmp_dir=None):
     return tmp_dir
 
 
-@lru_cache()
-def run_nanoemoji_memoized(args, tmp_dir=None):
-    return run_nanoemoji(args, tmp_dir=tmp_dir)
-
-
 _TEMPORARY_DIRS = set()
+
+
+def active_temp_dirs():
+    return _TEMPORARY_DIRS
+
+
+def forget_temp_dirs():
+    global _TEMPORARY_DIRS
+    _TEMPORARY_DIRS = set()
+    assert len(active_temp_dirs()) == 0  # this can occur due to local/global confusion
 
 
 def mkdtemp() -> Path:
@@ -311,3 +315,11 @@ def mkdtemp() -> Path:
 def cleanup_temp_dirs():
     while _TEMPORARY_DIRS:
         shutil.rmtree(_TEMPORARY_DIRS.pop(), ignore_errors=True)
+
+
+def bool_flag(name: str, value: bool) -> str:
+    result = "--"
+    if not value:
+        result += "no"
+    result += name
+    return result
