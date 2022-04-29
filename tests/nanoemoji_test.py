@@ -16,6 +16,7 @@
 
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
+from functools import lru_cache
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
 from nanoemoji.glyph import glyph_name
@@ -37,30 +38,14 @@ from test_helper import (
     mkdtemp,
     cleanup_temp_dirs,
     run_nanoemoji,
-    run_nanoemoji_memoized,
 )
 
 
-# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # execute all other hooks to obtain the report object
-    outcome = yield
-    result = outcome.get_result()
-    setattr(item, result.when + "_result", result)
-
-
-@pytest.fixture()
-def _cleanup_temporary_dirs():
-    # The mkdtemp() docs say the user is responsible for deleting the directory
-    # and its contents when done with it. So we use an autouse fixture that
-    # automatically removes all the temp dirs at the end of the test module
-    yield
-    # teardown happens after the 'yield'
-    if result.node.setup_result.passed and result.node.setup_call.passed:
-        cleanup_temp_dirs()
-    else:
-        print("NOT cleaning up temp dirs to ease troubleshooting")
+@lru_cache()
+def generate_font_memoized(config_file: Path, tmp_dir=None) -> TTFont:
+    tmp_dir = run_nanoemoji((config_file,), tmp_dir=tmp_dir)
+    font = TTFont(tmp_dir / "Font.ttf")
+    return font
 
 
 def _svg_element_names(xpath, svg_content):
@@ -151,8 +136,8 @@ def test_build_untouchedsvg_font():
     assert transform != Affine2D.identity(), transform
 
 
-def _assert_table_size_cmp(table_tag, op, original_font, original_cmd, **options):
-    cmd = original_cmd + tuple(bool_flag(k, v) for k, v in options.items())
+def _assert_table_size_cmp(table_tag, op, original_font, config_file, **options):
+    cmd = (config_file,) + tuple(bool_flag(k, v) for k, v in options.items())
     tmp_dir = run_nanoemoji(cmd)
     font = TTFont(only(tmp_dir.glob("*.ttf")))
     new_size = len(font.getTableData(table_tag))
@@ -165,9 +150,8 @@ def _assert_table_size_cmp(table_tag, op, original_font, original_cmd, **options
 @pytest.mark.parametrize("use_pngquant", [True, False])
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_sbix_font(use_pngquant, use_zopflipng):
-    cmd = (locate_test_file("minimal_static/config_sbix.toml"),)
-    tmp_dir = run_nanoemoji_memoized(cmd)
-    font = TTFont(tmp_dir / "Font.ttf")
+    config_file = locate_test_file("minimal_static/config_sbix.toml")
+    font = generate_font_memoized(config_file)
 
     assert "sbix" in font
 
@@ -177,7 +161,7 @@ def test_build_sbix_font(use_pngquant, use_zopflipng):
             "sbix",
             operator.gt,
             font,
-            cmd,
+            config_file,
             use_pngquant=use_pngquant,
             use_zopflipng=use_zopflipng,
         )
@@ -186,9 +170,8 @@ def test_build_sbix_font(use_pngquant, use_zopflipng):
 @pytest.mark.parametrize("use_pngquant", [True, False])
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_pngquant, use_zopflipng):
-    cmd = (locate_test_file("minimal_static/config_cbdt.toml"),)
-    tmp_dir = run_nanoemoji_memoized(cmd)
-    font = TTFont(tmp_dir / "Font.ttf")
+    config_file = locate_test_file("minimal_static/config_cbdt.toml")
+    font = generate_font_memoized(config_file)
 
     assert "CBDT" in font
     assert "CBLC" in font
@@ -199,7 +182,7 @@ def test_build_cbdt_font(use_pngquant, use_zopflipng):
             "CBDT",
             operator.gt,
             font,
-            cmd,
+            config_file,
             use_pngquant=use_pngquant,
             use_zopflipng=use_zopflipng,
         )
@@ -215,9 +198,8 @@ def test_build_cbdt_font(use_pngquant, use_zopflipng):
 @pytest.mark.parametrize("use_pngquant", [True, False])
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_compat_font(config_file, use_pngquant, use_zopflipng):
-    cmd = (locate_test_file(config_file),)
-    tmp_dir = run_nanoemoji_memoized(cmd)
-    font = TTFont(tmp_dir / "Font.ttf")
+    config_file = locate_test_file(config_file)
+    font = generate_font_memoized(config_file)
 
     assert "CBDT" in font
     assert "CBLC" in font
@@ -228,7 +210,7 @@ def test_build_compat_font(config_file, use_pngquant, use_zopflipng):
             "CBDT",
             operator.gt,
             font,
-            cmd,
+            config_file,
             use_pngquant=use_pngquant,
             use_zopflipng=use_zopflipng,
         )

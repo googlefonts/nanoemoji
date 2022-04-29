@@ -14,8 +14,37 @@
 
 from absl import flags
 import pytest
+from test_helper import active_temp_dirs, cleanup_temp_dirs, forget_temp_dirs
 
 
 @pytest.fixture(autouse=True)
 def absl_flags():
     flags.FLAGS(["unittest"])
+
+
+# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    result = outcome.get_result()
+    attr_name = result.when + "_result"
+    setattr(item, attr_name, result)
+
+
+@pytest.fixture(autouse=True, scope="function")
+def _cleanup_temporary_dirs(request):
+    # The mkdtemp() docs say the user is responsible for deleting the directory
+    # and its contents when done with it. So we use an autouse fixture that
+    # automatically removes all the temp dirs at the end of the test module
+    yield
+    # teardown happens after the 'yield'
+    if request.node.setup_result.passed and request.node.call_result.passed:
+        print(f"Cleaning up {len(active_temp_dirs())} temp dirs")
+        # assert False
+        cleanup_temp_dirs()
+    else:
+        print(
+            f"NOT cleaning up {len(active_temp_dirs())} temp dirs to ease troubleshooting"
+        )
+    forget_temp_dirs()
