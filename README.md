@@ -35,10 +35,10 @@ can be generated:
 
 ```shell
 # Adds COLR to a font with SVG and vice versa
-maxmium_color my_colr_font.ttf
+maximum_color my_colr_font.ttf
 
 # Adds COLR to a font with SVG and vice versa, and generates a CBDT table
-maxmium_color --bitmaps my_colr_font.ttf
+maximum_color --bitmaps my_colr_font.ttf
 ```
 
 The intended result is a font that will Just Work in any modern browser:
