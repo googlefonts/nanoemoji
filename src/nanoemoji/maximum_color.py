@@ -189,7 +189,7 @@ def _write_preamble(nw: NinjaWriter):
     module_rule(
         nw,
         "write_part_file",
-        f"--reuse_tolerance $reuse_tolerance --output_file $out $in",
+        f"--reuse_tolerance $reuse_tolerance --upem $upem --output_file $out $in",
     )
     nw.newline()
 
@@ -267,7 +267,7 @@ def _picosvgs(nw: NinjaWriter, svg_files: List[Path]) -> List[Path]:
 
 
 def _part_file(
-    nw: NinjaWriter, reuse_tolerance: float, picosvg_files: List[Path]
+    nw: NinjaWriter, reuse_tolerance: float, upem: int, picosvg_files: List[Path]
 ) -> Path:
     part_files = [part_file_dest(p) for p in picosvg_files]
     for picosvg_file, part_file in zip(picosvg_files, part_files):
@@ -275,7 +275,7 @@ def _part_file(
             part_file,
             "write_part_file",
             picosvg_file,
-            variables={"reuse_tolerance": reuse_tolerance},
+            variables={"reuse_tolerance": reuse_tolerance, "upem": upem},
         )
 
     nw.build(
@@ -347,7 +347,7 @@ def _generate_svg_from_colr(
 
     # create and merge an SVG table
     picosvgs = _picosvgs(nw, svg_files)
-    part_file = _part_file(nw, font_config.reuse_tolerance, picosvgs)
+    part_file = _part_file(nw, font_config.reuse_tolerance, font_config.upem, picosvgs)
 
     output_file = _generate_additional_color_table(
         nw, input_font, picosvgs + [input_font], "SVG ", input_font
@@ -370,7 +370,7 @@ def _generate_colr_from_svg(
 
     # create and merge a COLR table
     picosvgs = _picosvgs(nw, svg_files)
-    part_file = _part_file(nw, font_config.reuse_tolerance, picosvgs)
+    part_file = _part_file(nw, font_config.reuse_tolerance, font_config.upem, picosvgs)
 
     output_file = _generate_additional_color_table(
         nw, input_font, picosvgs + [input_font], "COLR", input_font

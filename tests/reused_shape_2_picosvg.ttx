@@ -61,21 +61,12 @@
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-<<<<<<< HEAD
     <path d="M200,100 A100 100 0 1 1 0,100 A100 100 0 1 1 200,100 Z" id="e000.0"/>
   </defs>
   <g id="glyph2" transform="matrix(0.5 0 0 0.5 0 -100)">
     <use xlink:href="#e000.0" fill="#F49924"/>
     <use xlink:href="#e000.0" x="44.545" y="50" transform="matrix(0.15 0 0 0.218 37.863 39.1)" fill="#7E4418"/>
     <use xlink:href="#e000.0" x="125.455" y="50" transform="matrix(0.15 0 0 0.218 106.637 39.1)" fill="#7E4418"/>
-=======
-    <path d="M74.545,71.818 C74.545,83.868 67.829,93.636 59.545,93.636 C51.261,93.636 44.545,83.868 44.545,71.818 C44.545,59.768 51.261,50 59.545,50 C67.829,50 74.545,59.768 74.545,71.818 Z" id="e000.1" fill="#7E4418"/>
-  </defs>
-  <g id="glyph2" transform="matrix(0.5 0 0 0.5 0 -100)">
-    <path d="M200,100 C200,155.228 155.228,200 100,200 C44.772,200 0,155.228 0,100 C0,44.772 44.772,0 100,0 C155.228,0 200,44.772 200,100 Z" fill="#F49924"/>
-    <use xlink:href="#e000.1"/>
-    <use xlink:href="#e000.1" x="80.91"/>
->>>>>>> 7597df1 (Generate a parts file for each input svg and use it to compute reuse.)
   </g>
 </svg>
 ]]>

@@ -89,21 +89,16 @@ from nanoemoji.colr_to_svg import colr_to_svg
     ],
 )
 def test_svg_to_colr_to_svg(svg_in, expected_svg_out, config_overrides):
-    config, parts, glyph_inputs = test_helper.color_font_config(
+    config, glyph_inputs = test_helper.color_font_config(
         config_overrides,
         (svg_in,),
     )
-    parts.compute_donors()
-
-    _, ttfont = write_font._generate_color_font(config, parts, glyph_inputs)
+    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
     svg_before = SVG.parse(str(test_helper.locate_test_file(svg_in)))
-
+    font_to_svg_scale = svg_before.view_box().h / config.upem
     svgs_from_font = tuple(
         colr_to_svg(
-            lambda _: parts.view_box,
-            lambda _: svg_before.view_box(),
-            ttfont,
-            rounding_ndigits=3,
+            lambda _: svg_before.view_box(), ttfont, rounding_ndigits=3
         ).values()
     )
     assert len(svgs_from_font) == 1

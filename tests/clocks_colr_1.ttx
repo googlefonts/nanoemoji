@@ -290,8 +290,8 @@
           <yx value="0.0"/>
           <xy value="0.0"/>
           <yy value="0.117"/>
-          <dx value="44.16641"/>
-          <dy value="44.13359"/>
+          <dx value="44.167"/>
+          <dy value="44.167"/>
         </Transform>
       </Paint>
       <Paint index="4" Format="22"><!-- PaintScaleUniformAroundCenter -->
@@ -319,8 +319,8 @@
           <yx value="0.0"/>
           <xy value="0.0"/>
           <yy value="0.067"/>
-          <dx value="9.08047"/>
-          <dy value="46.53203"/>
+          <dx value="9.081"/>
+          <dy value="46.565"/>
         </Transform>
       </Paint>
       <Paint index="6" Format="12"><!-- PaintTransform -->
@@ -336,8 +336,8 @@
           <yx value="0.0"/>
           <xy value="0.0"/>
           <yy value="0.067"/>
-          <dx value="46.58047"/>
-          <dy value="84.03203"/>
+          <dx value="46.581"/>
+          <dy value="84.065"/>
         </Transform>
       </Paint>
       <Paint index="7" Format="12"><!-- PaintTransform -->
@@ -353,8 +353,8 @@
           <yx value="0.0"/>
           <xy value="0.0"/>
           <yy value="0.067"/>
-          <dx value="46.58047"/>
-          <dy value="9.03203"/>
+          <dx value="46.581"/>
+          <dy value="9.065"/>
         </Transform>
       </Paint>
       <Paint index="8" Format="12"><!-- PaintTransform -->
@@ -370,8 +370,8 @@
           <yx value="0.0"/>
           <xy value="0.0"/>
           <yy value="0.067"/>
-          <dx value="84.08047"/>
-          <dy value="46.53203"/>
+          <dx value="84.081"/>
+          <dy value="46.565"/>
         </Transform>
       </Paint>
       <Paint index="9" Format="10"><!-- PaintGlyph -->

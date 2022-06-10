@@ -266,9 +266,7 @@ class ReusableParts:
         parts = ReusableParts()
         parts.version = tuple(int(v) for v in json_dict.pop("version").split("."))
         assert parts.version == (1, 0, 0), f"Bad version {parts.version}"
-        parts.view_box = Rect(
-            *(int(v) for v in json_dict.pop("view_box").split(" "))
-        )
+        parts.view_box = Rect(*(int(v) for v in json_dict.pop("view_box").split(" ")))
         assert parts.view_box[:2] == (
             0,
             0,
@@ -295,4 +293,3 @@ class ReusableParts:
         if ext != ".json":
             raise ValueError(f"Unknown format {input_file}")
         return cls.from_json(input_file.read_text(encoding="utf-8"))
-

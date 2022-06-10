@@ -61,13 +61,13 @@
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-    <path d="M77.56,63.99 C77.56,71.479 71.489,77.55 64,77.55 C56.511,77.55 50.44,71.479 50.44,63.99 C50.44,56.501 56.511,50.43 64,50.43 C71.489,50.43 77.56,56.501 77.56,63.99 Z" id="e000.0"/>
+    <path d="M77.56,63.99 A13.56 13.56 0 1 1 50.44,63.99 A13.56 13.56 0 1 1 77.56,63.99 Z" id="e000.0"/>
     <radialGradient id="g1" cx="59.958" cy="61.112" r="13.562" gradientUnits="userSpaceOnUse">
       <stop offset="0.014" stop-color="#FFEB3B"/>
       <stop offset="0.626" stop-color="#FCCD31"/>
       <stop offset="1" stop-color="#FBC02D"/>
     </radialGradient>
-    <radialGradient id="g3" cx="59.813" cy="60.675" r="13.562" gradientUnits="userSpaceOnUse">
+    <radialGradient id="g2" cx="59.813" cy="60.675" r="13.562" gradientUnits="userSpaceOnUse">
       <stop offset="0.005" stop-color="#81C784"/>
       <stop offset="0.201" stop-color="#72BE76"/>
       <stop offset="0.719" stop-color="#50A854"/>
@@ -82,7 +82,7 @@
   </defs>
   <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
     <use xlink:href="#e000.0" fill="url(#g1)"/>
-    <use xlink:href="#e000.0" y="36.94" fill="url(#g3)"/>
+    <use xlink:href="#e000.0" y="36.94" fill="url(#g2)"/>
     <use xlink:href="#e000.0" y="-36.93" fill="url(#g4)"/>
   </g>
 </svg>

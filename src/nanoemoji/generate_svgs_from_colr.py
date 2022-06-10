@@ -53,9 +53,7 @@ def main(argv):
     assert "COLR" in font, f"No COLR table in {font_file}"
     logging.debug("Writing svgs from %s to %s", font_file, out_dir)
 
-    region_callback = lambda gn: _view_box(font, gn)
-
-    for glyph_name, svg in colr_to_svg(region_callback, region_callback, font).items():
+    for glyph_name, svg in colr_to_svg(lambda gn: _view_box(font, gn), font).items():
         gid = font.getGlyphID(glyph_name)
         dest_file = out_dir / f"{gid:05d}.svg"
         with open(dest_file, "w") as f:

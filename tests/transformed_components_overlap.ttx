@@ -57,12 +57,12 @@
 
     <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000.0" xMin="38" yMin="34" xMax="41" yMax="38">
+    <TTGlyph name="e000.0" xMin="38" yMin="69" xMax="41" yMax="72">
       <contour>
-        <pt x="41" y="34" on="1"/>
-        <pt x="38" y="37" on="1"/>
-        <pt x="40" y="38" on="1"/>
-        <pt x="41" y="34" on="1"/>
+        <pt x="41" y="69" on="1"/>
+        <pt x="38" y="72" on="1"/>
+        <pt x="40" y="72" on="1"/>
+        <pt x="41" y="69" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -85,7 +85,48 @@
     </BaseGlyphList>
     <LayerList>
       <!-- LayerCount=4 -->
-      <Paint index="0" Format="12"><!-- PaintTransform -->
+      <Paint index="0" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <PaletteIndex value="0"/>
+          <Alpha value="1.0"/>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="0.731"/>
+          <yx value="-0.717"/>
+          <xy value="-0.65"/>
+          <yy value="-0.721"/>
+          <dx value="57.273"/>
+          <dy value="151.859"/>
+        </Transform>
+      </Paint>
+      <Paint index="2" Format="12"><!-- PaintTransform -->
+        <Paint Format="10"><!-- PaintGlyph -->
+          <Paint Format="2"><!-- PaintSolid -->
+            <PaletteIndex value="0"/>
+            <Alpha value="1.0"/>
+          </Paint>
+          <Glyph value="e000.0"/>
+        </Paint>
+        <Transform>
+          <xx value="0.731"/>
+          <yx value="-0.717"/>
+          <xy value="-0.65"/>
+          <yy value="-0.721"/>
+          <dx value="57.273"/>
+          <dy value="117.219"/>
+        </Transform>
+      </Paint>
+      <Paint index="3" Format="12"><!-- PaintTransform -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="0"/>
@@ -99,49 +140,8 @@
           <xy value="0.0"/>
           <yy value="1.0"/>
           <dx value="0.0"/>
-          <dy value="34.64"/>
+          <dy value="-34.64"/>
         </Transform>
-      </Paint>
-      <Paint index="1" Format="12"><!-- PaintTransform -->
-        <Paint Format="10"><!-- PaintGlyph -->
-          <Paint Format="2"><!-- PaintSolid -->
-            <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
-          </Paint>
-          <Glyph value="e000.0"/>
-        </Paint>
-        <Transform>
-          <xx value="0.7314"/>
-          <yx value="-0.7173"/>
-          <xy value="-0.6503"/>
-          <yy value="-0.7214"/>
-          <dx value="34.75038"/>
-          <dy value="126.87598"/>
-        </Transform>
-      </Paint>
-      <Paint index="2" Format="12"><!-- PaintTransform -->
-        <Paint Format="10"><!-- PaintGlyph -->
-          <Paint Format="2"><!-- PaintSolid -->
-            <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
-          </Paint>
-          <Glyph value="e000.0"/>
-        </Paint>
-        <Transform>
-          <xx value="0.7314"/>
-          <yx value="-0.7173"/>
-          <xy value="-0.6503"/>
-          <yy value="-0.7214"/>
-          <dx value="34.75038"/>
-          <dy value="92.23598"/>
-        </Transform>
-      </Paint>
-      <Paint index="3" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <PaletteIndex value="0"/>
-          <Alpha value="1.0"/>
-        </Paint>
-        <Glyph value="e000.0"/>
       </Paint>
     </LayerList>
     <ClipList Format="1">

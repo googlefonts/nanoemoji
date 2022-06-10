@@ -69,8 +69,7 @@ def _scale_viewbox_to_font_metrics(
 def map_viewbox_to_font_space(
     view_box: Rect, ascender: int, descender: int, width: int, user_transform: Affine2D
 ) -> Affine2D:
-    # print("map_viewbox_to_font_space", view_box, ascender, descender, width, user_transform)
-    transform = Affine2D.compose_ltr(
+    return Affine2D.compose_ltr(
         [
             _scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
             # flip y axis and shift so things are in the right place
@@ -78,8 +77,6 @@ def map_viewbox_to_font_space(
             user_transform,
         ]
     )
-    # print("map_viewbox_to_font_space", transform)
-    return transform
 
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
@@ -474,6 +471,23 @@ class ColorGlyph(NamedTuple):
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
         return view_box is not None
+
+    def _transform(self, map_fn):
+        if not self._has_viewbox_for_transform():
+            return Affine2D.identity()
+        return map_fn(
+            self.svg.view_box(),
+            self.ufo.info.ascender,
+            self.ufo.info.descender,
+            self.ufo_glyph.width,
+            self.user_transform,
+        )
+
+    def transform_for_otsvg_space(self):
+        return self._transform(map_viewbox_to_otsvg_space)
+
+    def transform_for_font_space(self):
+        return self._transform(map_viewbox_to_font_space)
 
     @property
     def ufo_glyph(self) -> UfoGlyph:

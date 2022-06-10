@@ -35,9 +35,7 @@ def main(argv):
         combined_parts.reuse_tolerance = util.only(
             {p.reuse_tolerance for p in individual_parts}
         )
-        combined_parts.view_box =  util.only(
-            {p.view_box for p in individual_parts}
-        )
+        combined_parts.view_box = util.only({p.view_box for p in individual_parts})
 
     for parts in individual_parts:
         combined_parts.add(parts)

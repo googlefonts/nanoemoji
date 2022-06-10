@@ -14,7 +14,7 @@
     <mtx name=".notdef" width="100" lsb="5"/>
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="3"/>
-    <mtx name="e000.0" width="100" lsb="19"/>
+    <mtx name="e000.0" width="100" lsb="18"/>
     <mtx name="e000.1" width="100" lsb="69"/>
   </hmtx>
 
@@ -58,51 +58,51 @@
     <TTGlyph name=".space"/><!-- contains no outline data -->
 
     <TTGlyph name="e000" xMin="3" yMin="3" xMax="97" yMax="97">
-      <component glyphName="e000.0" x="100" y="100" scale="-1.0" flags="0x4"/>
       <component glyphName="e000.0" x="0" y="0" flags="0x204"/>
+      <component glyphName="e000.0" x="100" y="100" scale="-1.0" flags="0x4"/>
       <component glyphName="e000.1" x="0" y="0" flags="0x4"/>
       <component glyphName="e000.1" x="100" y="100" scale="-1.0" flags="0x4"/>
     </TTGlyph>
 
-    <TTGlyph name="e000.0" xMin="19" yMin="3" xMax="82" yMax="31">
+    <TTGlyph name="e000.0" xMin="18" yMin="69" xMax="82" yMax="97">
       <contour>
-        <pt x="51" y="31" on="1"/>
-        <pt x="44" y="31" on="0"/>
-        <pt x="34" y="27" on="0"/>
-        <pt x="27" y="21" on="0"/>
-        <pt x="22" y="14" on="0"/>
-        <pt x="20" y="10" on="0"/>
-        <pt x="20" y="10" on="1"/>
-        <pt x="19" y="8" on="0"/>
-        <pt x="19" y="6" on="0"/>
-        <pt x="20" y="4" on="1"/>
-        <pt x="21" y="3" on="0"/>
-        <pt x="23" y="3" on="1"/>
-        <pt x="24" y="4" on="0"/>
-        <pt x="25" y="5" on="1"/>
-        <pt x="26" y="7" on="0"/>
-        <pt x="29" y="12" on="0"/>
-        <pt x="35" y="17" on="0"/>
-        <pt x="44" y="20" on="0"/>
-        <pt x="51" y="20" on="1"/>
-        <pt x="57" y="20" on="0"/>
-        <pt x="65" y="17" on="0"/>
-        <pt x="71" y="12" on="0"/>
-        <pt x="75" y="7" on="0"/>
-        <pt x="76" y="6" on="1"/>
-        <pt x="76" y="4" on="0"/>
-        <pt x="79" y="3" on="0"/>
-        <pt x="81" y="4" on="1"/>
-        <pt x="81" y="4" on="0"/>
-        <pt x="81" y="4" on="1"/>
-        <pt x="82" y="5" on="0"/>
-        <pt x="82" y="9" on="0"/>
-        <pt x="81" y="10" on="1"/>
-        <pt x="81" y="10" on="0"/>
-        <pt x="79" y="14" on="0"/>
-        <pt x="74" y="21" on="0"/>
-        <pt x="67" y="27" on="0"/>
-        <pt x="57" y="31" on="0"/>
+        <pt x="50" y="69" on="1"/>
+        <pt x="56" y="69" on="0"/>
+        <pt x="66" y="73" on="0"/>
+        <pt x="74" y="79" on="0"/>
+        <pt x="78" y="86" on="0"/>
+        <pt x="81" y="90" on="0"/>
+        <pt x="81" y="90" on="1"/>
+        <pt x="81" y="92" on="0"/>
+        <pt x="82" y="94" on="0"/>
+        <pt x="81" y="96" on="1"/>
+        <pt x="79" y="97" on="0"/>
+        <pt x="77" y="97" on="1"/>
+        <pt x="76" y="96" on="0"/>
+        <pt x="75" y="95" on="1"/>
+        <pt x="75" y="93" on="0"/>
+        <pt x="71" y="88" on="0"/>
+        <pt x="65" y="83" on="0"/>
+        <pt x="56" y="80" on="0"/>
+        <pt x="50" y="80" on="1"/>
+        <pt x="44" y="80" on="0"/>
+        <pt x="35" y="83" on="0"/>
+        <pt x="29" y="88" on="0"/>
+        <pt x="25" y="93" on="0"/>
+        <pt x="25" y="94" on="1"/>
+        <pt x="24" y="96" on="0"/>
+        <pt x="21" y="97" on="0"/>
+        <pt x="20" y="96" on="1"/>
+        <pt x="19" y="96" on="0"/>
+        <pt x="19" y="96" on="1"/>
+        <pt x="18" y="95" on="0"/>
+        <pt x="19" y="91" on="0"/>
+        <pt x="19" y="90" on="1"/>
+        <pt x="19" y="90" on="0"/>
+        <pt x="22" y="86" on="0"/>
+        <pt x="26" y="79" on="0"/>
+        <pt x="33" y="73" on="0"/>
+        <pt x="43" y="69" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>

@@ -192,26 +192,6 @@ def test_reuse_with_inconsistent_square_viewbox():
     }, "There should be 2 (not 4) shapes after scaled merge. r2 should use the big viewbox."
 
 
-def test_reuse_with_inconsistent_width_viewbox():
-    # square in varied width vbox
-    # https://codepen.io/rs42/pen/xxPBrRJ?editors=1100
-    svgs = (
-        "square_vbox_narrow.svg",
-        "square_vbox_square.svg",
-        "square_vbox_wide.svg",
-    )
-    svgs = tuple(SVG.parse(locate_test_file(svg)) for svg in svgs)
-
-    parts = ReusableParts(view_box=Rect(0, 0, 10, 10))
-    for svg in svgs:
-        parts.add(svg)
-
-    # each square has the exact same box, did we find reuse?
-    parts.compute_donors()
-    assert len(parts.shape_sets) == 1, parts.to_json()
-    assert only(parts._donor_cache.values()) is not None, "Expected reuse"
-
-
 def test_arcs_become_cubics():
     parts = _from_svg(
         """

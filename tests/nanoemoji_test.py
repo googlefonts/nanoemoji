@@ -68,10 +68,10 @@ def test_build_static_font_default_config_cli_svg_list():
 
 def _build_and_check_ttx(config_overrides, svgs, expected_ttx):
     config_file = mkdtemp() / "config.toml"
-    font_config, parts, glyph_inputs = color_font_config(
+    font_config, glyph_inputs = color_font_config(
         config_overrides, svgs, tmp_dir=config_file.parent
     )
-    del parts, glyph_inputs
+    del glyph_inputs
     config.write(config_file, font_config)
     print(config_file, font_config)
 

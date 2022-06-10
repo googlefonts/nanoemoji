@@ -31,7 +31,6 @@ from nanoemoji.paint import (
     is_transform,
     _decompose_uniform_transform,
 )
-from nanoemoji.parts import ReusableParts
 from nanoemoji.svg import (
     _svg_matrix,
     _apply_solid_paint,
@@ -183,12 +182,11 @@ def _apply_gradient_ot_paint(
 def _colr_v0_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    shape_view_box_callback: ViewboxCallback,
-    dest_view_box_callback: ViewboxCallback,
+    view_box_callback: ViewboxCallback,
     glyph_name: str,
 ) -> etree.Element:
     view_box, font_to_vbox = _view_box_and_transform(
-        ttfont, shape_view_box_callback, dest_view_box_callback, glyph_name
+        ttfont, view_box_callback, glyph_name
     )
     svg_root = _svg_root(view_box)
     for glyph_layer in ttfont["COLR"].ColorLayers[glyph_name]:
@@ -325,41 +323,28 @@ def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
 
 
 def _view_box_and_transform(
-    ttfont: ttLib.TTFont,
-    shape_view_box_callback: ViewboxCallback,
-    dest_view_box_callback: ViewboxCallback,
-    glyph_name: str,
+    ttfont: ttLib.TTFont, view_box_callback: ViewboxCallback, glyph_name: str
 ) -> Tuple[Rect, Affine2D]:
 
-    dest_view_box = dest_view_box_callback(glyph_name)
-    assert dest_view_box.w > 0, f"0-width viewBox for {glyph_name}?!"
+    view_box = view_box_callback(glyph_name)
+    assert view_box.w > 0, f"0-width viewBox for {glyph_name}?!"
 
-    parts_view_box = shape_view_box_callback(glyph_name)
+    region = glyph_region(ttfont, glyph_name)
+    assert region.w > 0, f"0-width region for {glyph_name}?!"
 
-    width = ttfont["hmtx"][glyph_name][0]
-    if width == 0:
-        width = ttfont["glyf"][glyph_name].xMax
-    # TODO we lost user transform?
-    svg_units_to_font_units = color_glyph.map_viewbox_to_font_space(
-        parts_view_box,
-        ttfont["OS/2"].sTypoAscender,
-        ttfont["OS/2"].sTypoDescender,
-        width,
-        Affine2D.identity(),
-    )
+    font_to_vbox = map_font_space_to_viewbox(view_box, region)
 
-    return (dest_view_box, svg_units_to_font_units.inverse())
+    return (view_box, font_to_vbox)
 
 
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont,
     glyph_set: ttLib.ttFont._TTGlyphSet,
-    shape_view_box_callback: ViewboxCallback,
     view_box_callback: ViewboxCallback,
     glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
     view_box, font_to_vbox = _view_box_and_transform(
-        ttfont, shape_view_box_callback, view_box_callback, glyph.BaseGlyph
+        ttfont, view_box_callback, glyph.BaseGlyph
     )
     svg_root = _svg_root(view_box)
     svg_defs = svg_root[0]
@@ -373,7 +358,7 @@ def _colr_v1_glyph_to_svg(
 
 
 def _new_reuse_cache() -> ReuseCache:
-    return ReuseCache(GlyphReuseCache(ReusableParts(reuse_tolerance=0.1)))
+    return ReuseCache(0.1, GlyphReuseCache(0.1))
 
 
 def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
@@ -389,21 +374,13 @@ def colr_glyphs(font: ttLib.TTFont) -> Iterable[int]:
 
 
 def _colr_v0_to_svgs(
-    shape_view_box_callback: ViewboxCallback,
-    dest_view_box_callback: ViewboxCallback,
-    ttfont: ttLib.TTFont,
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
 ) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g: SVG.fromstring(
             etree.tostring(
-                _colr_v0_glyph_to_svg(
-                    ttfont,
-                    glyph_set,
-                    shape_view_box_callback,
-                    dest_view_box_callback,
-                    g,
-                )
+                _colr_v0_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
             )
         )
         for g in ttfont["COLR"].ColorLayers
@@ -411,21 +388,13 @@ def _colr_v0_to_svgs(
 
 
 def _colr_v1_to_svgs(
-    shape_view_box_callback: ViewboxCallback,
-    dest_view_box_callback: ViewboxCallback,
-    ttfont: ttLib.TTFont,
+    view_box_callback: ViewboxCallback, ttfont: ttLib.TTFont
 ) -> Dict[str, SVG]:
     glyph_set = ttfont.getGlyphSet()
     return {
         g.BaseGlyph: SVG.fromstring(
             etree.tostring(
-                _colr_v1_glyph_to_svg(
-                    ttfont,
-                    glyph_set,
-                    shape_view_box_callback,
-                    dest_view_box_callback,
-                    g,
-                )
+                _colr_v1_glyph_to_svg(ttfont, glyph_set, view_box_callback, g)
             )
         )
         for g in ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord
@@ -433,24 +402,18 @@ def _colr_v1_to_svgs(
 
 
 def colr_to_svg(
-    shape_view_box_callback: ViewboxCallback,
-    dest_view_box_callback: ViewboxCallback,
+    view_box_callback: ViewboxCallback,
     ttfont: ttLib.TTFont,
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
-    """
-    Creates a glyph name => SVG dict from a COLR table.
-
-    shape_view_box_callback: function to get the space in which shapes for a glyph were defined, such as the parts view box.
-    dest_view_box_callback: function to get the view box of the destination
-    """
+    """For testing only, don't use for real!"""
     assert len(ttfont["CPAL"].palettes) == 1, "We assume one palette"
 
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
-        svgs = _colr_v0_to_svgs(shape_view_box_callback, dest_view_box_callback, ttfont)
+        svgs = _colr_v0_to_svgs(view_box_callback, ttfont)
     elif colr_version == 1:
-        svgs = _colr_v1_to_svgs(shape_view_box_callback, dest_view_box_callback, ttfont)
+        svgs = _colr_v1_to_svgs(view_box_callback, ttfont)
     else:
         raise NotImplementedError(colr_version)
 

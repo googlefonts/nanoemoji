@@ -382,7 +382,10 @@ def write_picosvg_builds(
             part_dest,
             "write_part_file",
             dest,
-            variables={"reuse_tolerance": font_config.reuse_tolerance, "upem": font_config.upem},
+            variables={
+                "reuse_tolerance": font_config.reuse_tolerance,
+                "upem": font_config.upem,
+            },
         )
 
         picosvgs.add(dest)

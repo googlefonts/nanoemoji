@@ -26,15 +26,12 @@ from nanoemoji import config
 from nanoemoji import features
 from nanoemoji.glyph import glyph_name
 from nanoemoji import write_font
-from nanoemoji.parts import ReusableParts
 from nanoemoji.png import PNG
 from pathlib import Path
-from picosvg.geometric_types import Rect
 from picosvg.svg import SVG
 import pytest
 import shutil
 import tempfile
-from typing import Iterable, List, Tuple
 
 
 def test_data_dir() -> Path:
@@ -75,7 +72,7 @@ def color_font_config(
     svgs,
     tmp_dir=None,
     codepoint_fn=lambda svg_file, idx: (0xE000 + idx,),
-) -> Tuple[config.FontConfig, ReusableParts, List[write_font.InputGlyph]]:
+):
     if tmp_dir is None:
         tmp_dir = Path(tempfile.gettempdir())
     svgs = tuple(locate_test_file(s) for s in svgs)
@@ -121,41 +118,22 @@ def color_font_config(
             for svg in svgs
         ]
 
-    glyph_inputs = [
-        write_font.InputGlyph(
-            svg_file,
-            bitmap_file,
-            codepoint_fn(svg_file, idx),
-            glyph_name(codepoint_fn(svg_file, idx)),
-            svg,
-            bitmap,
-        )
-        for idx, ((svg_file, svg), (bitmap_file, bitmap)) in enumerate(
-            zip(svg_inputs, bitmap_inputs)
-        )
-    ]
-
-    parts = reusable_parts(font_config.upem, font_config.reuse_tolerance, glyph_inputs)
-
-    return (font_config, parts, glyph_inputs)
-
-
-def reusable_parts(
-    upem: int, reuse_tolerance: float, glyph_inputs: Iterable[write_font.InputGlyph]
-) -> ReusableParts:
-    glyph_inputs = [g for g in glyph_inputs if g.svg]
-    parts = ReusableParts(
-        reuse_tolerance=reuse_tolerance,
-        view_box=Rect(0, 0, upem, upem),
+    return (
+        font_config,
+        [
+            write_font.InputGlyph(
+                svg_file,
+                bitmap_file,
+                codepoint_fn(svg_file, idx),
+                glyph_name(codepoint_fn(svg_file, idx)),
+                svg,
+                bitmap,
+            )
+            for idx, ((svg_file, svg), (bitmap_file, bitmap)) in enumerate(
+                zip(svg_inputs, bitmap_inputs)
+            )
+        ],
     )
-
-    for glyph_input in glyph_inputs:
-        parts.add(glyph_input.svg)
-
-    # TEMPORARY
-    print(parts.to_json())
-
-    return parts
 
 
 def reload_font(ttfont):
@@ -164,8 +142,8 @@ def reload_font(ttfont):
     return ttLib.TTFont(tmp)
 
 
-def _save_ttx_in_tmp(filename, ttx_content):
-    tmp_file = os.path.join(tempfile.gettempdir(), filename)
+def _save_actual_ttx(expected_ttx, ttx_content):
+    tmp_file = os.path.join(tempfile.gettempdir(), expected_ttx)
     with open(tmp_file, "w") as f:
         f.write(ttx_content)
     return tmp_file
@@ -201,26 +179,6 @@ def _strip_inline_bitmaps(ttx_content):
     )
 
 
-def _ttx(ttfont: ttLib.TTFont, include_tables=None, skip_tables=()) -> str:
-    str_io = io.StringIO()
-    # Timestamps inside files #@$@#%@#
-    # force consistent Unix newlines (the expected test files use \n too)
-    ttfont.saveXML(
-        str_io,
-        newlinestr="\n",
-        tables=include_tables,
-        skipTables=skip_tables,
-        bitmapGlyphDataFormat="extfile",
-    )
-
-    # Elide ttFont attributes because ttLibVersion may change
-    ttx = re.sub(r'\s+ttLibVersion="[^"]+"', "", str_io.getvalue())
-
-    ttx = _strip_inline_bitmaps(ttx)
-
-    return ttx
-
-
 def assert_expected_ttx(
     svgs,
     ttfont,
@@ -228,23 +186,33 @@ def assert_expected_ttx(
     include_tables=None,
     skip_tables=("head", "hhea", "maxp", "name", "post", "OS/2"),
 ):
-    actual = _ttx(ttfont, include_tables, skip_tables)
+    actual_ttx = io.StringIO()
+    # Timestamps inside files #@$@#%@#
+    # force consistent Unix newlines (the expected test files use \n too)
+    ttfont.saveXML(
+        actual_ttx,
+        newlinestr="\n",
+        tables=include_tables,
+        skipTables=skip_tables,
+        bitmapGlyphDataFormat="extfile",
+    )
+
+    # Elide ttFont attributes because ttLibVersion may change
+    actual = re.sub(r'\s+ttLibVersion="[^"]+"', "", actual_ttx.getvalue())
+
+    actual = _strip_inline_bitmaps(actual)
 
     expected_location = locate_test_file(expected_ttx)
     if os.path.isfile(expected_location):
         with open(expected_location) as f:
             expected = f.read()
     else:
-        tmp_file = _save_ttx_in_tmp(expected_ttx, actual)
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
         raise FileNotFoundError(
             f"Missing expected in {expected_location}. Actual in {tmp_file}"
         )
 
     if actual != expected:
-        full_ttx_file = _save_ttx_in_tmp(
-            expected_ttx.replace(".ttx", "-complete.ttx"), _ttx(ttfont)
-        )
-
         for line in difflib.unified_diff(
             expected.splitlines(keepends=True),
             actual.splitlines(keepends=True),
@@ -253,11 +221,8 @@ def assert_expected_ttx(
         ):
             sys.stderr.write(line)
         print(f"SVGS: {svgs}")
-        print(f"Unabriged ttx in {full_ttx_file}")
-        tmp_file = _save_ttx_in_tmp(expected_ttx, actual)
-        pytest.fail(
-            f"{tmp_file} != {expected_location.relative_to(test_data_dir().parent)}"
-        )
+        tmp_file = _save_actual_ttx(expected_ttx, actual)
+        pytest.fail(f"{tmp_file} != {expected_ttx}")
 
 
 # Copied from picosvg
@@ -290,7 +255,7 @@ def svg_diff(actual_svg: SVG, expected_svg: SVG):
     drop_whitespace(expected_svg)
     print(f"A: {pretty_print(actual_svg.toetree())}")
     print(f"E: {pretty_print(expected_svg.toetree())}")
-    assert pretty_print(actual_svg.toetree()) == pretty_print(expected_svg.toetree())
+    assert actual_svg.tostring() == expected_svg.tostring()
 
 
 def run(cmd):
@@ -358,9 +323,3 @@ def bool_flag(name: str, value: bool) -> str:
         result += "no"
     result += name
     return result
-
-
-def ttx(font: ttLib.TTFont) -> str:
-    raw_out = io.BytesIO()
-    font.saveXML(raw_out)
-    return raw_out.getvalue().decode("utf-8")

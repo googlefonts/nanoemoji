@@ -114,7 +114,7 @@ def test_reorder_actual_font():
         svgs = tuple(
             test_helper.locate_test_file(f"narrow_rects/{c}.svg") for c in "abc"
         )
-        config, parts, glyph_inputs = test_helper.color_font_config(
+        config, glyph_inputs = test_helper.color_font_config(
             {
                 "upem": 24,
                 "fea_file": fea_file,
@@ -123,7 +123,7 @@ def test_reorder_actual_font():
             tmp_dir=Path(temp_dir),
             codepoint_fn=lambda svg_file, _: (ord(svg_file.stem),),
         )
-        _, font = write_font._generate_color_font(config, parts, glyph_inputs)
+        _, font = write_font._generate_color_font(config, glyph_inputs)
 
         # Initial state
         assert _pair_pos(font) == (("a", "b", -12), ("b", "c", -16))

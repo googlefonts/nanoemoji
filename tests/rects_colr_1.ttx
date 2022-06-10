@@ -14,7 +14,7 @@
     <mtx name=".notdef" width="100" lsb="5"/>
     <mtx name=".space" width="100" lsb="0"/>
     <mtx name="e000" width="100" lsb="0"/>
-    <mtx name="e000.0" width="100" lsb="40"/>
+    <mtx name="e000.0" width="100" lsb="20"/>
     <mtx name="e001" width="100" lsb="0"/>
   </hmtx>
 
@@ -61,12 +61,12 @@
 
     <TTGlyph name="e000"/><!-- contains no outline data -->
 
-    <TTGlyph name="e000.0" xMin="40" yMin="40" xMax="100" yMax="60">
+    <TTGlyph name="e000.0" xMin="20" yMin="60" xMax="80" yMax="80">
       <contour>
-        <pt x="40" y="60" on="1"/>
-        <pt x="40" y="40" on="1"/>
-        <pt x="100" y="40" on="1"/>
-        <pt x="100" y="60" on="1"/>
+        <pt x="20" y="80" on="1"/>
+        <pt x="20" y="60" on="1"/>
+        <pt x="80" y="60" on="1"/>
+        <pt x="80" y="80" on="1"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -98,41 +98,41 @@
     </BaseGlyphList>
     <LayerList>
       <!-- LayerCount=4 -->
-      <Paint index="0" Format="14"><!-- PaintTranslate -->
+      <Paint index="0" Format="10"><!-- PaintGlyph -->
+        <Paint Format="2"><!-- PaintSolid -->
+          <PaletteIndex value="0"/>
+          <Alpha value="1.0"/>
+        </Paint>
+        <Glyph value="e000.0"/>
+      </Paint>
+      <Paint index="1" Format="14"><!-- PaintTranslate -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
             <PaletteIndex value="0"/>
-            <Alpha value="1.0"/>
+            <Alpha value="0.8"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
-        <dx value="-20"/>
-        <dy value="20"/>
+        <dx value="20"/>
+        <dy value="-20"/>
       </Paint>
-      <Paint index="1" Format="10"><!-- PaintGlyph -->
+      <Paint index="2" Format="10"><!-- PaintGlyph -->
         <Paint Format="2"><!-- PaintSolid -->
-          <PaletteIndex value="0"/>
-          <Alpha value="0.8"/>
+          <PaletteIndex value="2"/>
+          <Alpha value="1.0"/>
         </Paint>
         <Glyph value="e000.0"/>
       </Paint>
-      <Paint index="2" Format="14"><!-- PaintTranslate -->
+      <Paint index="3" Format="14"><!-- PaintTranslate -->
         <Paint Format="10"><!-- PaintGlyph -->
           <Paint Format="2"><!-- PaintSolid -->
-            <PaletteIndex value="2"/>
-            <Alpha value="1.0"/>
+            <PaletteIndex value="1"/>
+            <Alpha value="0.8"/>
           </Paint>
           <Glyph value="e000.0"/>
         </Paint>
-        <dx value="-20"/>
-        <dy value="20"/>
-      </Paint>
-      <Paint index="3" Format="10"><!-- PaintGlyph -->
-        <Paint Format="2"><!-- PaintSolid -->
-          <PaletteIndex value="1"/>
-          <Alpha value="0.8"/>
-        </Paint>
-        <Glyph value="e000.0"/>
+        <dx value="20"/>
+        <dy value="-20"/>
       </Paint>
     </LayerList>
     <ClipList Format="1">

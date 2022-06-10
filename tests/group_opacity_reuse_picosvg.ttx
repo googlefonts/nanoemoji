@@ -60,14 +60,11 @@
   <SVG>
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
-  <defs>
-    <path d="M40,30 L100,30 L100,50 L40,50 L40,30 Z" id="e000.0"/>
-  </defs>
   <g id="glyph2" transform="matrix(0.781 0 0 0.781 0 -100)">
-    <use xlink:href="#e000.0" transform="matrix(0.333 0 0 2.5 46.667 -65)"/>
+    <path d="M60,10 L80,10 L80,60 L60,60 L60,10 Z" id="e000.0"/>
     <g opacity="0.6">
-      <path d="M20,20 L120,20 L120,40 L20,40 L20,20 Z" fill="red"/>
-      <use xlink:href="#e000.0" fill="blue"/>
+      <use xlink:href="#e000.0" x="-280" y="16" transform="matrix(5 0 0 0.4 1120 9.6)" fill="red"/>
+      <use xlink:href="#e000.0" x="-140" y="26" transform="matrix(3 0 0 0.4 280 15.6)" fill="blue"/>
     </g>
   </g>
 </svg>

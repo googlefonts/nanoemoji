@@ -26,7 +26,6 @@ from nanoemoji.colors import Color
 from nanoemoji.fixed import (
     int16_safe,
     f2dot14_safe,
-    fixed_safe,
     MIN_INT16,
     MAX_INT16,
     MIN_UINT16,
@@ -762,38 +761,14 @@ def is_gradient(paint_or_format) -> bool:
     )
 
 
-def _int16_part(v) -> int:
-    if v < 0:
-        return max(v, MIN_INT16)
-    else:
-        return min(v, MAX_INT16)
-
-
 def transformed(transform: Affine2D, target: Paint) -> Paint:
-    if transform.almost_equals(Affine2D.identity()):
+    if transform == Affine2D.identity():
         return target
 
     sx, b, c, sy, dx, dy = transform
 
-    # Large translations (dx=50k) can occur due to use of big shapes
-    # to produce small shapes. Make a modest effort to work around.
-    if fixed_safe(sx, b, c, sy) and not fixed_safe(dx, dy):
-        dxt = _int16_part(dx)
-        dyt = _int16_part(dy)
-        dx -= dxt
-        dy -= dyt
-        if fixed_safe(dx, dy):
-            return PaintTranslate(
-                paint=transformed(Affine2D(sx, b, c, sy, dx, dy), target),
-                dx=dxt,
-                dy=dyt,
-            )
-        raise ValueError(f"Transform values are outlandishly large :( {transform}")
-
     # Int16 translation?
-    if (dx, dy) != (0, 0) and Affine2D.identity().translate(dx, dy).almost_equals(
-        transform
-    ):
+    if (dx, dy) != (0, 0) and Affine2D.identity().translate(dx, dy) == transform:
         if int16_safe(dx, dy):
             return PaintTranslate(paint=target, dx=dx, dy=dy)
 
