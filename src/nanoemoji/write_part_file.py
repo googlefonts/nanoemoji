@@ -28,6 +28,7 @@ from picosvg.svg import SVG
 FLAGS = flags.FLAGS
 
 
+flags.DEFINE_integer("wh", None, "The width and height to use.")
 flags.DEFINE_bool("compute_donors", False, "Whether to compute donors.")
 
 
@@ -35,7 +36,7 @@ def main(argv):
     if len(argv) != 2:
         raise ValueError("Specify exactly one input")
 
-    view_box = Rect(0, 0, FLAGS.upem, FLAGS.upem)
+    view_box = Rect(0, 0, FLAGS.wh, FLAGS.wh)
     parts = ReusableParts(view_box=view_box, reuse_tolerance=FLAGS.reuse_tolerance)
 
     svg = SVG.parse(Path(argv[1]))
@@ -49,6 +50,6 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("upem")
+    flags.mark_flag_as_required("wh")
     flags.mark_flag_as_required("reuse_tolerance")
     app.run(main)

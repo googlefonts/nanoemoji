@@ -261,7 +261,7 @@ def write_preamble(nw):
     module_rule(
         nw,
         "write_part_file",
-        f"--reuse_tolerance $reuse_tolerance --upem $upem --output_file $out $in",
+        f"--reuse_tolerance $reuse_tolerance --wh $wh --output_file $out $in",
     )
     nw.newline()
 
@@ -384,7 +384,7 @@ def write_picosvg_builds(
             dest,
             variables={
                 "reuse_tolerance": font_config.reuse_tolerance,
-                "upem": font_config.upem,
+                "wh": font_config.ascender - font_config.descender,
             },
         )
 
