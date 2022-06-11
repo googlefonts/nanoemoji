@@ -24,6 +24,7 @@ import dataclasses
 from functools import lru_cache, partial, reduce
 import json
 from nanoemoji.config import FontConfig
+from nanoemoji.color_glyph import scale_viewbox_to_font_metrics
 from pathlib import Path
 from picosvg.geometric_types import Rect
 from picosvg.svg import SVG
@@ -149,7 +150,10 @@ class ReusableParts:
             )
         elif isinstance(source, SVG):
             source.checkpicosvg()
-            transform = Affine2D.rect_to_rect(source.view_box(), self.view_box)
+            source_box = source.view_box()
+            transform = scale_viewbox_to_font_metrics(
+                self.view_box, source_box.h, 0, source_box.w
+            )
             shapes = tuple(s.as_path() for s in source.shapes())
         else:
             raise ValueError(f"Unknown part source: {type(source)}")

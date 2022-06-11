@@ -227,3 +227,30 @@ def test_scaled_merge_arcs_to_cubics():
         "MCCCCZ",
         "MCCCCZ",
     ), f"Path damaged\nnorm {norm}\npaths {paths}"
+
+
+def _start_at_origin(path):
+    cmd, args = next(iter(path))
+    assert cmd == "M"
+    x, y = args
+    return path.move(-x, -y)
+
+
+# SVGs with varied width that contains squares should push squares
+# into the part store, not get mangled into rectangles.
+def test_squares_stay_squares():
+    parts = ReusableParts(view_box=Rect(0, 0, 10, 10))
+
+    parts.add(SVG.parse(locate_test_file("square_vbox_narrow.svg")))
+    parts.add(SVG.parse(locate_test_file("square_vbox_square.svg")))
+    parts.add(SVG.parse(locate_test_file("square_vbox_narrow.svg")))
+
+    # Every square should have normalized the same
+    assert len(parts.shape_sets) == 1, parts.to_json()
+
+    paths = only(parts.shape_sets.values())
+
+    paths = [_start_at_origin(SVGPath(d=p)).relative(inplace=True) for p in paths]
+    assert {p.d for p in paths} == {
+        "M0,0 l3,0 l0,3 l-3,0 l0,-3 z"
+    }, "The square should remain 3x3; converted to relative and starting at 0,0 they should be identical"

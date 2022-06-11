@@ -49,7 +49,7 @@ from ufoLib2.objects.glyph import Glyph as UfoGlyph
 import pathops
 
 
-def _scale_viewbox_to_font_metrics(
+def scale_viewbox_to_font_metrics(
     view_box: Rect, ascender: int, descender: int, width: int
 ):
     assert descender <= 0
@@ -71,7 +71,7 @@ def map_viewbox_to_font_space(
 ) -> Affine2D:
     return Affine2D.compose_ltr(
         [
-            _scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
+            scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
             # flip y axis and shift so things are in the right place
             Affine2D(1, 0, 0, -1, 0, ascender),
             user_transform,
@@ -85,7 +85,7 @@ def map_viewbox_to_otsvg_space(
 ) -> Affine2D:
     return Affine2D.compose_ltr(
         [
-            _scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
+            scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
             # shift things in the [+x,-y] quadrant where OT-SVG expects them
             Affine2D(1, 0, 0, 1, 0, -ascender),
             user_transform,
