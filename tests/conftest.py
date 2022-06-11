@@ -45,6 +45,6 @@ def _cleanup_temporary_dirs(request):
         cleanup_temp_dirs()
     else:
         print(
-            f"NOT cleaning up {len(active_temp_dirs())} temp dirs to ease troubleshooting"
+            f"NOT cleaning up {len(active_temp_dirs())} temp dirs ({active_temp_dirs()}) to ease troubleshooting"
         )
     forget_temp_dirs()

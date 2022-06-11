@@ -51,6 +51,7 @@ from nanoemoji.paint import (
     PaintGlyph,
     PaintSolid,
 )
+from nanoemoji.parts import ReusableParts
 from nanoemoji.png import PNG
 from nanoemoji.svg import make_svg_table
 from nanoemoji.svg_path import draw_svg_path
@@ -86,6 +87,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("config_file", None, "Config filename.")
 flags.DEFINE_string("glyphmap_file", None, "Glyphmap filename.")
+flags.DEFINE_string("part_file", None, "Reusable parts filename.")
 
 
 # A GlyphMapping plus an SVG, typically a picosvg, and/or a PNG
@@ -823,6 +825,10 @@ def main(argv):
         )
 
     inputs = list(_inputs(font_config, glyphmap.parse_csv(FLAGS.glyphmap_file)))
+
+    reusable_parts = ReusableParts()
+    if FLAGS.part_file:
+        reusable_parts = ReusableParts.loadjson(Path(FLAGS.part_file))
 
     if not inputs:
         sys.exit("Please provide at least one svg filename")

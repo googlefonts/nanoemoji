@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates a part file from 1 source, typically an svg file.
-"""
+"""Combines N part files to 1"""
 
 
 from absl import app
@@ -21,35 +20,31 @@ from absl import flags
 from nanoemoji.parts import ReusableParts
 from nanoemoji import util
 from pathlib import Path
-from picosvg.geometric_types import Rect
-from picosvg.svg import SVG
 
 
 FLAGS = flags.FLAGS
 
 
-flags.DEFINE_integer("wh", None, "The width and height to use.")
-flags.DEFINE_bool("compute_donors", False, "Whether to compute donors.")
-
-
 def main(argv):
-    if len(argv) != 2:
-        raise ValueError("Specify exactly one input")
+    input_files = util.expand_ninja_response_files(argv[1:])
 
-    view_box = Rect(0, 0, FLAGS.wh, FLAGS.wh)
-    parts = ReusableParts(view_box=view_box, reuse_tolerance=FLAGS.reuse_tolerance)
+    combined_parts = ReusableParts()
+    individual_parts = [ReusableParts.loadjson(Path(p)) for p in input_files]
+    if individual_parts:
+        combined_parts.version = util.only({p.version for p in individual_parts})
+        combined_parts.reuse_tolerance = util.only(
+            {p.reuse_tolerance for p in individual_parts}
+        )
+        combined_parts.view_box = util.only({p.view_box for p in individual_parts})
 
-    svg = SVG.parse(Path(argv[1]))
-    parts.add(svg)
+    for parts in individual_parts:
+        combined_parts.add(parts)
 
-    if FLAGS.compute_donors:
-        parts.compute_donors()
+    combined_parts.compute_donors()  # precompute for later use
 
     with util.file_printer(FLAGS.output_file) as print:
-        print(parts.to_json())
+        print(combined_parts.to_json())
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("wh")
-    flags.mark_flag_as_required("reuse_tolerance")
     app.run(main)

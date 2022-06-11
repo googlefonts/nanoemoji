@@ -65,6 +65,7 @@ flags.DEFINE_bool(
 class WriteFontInputs(NamedTuple):
     glyphmap_file: Path
     config_file: Path
+    part_file: Path
 
     @property
     def table_tag(self) -> str:
@@ -88,7 +89,11 @@ class WriteFontInputs(NamedTuple):
     @classmethod
     def for_tag(cls, table_tag: str) -> "WriteFontInputs":
         basename = table_tag.strip()
-        return cls(Path(basename + ".glyphmap"), Path(basename + ".toml"))
+        return cls(
+            Path(basename + ".glyphmap"),
+            Path(basename + ".toml"),
+            master_part_file_dest(),
+        )
 
 
 def _vector_color_table(font: ttLib.TTFont) -> str:
@@ -119,6 +124,14 @@ def picosvg_dir() -> Path:
 
 def picosvg_dest(input_svg: Path) -> Path:
     return picosvg_dir() / input_svg.name
+
+
+def part_file_dest(picosvg_file: Path) -> Path:
+    return picosvg_file.with_suffix(".parts.json")
+
+
+def master_part_file_dest() -> Path:
+    return Path("parts-merged.json")
 
 
 def bitmap_dir() -> Path:
@@ -163,13 +176,29 @@ def _write_preamble(nw: NinjaWriter):
     module_rule(
         nw,
         "write_font",
-        f"--glyphmap_file $glyphmap_file --config_file $config_file --output_file $out",
+        f"--config_file $config_file --glyphmap_file $glyphmap_file  --part_file $part_file --output_file $out",
     )
     nw.newline()
 
     nw.rule(
         f"picosvg",
         f"picosvg --output_file $out $in",
+    )
+    nw.newline()
+
+    module_rule(
+        nw,
+        "write_part_file",
+        f"--reuse_tolerance $reuse_tolerance --wh $wh --output_file $out $in",
+    )
+    nw.newline()
+
+    module_rule(
+        nw,
+        "write_combined_part_files",
+        f"--output_file $out  @$out.rsp",
+        rspfile="$out.rsp",
+        rspfile_content="$in",
     )
     nw.newline()
 
@@ -237,6 +266,30 @@ def _picosvgs(nw: NinjaWriter, svg_files: List[Path]) -> List[Path]:
     return picosvgs
 
 
+def _part_file(
+    nw: NinjaWriter, font_config: config.FontConfig, picosvg_files: List[Path]
+) -> Path:
+    part_files = [part_file_dest(p) for p in picosvg_files]
+    for picosvg_file, part_file in zip(picosvg_files, part_files):
+        nw.build(
+            part_file,
+            "write_part_file",
+            picosvg_file,
+            variables={
+                "reuse_tolerance": font_config.reuse_tolerance,
+                "wh": font_config.ascender - font_config.descender,
+            },
+        )
+
+    nw.build(
+        master_part_file_dest(),
+        "write_combined_part_files",
+        sorted(part_files),
+    )
+
+    return master_part_file_dest()
+
+
 def _generate_additional_color_table(
     nw: NinjaWriter,
     input_font: Path,
@@ -283,7 +336,10 @@ def _generate_additional_color_table(
 
 
 def _generate_svg_from_colr(
-    nw: NinjaWriter, input_font: Path, font: ttLib.TTFont
+    nw: NinjaWriter,
+    font_config: config.FontConfig,
+    input_font: Path,
+    font: ttLib.TTFont,
 ) -> Tuple[Path, List[Path]]:
     # generate svgs
     svg_files = [
@@ -294,6 +350,8 @@ def _generate_svg_from_colr(
 
     # create and merge an SVG table
     picosvgs = _picosvgs(nw, svg_files)
+    part_file = _part_file(nw, font_config, picosvgs)
+
     output_file = _generate_additional_color_table(
         nw, input_font, picosvgs + [input_font], "SVG ", input_font
     )
@@ -301,7 +359,10 @@ def _generate_svg_from_colr(
 
 
 def _generate_colr_from_svg(
-    nw: NinjaWriter, input_font: Path, font: ttLib.TTFont
+    nw: NinjaWriter,
+    font_config: config.FontConfig,
+    input_font: Path,
+    font: ttLib.TTFont,
 ) -> Tuple[Path, List[Path]]:
     # extract the svgs
     svg_files = [
@@ -312,6 +373,8 @@ def _generate_colr_from_svg(
 
     # create and merge a COLR table
     picosvgs = _picosvgs(nw, svg_files)
+    part_file = _part_file(nw, font_config, picosvgs)
+
     output_file = _generate_additional_color_table(
         nw, input_font, picosvgs + [input_font], "COLR", input_font
     )
@@ -371,7 +434,8 @@ def _run(argv):
     input_file = Path(argv[1]).resolve()  # we need a non-relative path
     assert input_file.is_file()
     font = ttLib.TTFont(input_file)
-    final_output = Path(config.load().output_file)
+    font_config = config.load()
+    final_output = Path(font_config.output_file)
     assert (
         input_file.resolve() != (build_dir() / final_output).resolve()
     ), "In == Out is bad"
@@ -391,9 +455,13 @@ def _run(argv):
 
             # generate the missing vector table
             if color_table == "COLR":
-                wip_file, picosvg_files = _generate_svg_from_colr(nw, wip_file, font)
+                wip_file, picosvg_files = _generate_svg_from_colr(
+                    nw, font_config, wip_file, font
+                )
             else:
-                wip_file, picosvg_files = _generate_colr_from_svg(nw, wip_file, font)
+                wip_file, picosvg_files = _generate_colr_from_svg(
+                    nw, font_config, wip_file, font
+                )
 
             if FLAGS.bitmaps:
                 wip_file = _generate_cbdt(nw, input_file, font, wip_file, picosvg_files)
