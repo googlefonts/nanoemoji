@@ -472,23 +472,6 @@ class ColorGlyph(NamedTuple):
             )
         return view_box is not None
 
-    def _transform(self, map_fn):
-        if not self._has_viewbox_for_transform():
-            return Affine2D.identity()
-        return map_fn(
-            self.svg.view_box(),
-            self.ufo.info.ascender,
-            self.ufo.info.descender,
-            self.ufo_glyph.width,
-            self.user_transform,
-        )
-
-    def transform_for_otsvg_space(self):
-        return self._transform(map_viewbox_to_otsvg_space)
-
-    def transform_for_font_space(self):
-        return self._transform(map_viewbox_to_font_space)
-
     @property
     def ufo_glyph(self) -> UfoGlyph:
         return self.ufo[self.ufo_glyph_name]

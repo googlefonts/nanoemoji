@@ -254,3 +254,18 @@ def test_squares_stay_squares():
     assert {p.d for p in paths} == {
         "M0,0 l3,0 l0,3 l-3,0 l0,-3 z"
     }, "The square should remain 3x3; converted to relative and starting at 0,0 they should be identical"
+
+
+def test_scaled_squares_stay_squares():
+    parts = ReusableParts(view_box=Rect(0, 0, 100, 100))
+
+    parts.add(SVG.parse(locate_test_file("square_vbox_narrow.svg")))
+    parts.add(SVG.parse(locate_test_file("square_vbox_square.svg")))
+    parts.add(SVG.parse(locate_test_file("square_vbox_narrow.svg")))
+
+    paths = only(parts.shape_sets.values())
+
+    paths = [_start_at_origin(SVGPath(d=p)).relative(inplace=True) for p in paths]
+    assert {p.d for p in paths} == {
+        "M0,0 l30,0 l0,30 l-30,0 l0,-30 z"
+    }, "The square should be 30x30"

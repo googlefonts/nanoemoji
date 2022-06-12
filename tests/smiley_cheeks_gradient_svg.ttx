@@ -61,7 +61,7 @@
     <svgDoc endGlyphID="2" startGlyphID="2">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-    <path d="M44.75,69.83 A17.5 17.5 0 1 1 9.75,69.83 A17.5 17.5 0 1 1 44.75,69.83 Z" id="e000.0" fill="url(#g1)"/>
+    <path d="M44.75,69.83 C44.75,79.495 36.915,87.33 27.25,87.33 C17.585,87.33 9.75,79.495 9.75,69.83 C9.75,60.165 17.585,52.33 27.25,52.33 C36.915,52.33 44.75,60.165 44.75,69.83 Z" id="e000.0" fill="url(#g1)"/>
     <radialGradient id="g1" cx="27.251" cy="73.507" r="19.038" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1 0 0 0.95 0 0)">
       <stop offset="0" stop-color="#ED7770" stop-opacity="0.8"/>
       <stop offset="0.9" stop-color="#ED7770" stop-opacity="0"/>

@@ -16,16 +16,16 @@
     <svgDoc endGlyphID="6" startGlyphID="4">
       <![CDATA[<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
   <defs>
-    <path d="M0,0 L64,0 L64,64 L0,64 L0,0 Z" id="g_23_20e3.0"/>
+    <path d="M600,600 L1200,600 L1200,1200 L600,1200 L600,600 Z" id="g_1f170.0"/>
   </defs>
-  <g id="glyph4" transform="matrix(9.375 0 0 9.375 37.5 -950)">
-    <use xlink:href="#g_23_20e3.0" x="32" y="32" fill="red"/>
+  <g id="glyph4" transform="translate(37.5, -950)">
+    <use xlink:href="#g_1f170.0" fill="red" x="-300" y="-300"/>
   </g>
-  <g id="glyph5" transform="matrix(9.375 0 0 9.375 37.5 -950)">
-    <use xlink:href="#g_23_20e3.0" x="64" y="64" fill="blue"/>
+  <g id="glyph5" transform="translate(37.5, -950)">
+    <use xlink:href="#g_1f170.0" fill="blue"/>
   </g>
-  <g id="glyph6" transform="matrix(9.375 0 0 9.375 37.5 -950)">
-    <use xlink:href="#g_23_20e3.0" fill="yellow"/>
+  <g id="glyph6" transform="translate(37.5, -950)">
+    <use xlink:href="#g_1f170.0" x="-600" y="-600" fill="yellow"/>
   </g>
 </svg>
 ]]>
