@@ -399,7 +399,13 @@ def colr_to_svg(
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
     """For testing only, don't use for real!"""
-    assert len(ttfont["CPAL"].palettes) == 1, "We assume one palette"
+    num_palettes = len(ttfont["CPAL"].palettes)
+    if num_palettes > 1:
+        logging.warning(
+            "Multiple CPAL palettes are not supported! Only using the first"
+        )
+    elif num_palettes < 1:
+        raise ValueError("No CPAL palettes found, at least one required")
 
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
