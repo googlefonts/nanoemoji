@@ -121,9 +121,9 @@ def test_zero_advance_width_colrv1_to_svg():
             # don't clip to viewBox else zero-width glyph disappears
             "--noclip_to_viewbox",
             locate_test_file("emoji_u42.svg"),
-            # this one has viewBox="0 0 0 10", i.e. zero width, like
+            # this one has viewBox="0 0 0 1200", i.e. zero width, like
             # combining marks usually are (e.g. 'acutecomb')
-            locate_test_file("emoji_u0301.svg"),
+            locate_test_file("u0301.svg"),
         )
     )
 
