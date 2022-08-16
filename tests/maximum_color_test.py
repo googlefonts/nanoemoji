@@ -109,3 +109,34 @@ def test_keep_glyph_names(keep_names):
         assert all(
             not gn.startswith("duck_") for gn in maximum_font.getGlyphOrder()
         ), maximum_font.getGlyphOrder()
+
+
+def test_zero_advance_width_colrv1_to_svg():
+    tmp_dir = run_nanoemoji(
+        (
+            "--color_format",
+            "glyf_colr_1",
+            # use proportional widths, based on viewBox.w
+            "--width=0",
+            # don't clip to viewBox else zero-width glyph disappears
+            "--noclip_to_viewbox",
+            locate_test_file("emoji_u42.svg"),
+            # this one has viewBox="0 0 0 10", i.e. zero width, like
+            # combining marks usually are (e.g. 'acutecomb')
+            locate_test_file("emoji_u0301.svg"),
+        )
+    )
+
+    initial_font_file = tmp_dir / "Font.ttf"
+    assert initial_font_file.is_file()
+
+    initial_font = ttLib.TTFont(initial_font_file)
+    # sanity check widhts are proportional and we have 2 colr glyphs
+    assert initial_font["hmtx"]["B"] == (1200, 0)
+    assert initial_font["hmtx"]["acutecomb"] == (0, 0)
+    assert initial_font["COLR"].table.BaseGlyphList.BaseGlyphCount == 2
+
+    maxmium_font_file = _maximize_color(initial_font_file, ())
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+
+    # TODO
