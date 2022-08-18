@@ -17,6 +17,7 @@
 import copy
 from fontTools import ttLib
 from nanoemoji.keep_glyph_names import keep_glyph_names
+from picosvg.svg import SVG
 from pathlib import Path
 import pytest
 import sys
@@ -131,7 +132,7 @@ def test_zero_advance_width_colrv1_to_svg():
     assert initial_font_file.is_file()
 
     initial_font = ttLib.TTFont(initial_font_file)
-    # sanity check widhts are proportional and we have 2 colr glyphs
+    # sanity check widths are proportional and we have 2 colr glyphs
     assert initial_font["hmtx"]["B"] == (1200, 0)
     assert initial_font["hmtx"]["acutecomb"] == (0, 0)
     assert initial_font["COLR"].table.BaseGlyphList.BaseGlyphCount == 2
@@ -139,4 +140,25 @@ def test_zero_advance_width_colrv1_to_svg():
     maxmium_font_file = _maximize_color(initial_font_file, ())
     maximum_font = ttLib.TTFont(maxmium_font_file)
 
-    # TODO
+    assert "COLR" in maximum_font
+    assert maximum_font["COLR"].table.BaseGlyphList.BaseGlyphCount == 2
+    assert "SVG " in maximum_font
+    assert len(maximum_font["SVG "].docList) == 2
+
+    # check that 'acutecomb' still has 0 advance width
+    assert initial_font["hmtx"]["acutecomb"] == (0, 0)
+    # it has not been cropped away (has a non-empty bounding box)
+    doc = maximum_font["SVG "].docList[1]
+    assert doc.startGlyphID == doc.endGlyphID == maximum_font.getGlyphID("acutecomb")
+    svg = SVG.fromstring(doc.data)
+    shapes = list(svg.shapes())
+    assert len(shapes) == 1
+    bbox = shapes[0].bounding_box()
+    assert bbox.w > 0
+    assert bbox.h > 0
+    # its bbox matches the respective COLR ClipBox dimensions (quantized to 10)
+    clipBox = maximum_font["COLR"].table.ClipList.clips["acutecomb"]
+    assert abs(bbox.w - (clipBox.xMax - clipBox.xMin)) <= 10
+    assert abs(bbox.h - (clipBox.yMax - clipBox.yMin)) <= 10
+    # the SVG shape's horizontal positioning also matches the respective COLR glyph
+    assert abs(bbox.x - clipBox.xMin) <= 10
