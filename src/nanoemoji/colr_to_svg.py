@@ -45,9 +45,10 @@ from picosvg.svg import SVG
 from picosvg.svg_meta import ntos
 from picosvg.svg_transform import Affine2D
 from fontTools import ttLib
+from fontTools.ttLib.tables import C_P_A_L_
 from picosvg.geometric_types import Point, Rect
 from lxml import etree
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
@@ -96,10 +97,24 @@ def _draw_svg_path(
     svg_path.attrib["d"] = svg_pen.path.d
 
 
+def _first_cpal_palette(ttfont: ttLib.TTFont) -> List[C_P_A_L_.Color]:
+    try:
+        return ttfont["CPAL"].palettes[0]
+    except KeyError:
+        raise ValueError("No CPAL table found in font")
+    except IndexError:
+        raise ValueError("At least one CPAL palette is required, but none was found")
+
+
 def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
-    palette = ttfont["CPAL"].palettes[0]
     if palette_index == _FOREGROUND_COLOR_INDEX:
         return colors.Color.fromstring("black")  # as good a guess as any
+
+    # Only take the first palette for now:
+    # https://github.com/googlefonts/nanoemoji/issues/421
+    # TODO: Support multiple palettes
+    palette = _first_cpal_palette(ttfont)
+
     if palette_index >= len(palette):
         raise IndexError(f"{palette_index} illegal in palette of {len(palette)}")
     cpal_color = palette[palette_index]
@@ -399,13 +414,10 @@ def colr_to_svg(
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
     """For testing only, don't use for real!"""
-    num_palettes = len(ttfont["CPAL"].palettes)
-    if num_palettes > 1:
+    if "CPAL" in ttfont and len(ttfont["CPAL"].palettes) > 1:
         logging.warning(
             "Multiple CPAL palettes are not supported! Only using the first"
         )
-    elif num_palettes < 1:
-        raise ValueError("No CPAL palettes found, at least one required")
 
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
