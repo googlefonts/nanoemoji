@@ -17,8 +17,10 @@
 import copy
 from fontTools import ttLib
 from nanoemoji.keep_glyph_names import keep_glyph_names
+from nanoemoji.colr_to_svg import _FOREGROUND_COLOR_INDEX
 from picosvg.svg import SVG
 from pathlib import Path
+import shutil
 import pytest
 import sys
 from test_helper import cleanup_temp_dirs, locate_test_file, run, run_nanoemoji
@@ -162,3 +164,35 @@ def test_zero_advance_width_colrv1_to_svg():
     assert abs(bbox.h - (clipBox.yMax - clipBox.yMin)) <= 10
     # the SVG shape's horizontal positioning also matches the respective COLR glyph
     assert abs(bbox.x - clipBox.xMin) <= 10
+
+
+def test_foreground_colr_to_svg_currentColor(tmp_path):
+    # Check that COLR 0xFFFF palette index for 'foreground color' gets translated
+    # to SVG's fill="currentColor" when maximum_color'ing COLR => OT-SVG
+    # https://github.com/googlefonts/nanoemoji/issues/405
+
+    svg_file = tmp_path / "u0041.svg"
+    shutil.copyfile(locate_test_file("currentColor.svg"), svg_file)
+
+    run_nanoemoji(("--color_format", "glyf_colr_1", svg_file), tmp_dir=tmp_path)
+
+    initial_font_file = tmp_path / "Font.ttf"
+    assert initial_font_file.is_file()
+    initial_font = ttLib.TTFont(initial_font_file)
+
+    assert "COLR" in initial_font
+    colr = initial_font["COLR"].table
+    assert colr.BaseGlyphList.BaseGlyphCount == 1
+    assert (
+        colr.BaseGlyphList.BaseGlyphPaintRecord[0].Paint.Paint.PaletteIndex
+        == _FOREGROUND_COLOR_INDEX
+    )
+
+    maxmium_font_file = _maximize_color(initial_font_file, ())
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+
+    assert "COLR" in initial_font
+    assert "SVG " in maximum_font
+    assert len(maximum_font["SVG "].docList) == 1
+
+    assert 'fill="currentColor"' in maximum_font["SVG "].docList[0].data
