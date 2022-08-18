@@ -312,8 +312,6 @@ def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
 
     map_font_space_to_viewbox handles font +y goes up => svg +y goes down."""
     width = ttfont["hmtx"][glyph_name][0]
-    if width == 0:
-        width = ttfont["glyf"][glyph_name].xMax
     return Rect(
         0,
         -ttfont["OS/2"].sTypoAscender,
@@ -325,15 +323,9 @@ def glyph_region(ttfont: ttLib.TTFont, glyph_name: str) -> Rect:
 def _view_box_and_transform(
     ttfont: ttLib.TTFont, view_box_callback: ViewboxCallback, glyph_name: str
 ) -> Tuple[Rect, Affine2D]:
-
     view_box = view_box_callback(glyph_name)
-    assert view_box.w > 0, f"0-width viewBox for {glyph_name}?!"
-
     region = glyph_region(ttfont, glyph_name)
-    assert region.w > 0, f"0-width region for {glyph_name}?!"
-
     font_to_vbox = map_font_space_to_viewbox(view_box, region)
-
     return (view_box, font_to_vbox)
 
 

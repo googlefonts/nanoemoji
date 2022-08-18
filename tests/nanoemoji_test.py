@@ -408,7 +408,7 @@ def test_glyph_with_zero_advance_width(color_format, tmp_path):
         svg = font["SVG "]
         assert len(svg.docList) == 1
         gid = font.getGlyphID(gname)
-        assert svg.docList[0][1:] == [gid, gid]  # [start, end]
+        assert svg.docList[0][1:] == (gid, gid)  # (start, end)
     if "CBDT" in font:
         cbdt = font["CBDT"]
         assert len(cbdt.strikeData) == 1
