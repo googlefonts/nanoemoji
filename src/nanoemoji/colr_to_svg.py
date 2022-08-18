@@ -108,7 +108,7 @@ def _first_cpal_palette(ttfont: ttLib.TTFont) -> List[C_P_A_L_.Color]:
 
 def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
     if palette_index == _FOREGROUND_COLOR_INDEX:
-        return colors.Color.fromstring("black")  # as good a guess as any
+        return colors.Color.fromstring("currentColor", alpha=alpha)
 
     # Only take the first palette for now:
     # https://github.com/googlefonts/nanoemoji/issues/421
