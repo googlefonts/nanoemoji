@@ -15,7 +15,13 @@
 
 from fontTools import ttLib
 from functools import reduce
-from nanoemoji.reorder_glyphs import _COVERAGE_REORDER, _sort_by_gid, reorder_glyphs
+from nanoemoji.reorder_glyphs import (
+    _REORDER_RULES,
+    ReorderCoverage,
+    ReorderList,
+    _sort_by_gid,
+    reorder_glyphs,
+)
 from nanoemoji.util import load_fully
 from nanoemoji import write_font
 from nanoemoji.util import only
@@ -42,20 +48,28 @@ def _dotted_converter(item, dotted_attr):
 
 
 def test_metadata_is_valid():
-    for (clazz, fmt), reorders in _COVERAGE_REORDER.items():
+    for (clazz, fmt), reorders in _REORDER_RULES.items():
         instance = clazz()
         instance.Format = fmt
         assert (
             instance.getConverters()
         ), f"Lack of converters suggests {clazz} dislikes Format {fmt}"
         for reorder in reorders:
-            assert (
-                _dotted_converter(instance, reorder.coverage_attr) is not None
-            ), f"No {clazz} {fmt} {reorder.coverage_attr}"
-            if reorder.parallel_list_attr:
+            if isinstance(reorder, ReorderCoverage):
                 assert (
-                    _dotted_converter(instance, reorder.parallel_list_attr) is not None
-                ), f"No {clazz} {fmt} {reorder.parallel_list_attr}"
+                    _dotted_converter(instance, reorder.coverage_attr) is not None
+                ), f"No {clazz} {fmt} {reorder.coverage_attr}"
+                if reorder.parallel_list_attr:
+                    assert (
+                        _dotted_converter(instance, reorder.parallel_list_attr)
+                        is not None
+                    ), f"No {clazz} {fmt} {reorder.parallel_list_attr}"
+            elif isinstance(reorder, ReorderList):
+                assert (
+                    _dotted_converter(instance, reorder.list_attr) is not None
+                ), f"No {clazz} {fmt} {reorder.list_attr}"
+            else:
+                raise NotImplementedError(type(reorder))
 
 
 def test_sort_just_glyphs():
@@ -89,8 +103,10 @@ def test_reorder_actual_font():
         return tuple(
             (
                 pair_pos.Coverage.glyphs[i],
-                only(pair_set.PairValueRecord).SecondGlyph,
-                only(pair_set.PairValueRecord).Value1.XAdvance,
+                [
+                    (pvr.SecondGlyph, pvr.Value1.XAdvance)
+                    for pvr in pair_pos.PairSet[i].PairValueRecord
+                ],
             )
             for i, pair_set in enumerate(pair_pos.PairSet)
         )
@@ -103,6 +119,7 @@ def test_reorder_actual_font():
 
     feature kern {
         position a b -12;
+        position b b -14;
         position b c -16;
     } kern;
     """
@@ -126,16 +143,11 @@ def test_reorder_actual_font():
         _, font = write_font._generate_color_font(config, glyph_inputs)
 
         # Initial state
-        assert _pair_pos(font) == (("a", "b", -12), ("b", "c", -16))
+        assert _pair_pos(font) == (("a", [("b", -12)]), ("b", [("b", -14), ("c", -16)]))
 
-        # Swap glyph order of a, b
-        ai, bi = font.getGlyphID("a"), font.getGlyphID("b")
-        new_glyph_order = list(font.getGlyphOrder())
-        new_glyph_order[ai], new_glyph_order[bi] = (
-            new_glyph_order[bi],
-            new_glyph_order[ai],
-        )
+        # reverse the glyph order from a, b, c to c, b, a
+        new_glyph_order = list(reversed(font.getGlyphOrder()))
         reorder_glyphs(font, new_glyph_order)
 
         # Confirm swap applied to Coverage and pair pos parallel array
-        assert _pair_pos(font) == (("b", "c", -16), ("a", "b", -12))
+        assert _pair_pos(font) == (("b", [("c", -16), ("b", -14)]), ("a", [("b", -12)]))

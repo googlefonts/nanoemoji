@@ -21,7 +21,9 @@ from fontTools import ttLib
 from fontTools.ttLib.tables import otBase
 from fontTools.ttLib.tables import otTables as ot
 from nanoemoji.util import bfs_base_table, require_fully_loaded, SubTablePath
-from typing import Any, Callable, List, NamedTuple, Optional
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional
 
 
 _COVERAGE_ATTR = "Coverage"  # tables that have one coverage use this name
@@ -55,12 +57,19 @@ def _get_dotted_attr(value: Any, dotted_attr: str) -> Any:
     return value
 
 
-class ReorderCoverage(NamedTuple):
+class ReorderRule(ABC):
+    @abstractmethod
+    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None:
+        ...
+
+
+@dataclass(frozen=True)
+class ReorderCoverage(ReorderRule):
     # A list that is parallel to Coverage
     parallel_list_attr: Optional[str] = None
     coverage_attr: str = _COVERAGE_ATTR
 
-    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable):
+    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None:
         coverage = _get_dotted_attr(value, self.coverage_attr)
 
         if type(coverage) is not list:
@@ -84,13 +93,25 @@ class ReorderCoverage(NamedTuple):
                 _sort_by_gid(font.getGlyphID, coverage_entry.glyphs, None)
 
 
-# (Type, Optional Format) => List[ReorderCoverage]
+@dataclass(frozen=True)
+class ReorderList(ReorderRule):
+    list_attr: str
+    key: str
+
+    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None:
+        lst = _get_dotted_attr(value, self.list_attr)
+        assert isinstance(lst, list), f"{self.list_attr} should be a list"
+        lst.sort(key=lambda v: font.getGlyphID(getattr(v, self.key)))
+
+
+# (Type, Optional Format) => List[ReorderRule]
 # Encodes the relationships Cosimo identified
-_COVERAGE_REORDER = {
+_REORDER_RULES = {
     # GPOS
     (ot.SinglePos, 1): [ReorderCoverage()],
     (ot.SinglePos, 2): [ReorderCoverage(parallel_list_attr="Value")],
     (ot.PairPos, 1): [ReorderCoverage(parallel_list_attr="PairSet")],
+    (ot.PairSet, None): [ReorderList("PairValueRecord", key="SecondGlyph")],
     (ot.PairPos, 2): [ReorderCoverage()],
     (ot.CursivePos, 1): [ReorderCoverage(parallel_list_attr="EntryExitRecord")],
     (ot.MarkBasePos, 1): [
@@ -201,5 +222,5 @@ def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
                 # print(_access_path(path))
                 value = path[-1].value
                 reorder_key = (type(value), getattr(value, "Format", None))
-                for reorder in _COVERAGE_REORDER.get(reorder_key, []):
+                for reorder in _REORDER_RULES.get(reorder_key, []):
                     reorder.apply(font, value)
