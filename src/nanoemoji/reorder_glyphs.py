@@ -58,6 +58,8 @@ def _get_dotted_attr(value: Any, dotted_attr: str) -> Any:
 
 
 class ReorderRule(ABC):
+    """A rule to reorder something in a font to match the fonts glyph order."""
+
     @abstractmethod
     def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None:
         ...
@@ -65,6 +67,8 @@ class ReorderRule(ABC):
 
 @dataclass(frozen=True)
 class ReorderCoverage(ReorderRule):
+    """Reorder a Coverage table, and optionally a list that is sorted parallel to it."""
+
     # A list that is parallel to Coverage
     parallel_list_attr: Optional[str] = None
     coverage_attr: str = _COVERAGE_ATTR
@@ -95,6 +99,12 @@ class ReorderCoverage(ReorderRule):
 
 @dataclass(frozen=True)
 class ReorderList(ReorderRule):
+    """Reorder the items within a list to match the updated glyph order.
+
+    Useful when a list ordered by coverage itself contains something ordered by a gid.
+    For example, the PairSet table of https://docs.microsoft.com/en-us/typography/opentype/spec/gpos#lookup-type-2-pair-adjustment-positioning-subtable.
+    """
+
     list_attr: str
     key: str
 
