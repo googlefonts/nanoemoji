@@ -125,9 +125,19 @@ def _glyph_groups(
 ) -> Tuple[Tuple[str, ...]]:
     """Find glyphs that need to be kept together by union find."""
 
+    # If the color glyphs contain '.notdef', we want to keep it the first glyph, so
+    # we must avoid grouping it with the rest, as they get reshuffled later on.
+    has_color_notdef = False
+    for color_glyph in color_glyphs:
+        if color_glyph.ufo_glyph_name == ".notdef":
+            assert color_glyph.glyph_id == 0
+            has_color_notdef = True
+            break
+
     reuse_groups = DisjointSet()  # ensure glyphs sharing shapes are in the same doc
     for color_glyph in color_glyphs:
-        reuse_groups.make_set(color_glyph.ufo_glyph_name)
+        if color_glyph.ufo_glyph_name != ".notdef":
+            reuse_groups.make_set(color_glyph.ufo_glyph_name)
         nth_paint_glyph = 0
         for root in color_glyph.painted_layers:
             for context in root.breadth_first():
@@ -136,9 +146,14 @@ def _glyph_groups(
                     continue
 
                 glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
-                reuse_result = reuse_cache.glyph_cache.try_reuse(
-                    context.paint.glyph  # pytype: disable=attribute-error
-                )
+
+                # we still need to add the .notdef layers to reuse_cache even if not reused,
+                # as later code expects all glyph elements to be there.
+                reuse_result = None
+                if color_glyph.ufo_glyph_name != ".notdef":
+                    reuse_result = reuse_cache.glyph_cache.try_reuse(
+                        context.paint.glyph  # pytype: disable=attribute-error
+                    )
                 reuse_cache.add_glyph(glyph_name, reuse_result, context)
                 if reuse_result:
                     # This entire color glyph and the one we share a shape with go in one svg doc
@@ -149,7 +164,12 @@ def _glyph_groups(
 
                 nth_paint_glyph += 1
 
-    return reuse_groups.sorted()
+    sorted_groups = reuse_groups.sorted()
+
+    if has_color_notdef:
+        return ((".notdef",),) + sorted_groups
+    else:
+        return sorted_groups
 
 
 def _ntos(n: float) -> str:
@@ -587,9 +607,17 @@ def _ensure_groups_grouped_in_glyph_order(
     # We kept glyph names stable when saving a font for svg so it's safe to match on
     assert ttfont["post"].formatType == 2, "glyph names need to be stable"
 
+    # .notdef must always be the first glyph in the font or Bad Things happen
+    old_glyph_order = ttfont.getGlyphOrder()
+    assert old_glyph_order[0] == ".notdef", f"1st glyph not named '.notdef'"
+    if ".notdef" in color_glyphs:
+        first_group, *reuse_groups = reuse_groups
+        assert first_group == (".notdef",)
+        assert color_glyphs[".notdef"].glyph_id == 0
+
     # everything that *isn't* shuffling
     group_glyphs = reduce(lambda a, c: a | set(c), reuse_groups, set())
-    glyph_order = [g for g in ttfont.getGlyphOrder() if g not in group_glyphs]
+    glyph_order = [g for g in old_glyph_order if g not in group_glyphs]
 
     # plus everything that is shuffling, in the order it needs to stay in
     # update color glyph gid as we go
