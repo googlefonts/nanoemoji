@@ -579,7 +579,6 @@ def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
 
 def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
-    color_glyph_order: Sequence[str],
     ttfont: ttLib.TTFont,
     reuse_groups: Tuple[Tuple[str, ...]],
 ):
@@ -655,11 +654,8 @@ def _picosvg_docs(
         config.reuse_tolerance, GlyphReuseCache(config.reuse_tolerance)
     )
     reuse_groups = _glyph_groups(config, color_glyphs, reuse_cache)
-    color_glyph_order = [c.ufo_glyph_name for c in color_glyphs]
     color_glyphs = {c.ufo_glyph_name: c for c in color_glyphs}
-    _ensure_groups_grouped_in_glyph_order(
-        color_glyphs, color_glyph_order, ttfont, reuse_groups
-    )
+    _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
 
     doc_list = []
     for group in reuse_groups:
