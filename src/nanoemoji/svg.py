@@ -122,7 +122,7 @@ def _color_glyph_name(glyph_name: str) -> str:
 
 def _glyph_groups(
     config: FontConfig, color_glyphs: Sequence[ColorGlyph], reuse_cache: ReuseCache
-) -> Tuple[Tuple[str, ...]]:
+) -> Tuple[Tuple[str, ...], ...]:
     """Find glyphs that need to be kept together by union find."""
 
     # If the color glyphs contain '.notdef', we want to keep it the first glyph, so
@@ -134,7 +134,8 @@ def _glyph_groups(
             has_color_notdef = True
             break
 
-    reuse_groups = DisjointSet()  # ensure glyphs sharing shapes are in the same doc
+    # ensure glyphs sharing shapes are in the same doc
+    reuse_groups = DisjointSet[str]()
     for color_glyph in color_glyphs:
         if color_glyph.ufo_glyph_name != ".notdef":
             reuse_groups.make_set(color_glyph.ufo_glyph_name)

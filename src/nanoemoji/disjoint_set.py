@@ -46,6 +46,6 @@ class DisjointSet(Generic[T]):
             sets[self.find(e)].add(e)
         return frozenset(frozenset(s) for s in sets.values())
 
-    def sorted(self) -> Tuple[Tuple[T, ...]]:
+    def sorted(self) -> Tuple[Tuple[T, ...], ...]:
         """Sorted tuple of sorted tuples edition of sets()."""
         return tuple(sorted(tuple(sorted(s)) for s in self.sets()))
