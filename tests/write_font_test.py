@@ -596,6 +596,9 @@ def test_picosvg_colored_notdef():
     svgs = [
         ("colored_notdef.svg", ".notdef", []),
         ("emoji_u42.svg", "B", [0x42]),
+        # adding the same .notdef color glyph under a different name/codepoint,
+        # simply to test that it does NOT get reused despite having the same SVG
+        ("colored_notdef.svg", "C", [0x43]),
     ]
     svg_files = [s[0] for s in svgs]
 
@@ -610,12 +613,14 @@ def test_picosvg_colored_notdef():
 
     # check .notdef glyph is still the first glyph and that space character
     # follows it and has its codepoint assigned in cmap
-    assert ttfont.getGlyphOrder() == [".notdef", ".space", "B"]
-    assert ttfont["cmap"].getBestCmap() == {0x20: ".space", 0x42: "B"}
+    assert ttfont.getGlyphOrder() == [".notdef", ".space", "B", "C"]
+    assert ttfont["cmap"].getBestCmap() == {0x20: ".space", 0x42: "B", 0x43: "C"}
 
     # check that SVG table contains a .notdef glyph as first GID
-    assert len(ttfont["SVG "].docList) == 2
+    assert len(ttfont["SVG "].docList) == 3
     assert ttfont["SVG "].docList[0].startGlyphID == 0
     assert ttfont["SVG "].docList[0].startGlyphID == 0
     assert ttfont["SVG "].docList[1].endGlyphID == 2
     assert ttfont["SVG "].docList[1].endGlyphID == 2
+    assert ttfont["SVG "].docList[2].endGlyphID == 3
+    assert ttfont["SVG "].docList[2].endGlyphID == 3

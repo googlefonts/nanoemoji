@@ -151,3 +151,19 @@ def test_reorder_actual_font():
 
         # Confirm swap applied to Coverage and pair pos parallel array
         assert _pair_pos(font) == (("b", [("c", -16), ("b", -14)]), ("a", [("b", -12)]))
+
+
+def test_invalid_new_glyph_order():
+    font = ttLib.TTFont()
+    font.setGlyphOrder([".notdef", "a", "b", "c"])
+
+    with pytest.raises(
+        ValueError, match="New glyph order contains 3 glyphs, but font has 4 glyphs"
+    ):
+        reorder_glyphs(font, new_glyph_order=[".notdef", "a", "b"])
+
+    with pytest.raises(
+        ValueError,
+        match="New glyph order does not contain the same set of glyphs as the font:",
+    ):
+        reorder_glyphs(font, new_glyph_order=[".notdef", "a", "b", "d"])
