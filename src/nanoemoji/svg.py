@@ -127,11 +127,11 @@ def _glyph_groups(
 
     # If the color glyphs contain '.notdef', we want to keep it the first glyph, so
     # we must avoid grouping it with the rest, as they get reshuffled later on.
-    has_color_notdef = False
+    initial_glyphs = ()
     for color_glyph in color_glyphs:
         if color_glyph.ufo_glyph_name == ".notdef":
             assert color_glyph.glyph_id == 0
-            has_color_notdef = True
+            initial_glyphs = ((".notdef",),)
             break
 
     # ensure glyphs sharing shapes are in the same doc
@@ -165,12 +165,7 @@ def _glyph_groups(
 
                 nth_paint_glyph += 1
 
-    sorted_groups = reuse_groups.sorted()
-
-    if has_color_notdef:
-        return ((".notdef",),) + sorted_groups
-    else:
-        return sorted_groups
+    return initial_glyphs + reuse_groups.sorted()
 
 
 def _ntos(n: float) -> str:
