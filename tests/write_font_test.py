@@ -589,3 +589,33 @@ def test_square_varied_hmetrics():
         assert (
             glyph_widths[i] * 2 == glyph_widths[i + 1]
         ), f"n+1 should double, fails at {i}; {glyph_widths}"
+
+
+def test_picosvg_colored_notdef():
+    # https://github.com/googlefonts/nanoemoji/issues/427
+    svgs = [
+        ("colored_notdef.svg", ".notdef", []),
+        ("emoji_u42.svg", "B", [0x42]),
+    ]
+    svg_files = [s[0] for s in svgs]
+
+    config, glyph_inputs = test_helper.color_font_config(
+        {"color_format": "picosvg", "pretty_print": True},
+        svg_files,
+        glyphname_fn=lambda svg_file, idx: svgs[idx][1],
+        codepoint_fn=lambda svg_file, idx: svgs[idx][2],
+    )
+    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
+
+    # check .notdef glyph is still the first glyph and that space character
+    # follows it and has its codepoint assigned in cmap
+    assert ttfont.getGlyphOrder() == [".notdef", ".space", "B"]
+    assert ttfont["cmap"].getBestCmap() == {0x20: ".space", 0x42: "B"}
+
+    # check that SVG table contains a .notdef glyph as first GID
+    assert len(ttfont["SVG "].docList) == 2
+    assert ttfont["SVG "].docList[0].startGlyphID == 0
+    assert ttfont["SVG "].docList[0].startGlyphID == 0
+    assert ttfont["SVG "].docList[1].endGlyphID == 2
+    assert ttfont["SVG "].docList[1].endGlyphID == 2

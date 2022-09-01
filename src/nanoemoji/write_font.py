@@ -725,6 +725,7 @@ def _generate_color_font(config: FontConfig, inputs: Iterable[InputGlyph]):
 
     color_glyphs = []
     glyph_order = list(ufo.glyphOrder)
+    assert glyph_order[0] == ".notdef"
     for glyph_input in inputs:
         if glyph_input.glyph_name in glyph_order:
             gid = glyph_order.index(glyph_input.glyph_name)

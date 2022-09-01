@@ -72,6 +72,7 @@ def color_font_config(
     svgs,
     tmp_dir=None,
     codepoint_fn=lambda svg_file, idx: (0xE000 + idx,),
+    glyphname_fn=None,
 ):
     if tmp_dir is None:
         tmp_dir = Path(tempfile.gettempdir())
@@ -118,6 +119,11 @@ def color_font_config(
             for svg in svgs
         ]
 
+    if glyphname_fn is None:
+
+        def glyphname_fn(svg_file, idx):
+            return glyph_name(codepoint_fn(svg_file, idx))
+
     return (
         font_config,
         [
@@ -125,7 +131,7 @@ def color_font_config(
                 svg_file,
                 bitmap_file,
                 codepoint_fn(svg_file, idx),
-                glyph_name(codepoint_fn(svg_file, idx)),
+                glyphname_fn(svg_file, idx),
                 svg,
                 bitmap,
             )
