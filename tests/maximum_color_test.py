@@ -196,3 +196,13 @@ def test_foreground_colr_to_svg_currentColor(tmp_path):
     assert len(maximum_font["SVG "].docList) == 1
 
     assert 'fill="currentColor"' in maximum_font["SVG "].docList[0].data
+
+
+def test_colr_to_svg_with_colored_notdef(tmp_path):
+    initial_font = ttLib.TTFont()
+    initial_font.importXML(locate_test_file("fonts/Nabla.subset.ttx"))
+    initial_font_file = tmp_path / "Nabla.subset.ttf"
+    initial_font.save(initial_font_file)
+
+    maxmium_font_file = _maximize_color(initial_font_file, ())
+    # TODO
