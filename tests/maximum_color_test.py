@@ -200,9 +200,25 @@ def test_foreground_colr_to_svg_currentColor(tmp_path):
 
 def test_colr_to_svg_with_colored_notdef(tmp_path):
     initial_font = ttLib.TTFont()
+    # this subset of Nabla only contains notdef, space and numbersign
     initial_font.importXML(locate_test_file("fonts/Nabla.subset.ttx"))
     initial_font_file = tmp_path / "Nabla.subset.ttf"
     initial_font.save(initial_font_file)
 
     maxmium_font_file = _maximize_color(initial_font_file, ())
-    # TODO
+
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+
+    # check .notdef glyph is still the first glyph and that space character
+    # follows it and has its codepoint assigned in cmap
+    assert maximum_font.getGlyphOrder()[:3] == [".notdef", "space", "numbersign"]
+    assert maximum_font["cmap"].getBestCmap() == {0x20: "space", ord("#"): "numbersign"}
+
+    # check that SVG table contains a .notdef glyph as GID=0 in a distinct SVG document
+    # from the one containing the numbersign
+    assert "SVG " in maximum_font
+    assert len(maximum_font["SVG "].docList) == 2
+    assert maximum_font["SVG "].docList[0].startGlyphID == 0
+    assert maximum_font["SVG "].docList[0].startGlyphID == 0
+    assert maximum_font["SVG "].docList[1].endGlyphID == 2
+    assert maximum_font["SVG "].docList[1].endGlyphID == 2

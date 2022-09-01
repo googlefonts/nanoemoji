@@ -48,6 +48,7 @@ from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 from typing import (
     cast,
+    ClassVar,
     Mapping,
     MutableMapping,
     NamedTuple,
@@ -84,20 +85,24 @@ class ReuseCache:
     gradient_ids: MutableMapping[GradientReuseKey, str] = dataclasses.field(
         default_factory=dict
     )
+    # sentinel value to forcibly skip reuse of a glyph (e.g. .notdef), distinct
+    # from None, which means "reuse not found".
+    SKIP_REUSE: ClassVar[ReuseResult] = ReuseResult("", Affine2D.identity())
 
     def add_glyph(
         self,
         glyph_name: str,
-        reuse_result: Optional[ReuseResult],
         context: SVGTraverseContext,
+        reuse_result: Optional[ReuseResult] = SKIP_REUSE,
     ):
         assert glyph_name not in self.glyph_elements, f"Second addition of {glyph_name}"
         if not isinstance(context.paint, PaintGlyph):
             raise ValueError(f"Not a PaintGlyph {context}")
-        if not reuse_result:
-            self.glyph_cache.add_glyph(glyph_name, context.paint.glyph)
-        else:
-            self.reuse_results[glyph_name] = reuse_result
+        if reuse_result is not self.SKIP_REUSE:
+            if reuse_result is None:
+                self.glyph_cache.add_glyph(glyph_name, context.paint.glyph)
+            else:
+                self.reuse_results[glyph_name] = reuse_result
         self.glyph_elements[glyph_name] = to_element(SVGPath(d=context.paint.glyph))
 
 
@@ -150,18 +155,19 @@ def _glyph_groups(
 
                 # we still need to add the .notdef layers to reuse_cache even if not reused,
                 # as later code expects all glyph elements to be there.
-                reuse_result = None
-                if color_glyph.ufo_glyph_name != ".notdef":
+                if color_glyph.ufo_glyph_name == ".notdef":
+                    reuse_cache.add_glyph(glyph_name, context)
+                else:
                     reuse_result = reuse_cache.glyph_cache.try_reuse(
                         context.paint.glyph  # pytype: disable=attribute-error
                     )
-                reuse_cache.add_glyph(glyph_name, reuse_result, context)
-                if reuse_result:
-                    # This entire color glyph and the one we share a shape with go in one svg doc
-                    reuse_groups.union(
-                        color_glyph.ufo_glyph_name,
-                        _color_glyph_name(reuse_result.glyph_name),
-                    )
+                    reuse_cache.add_glyph(glyph_name, context, reuse_result)
+                    if reuse_result:
+                        # This entire color glyph and the one we share a shape with go in one svg doc
+                        reuse_groups.union(
+                            color_glyph.ufo_glyph_name,
+                            _color_glyph_name(reuse_result.glyph_name),
+                        )
 
                 nth_paint_glyph += 1
 
