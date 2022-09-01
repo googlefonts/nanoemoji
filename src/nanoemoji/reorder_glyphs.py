@@ -218,6 +218,20 @@ def _access_path(path: SubTablePath):
 
 
 def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
+    old_glyph_order = font.getGlyphOrder()
+    if len(new_glyph_order) != len(old_glyph_order):
+        raise ValueError(
+            f"New glyph order contains {len(new_glyph_order)} glyphs, "
+            f"but font has {len(old_glyph_order)} glyphs"
+        )
+
+    if set(old_glyph_order) != set(new_glyph_order):
+        raise ValueError(
+            "New glyph order does not contain the same set of glyphs as the font:\n"
+            f"* only in new: {set(new_glyph_order) - set(old_glyph_order)}\n"
+            f"* only in old: {set(old_glyph_order) - set(new_glyph_order)}"
+        )
+
     # Changing the order of glyphs in a TTFont requires that all tables that use
     # glyph indexes have been fully.
     # Cf. https://github.com/fonttools/fonttools/issues/2060
