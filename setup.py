@@ -38,7 +38,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "absl-py>=0.9.0",
-        "fonttools[ufo]>=4.31.0",
+        "fonttools[ufo]>=4.36.0",
         "importlib_resources>=3.3.0; python_version < '3.9'",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",

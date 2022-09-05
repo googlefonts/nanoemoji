@@ -82,7 +82,7 @@ def _svg_root(view_box: Rect) -> etree.Element:
 
 def _draw_svg_path(
     svg_path: etree.Element,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     glyph_name: str,
     font_to_vbox: Affine2D,
 ):
@@ -196,7 +196,7 @@ def _apply_gradient_ot_paint(
 
 def _colr_v0_glyph_to_svg(
     ttfont: ttLib.TTFont,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     view_box_callback: ViewboxCallback,
     glyph_name: str,
 ) -> etree.Element:
@@ -346,7 +346,7 @@ def _view_box_and_transform(
 
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     view_box_callback: ViewboxCallback,
     glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
