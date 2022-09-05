@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
-from typing import Optional, Sequence, Tuple
+import dataclasses
+import re
+from typing import ClassVar, Optional, Sequence, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -185,13 +186,46 @@ def color_name(rgb) -> Optional[str]:
     return None
 
 
-class Color(collections.namedtuple("Color", "red green blue alpha")):
-    _CURRENT_COLOR = (-1, -1, -1)
+@dataclasses.dataclass(frozen=True, order=True)
+class Color(Sequence):
+    red: int
+    green: int
+    blue: int
+    alpha: float = 1.0
+    index: Optional[int] = None
+
+    _CURRENT_COLOR: ClassVar[Tuple[int, int, int]] = (-1, -1, -1)
+
+    # the default color is optional but for now we require one for simplicity
+    _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
+        r"var\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
+    )
+
+    def __getitem__(self, i):
+        fields = dataclasses.fields(self)
+        if isinstance(i, slice):
+            return tuple(getattr(self, f.name) for f in fields[i])
+        return getattr(self, fields[i].name)
+
+    def __len__(self):
+        return len(dataclasses.fields(self))
+
+    def _replace(self, **kwargs):
+        return dataclasses.replace(self, **kwargs)
 
     @classmethod
-    def fromstring(cls, s, alpha=1.0) -> "Color":
-        # https://www.w3.org/TR/css-color-4/#hex-notation
+    def fromstring(cls, s: str, alpha: float = 1.0) -> "Color":
         s = s.strip()
+
+        # CSS variables referencing palette entries as custom properties:
+        # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#color-palettes
+        m = cls._COLOR_VARIABLE_RE.match(s)
+        if m:
+            palette_entry_index = int(m.group(1))
+            default_color = m.group(2)
+            tmp = cls.fromstring(default_color, alpha=alpha)
+            return tmp._replace(index=palette_entry_index)
+
         if s == "currentColor":
             # For the 'currentColor' special keyword, we return a sentinel value (with
             # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
@@ -199,6 +233,7 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
             # https://docs.microsoft.com/en-us/typography/opentype/spec/SVG#colors
             return cls(*cls._CURRENT_COLOR, alpha=alpha)
         if s.startswith("#"):
+            # https://www.w3.org/TR/css-color-4/#hex-notation
             ss = s[1:]
             if len(ss) in (3, 4):
                 ss = "".join((s + s for s in ss))
@@ -242,6 +277,9 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
 
     def to_string(self) -> str:
         # A CSS or SVG friendly string
+        if self.index is not None:
+            return f"var(--color{self.index}, {self.default().to_string()})"
+
         if self.is_current_color():
             if self.alpha != 1.0:
                 raise ValueError("'currentColor' can't encode alpha != 1.0")
@@ -259,7 +297,12 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
     def is_current_color(self):
         return self[:3] == self._CURRENT_COLOR
 
+    def default(self) -> "Color":
+        if self.index is None:
+            return self
+        return self._replace(index=None)
+
     def palette_index(self, palette: Sequence["Color"]) -> int:
         if self.is_current_color():
             return 0xFFFF
-        return palette.index(self)
+        return palette.index(self.default())
