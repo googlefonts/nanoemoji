@@ -576,23 +576,42 @@ def _colr_ufo(
     # We want to mutate our view of color glyphs
     color_glyphs = list(color_glyphs)
 
-    # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
-    colors = sorted(
-        set(
-            c if colr_version == 0 else c.opaque()
-            for c in chain.from_iterable(g.colors() for g in color_glyphs)
-            if not c.is_current_color()
-        )
+    colors = set(
+        c if colr_version == 0 else c.opaque()
+        for c in chain.from_iterable(g.colors() for g in color_glyphs)
+        if not c.is_current_color()
     )
+    # Sort colors so the index into colors == index into CPAL palette.
+    # Try to keep the original palette entry index if present.
+    iter_colors_without_index = iter(sorted(c for c in colors if c.index is None))
+    colors_by_index = {}
+    for c in colors:
+        if c.index is not None:
+            color = c.default()
+            if c.index in colors_by_index and colors_by_index[c.index] != color:
+                raise ValueError(
+                    f"Palette entry index {c.index} already used for "
+                    f"{colors_by_index[c.index]}"
+                )
+            colors_by_index[c.index] = color
+    black = Color(0, 0, 0, 1.0)
+    colors = [
+        (
+            colors_by_index[i]
+            if i in colors_by_index
+            else next(iter_colors_without_index, black)
+        )
+        for i in range(max(colors_by_index, default=-1) + 1)
+    ] + list(iter_colors_without_index)
     logging.debug("colors %s", colors)
 
     if len(colors) == 0:
         # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette, so we
         # add one unused color as workaround.
         # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
-        colors.append(Color(0, 0, 0, 1.0))
+        colors.append(black)
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
