@@ -46,8 +46,14 @@ def _buildPaint(source) -> ot.Paint:
     return LayerListBuilder().buildPaint(source)
 
 
+# palette 0: black, blue
+SIMPLE_CPAL = [[(0, 0, 0, 1.0), (0, 0, 1, 1.0)]]
+# palette 1: red, green
+MULTI_CPAL = [SIMPLE_CPAL[0], [(1, 0, 0, 1), (0, 1, 0, 1)]]
+
+
 @pytest.mark.parametrize(
-    "glyph_to_convert, color_glyphs, monochrome_glyphs, expected_svg",
+    "glyph_to_convert, color_glyphs, monochrome_glyphs, palettes, expected_svg",
     [
         # Solid filled box
         (
@@ -60,6 +66,7 @@ def _buildPaint(source) -> ot.Paint:
                 ),
             },
             {"box": _draw_box},
+            SIMPLE_CPAL,
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
@@ -79,6 +86,7 @@ def _buildPaint(source) -> ot.Paint:
                 ),
             },
             {"box": _draw_box},
+            SIMPLE_CPAL,
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
@@ -121,6 +129,7 @@ def _buildPaint(source) -> ot.Paint:
                 },
             },
             {"box": _draw_box},
+            SIMPLE_CPAL,
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
@@ -160,6 +169,7 @@ def _buildPaint(source) -> ot.Paint:
                 },
             },
             {"box": _draw_box},
+            SIMPLE_CPAL,
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
@@ -167,10 +177,29 @@ def _buildPaint(source) -> ot.Paint:
             </svg>
             """,
         ),
+        # len(CPAL.palettes) > 1, using var(--color{index})
+        (
+            "color_box",
+            {
+                "color_box": (
+                    ot.PaintFormat.PaintGlyph,
+                    (ot.PaintFormat.PaintSolid, 1),
+                    "box",
+                ),
+            },
+            {"box": _draw_box},
+            MULTI_CPAL,
+            """
+            <svg xmlns="http://www.w3.org/2000/svg">
+              <defs/>
+              <path fill="var(--color1, blue)" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+            </svg>
+            """,
+        ),
     ],
 )
 def test_colr_v1_paint_to_svg(
-    glyph_to_convert, color_glyphs, monochrome_glyphs, expected_svg
+    glyph_to_convert, color_glyphs, monochrome_glyphs, palettes, expected_svg
 ):
     actual_svg = SVG.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><defs/></svg>')
     expected_svg = SVG.fromstring(textwrap.dedent(expected_svg))
@@ -203,10 +232,6 @@ def test_colr_v1_paint_to_svg(
 
     print(hmtx_table.metrics)
 
-    # palette 0: black, blue
-    palettes = [
-        [(0, 0, 0, 1.0), (0, 0, 1, 1.0)],
-    ]
     font["CPAL"] = buildCPAL(palettes)
 
     layers, base_glyphs = buildColrV1(color_glyphs)
