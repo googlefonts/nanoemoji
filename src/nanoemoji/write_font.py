@@ -18,7 +18,7 @@
 from absl import app
 from absl import flags
 from absl import logging
-from collections import Counter
+from collections import deque, Counter
 import csv
 import dataclasses
 import enum
@@ -573,45 +573,45 @@ def _colr_ufo(
     ufo: ufoLib2.Font,
     color_glyphs: Tuple[ColorGlyph, ...],
 ):
+    black = Color(0, 0, 0, 1.0)
+
     # We want to mutate our view of color glyphs
     color_glyphs = list(color_glyphs)
 
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
-    colors = set(
+    cpal_colors = set(
         c if colr_version == 0 else c.opaque()
         for c in chain.from_iterable(g.colors() for g in color_glyphs)
         if not c.is_current_color()
     )
-    # Sort colors so the index into colors == index into CPAL palette.
-    # Try to keep the original palette entry index if present.
-    iter_colors_without_index = iter(sorted(c for c in colors if c.index is None))
-    colors_by_index = {}
-    for c in colors:
-        if c.index is not None:
-            color = c.default()
-            if c.index in colors_by_index and colors_by_index[c.index] != color:
-                raise ValueError(
-                    f"Palette entry index {c.index} already used for "
-                    f"{colors_by_index[c.index]}"
-                )
-            colors_by_index[c.index] = color
-    black = Color(0, 0, 0, 1.0)
-    colors = [
-        (
-            colors_by_index[i]
-            if i in colors_by_index
-            else next(iter_colors_without_index, black)
-        )
-        for i in range(max(colors_by_index, default=-1) + 1)
-    ] + list(iter_colors_without_index)
-    logging.debug("colors %s", colors)
 
-    if len(colors) == 0:
-        # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette, so we
-        # add one unused color as workaround.
-        # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
-        colors.append(black)
+    # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette so make sure we have at least one
+    # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
+    if not cpal_colors:
+        cpal_colors = {black}
+
+    # We need enough slots for all the colors, or to reach the max index, whichever is greater
+    cpal_slots = max(len(cpal_colors), max(c.index or -1 for c in cpal_colors))
+
+    # cpal_slots+1 is > the highest index so it will push all unindexed items right
+    # this can be written as a ternary but it's pretty illegible that way
+    def _color_sort_key(c: Color):
+        if c.index is not None:
+            return (c.index,)
+        return (cpal_slots + 1,) + c[:4]
+
+    # Push colors into CPAL, either at their index or at the next open slot
+    cpal_colors = deque(sorted(cpal_colors, key=_color_sort_key))
+    colors = [black] * cpal_slots
+    for i in range(cpal_slots):
+        if i == cpal_colors[0].index:
+            colors[i] = cpal_colors.popleft().default()  # TODO rename default
+        elif cpal_colors[-1].index is None:
+            colors[i] = cpal_colors.pop()
+        # We have more gaps in indices than unindexed items; leave it black
+
+    assert not cpal_colors, f"Should be empty: {cpal_colors}"
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
