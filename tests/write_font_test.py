@@ -17,6 +17,7 @@ import dataclasses
 import enum
 import shutil
 from pathlib import Path
+from textwrap import dedent
 from nanoemoji import write_font
 from nanoemoji.colr import paints_of_type
 from nanoemoji.config import _DEFAULT_CONFIG
@@ -624,3 +625,25 @@ def test_picosvg_colored_notdef():
     assert ttfont["SVG "].docList[1].endGlyphID == 2
     assert ttfont["SVG "].docList[2].endGlyphID == 3
     assert ttfont["SVG "].docList[2].endGlyphID == 3
+
+
+def test_colr_keep_cpal_palette_entry_indices():
+    # if input svg contains colors using var(--color{index}) referencing CPAL
+    # palette entries, we keep the original indices unchanged when building CPAL
+    # (so we can glue together COLR + OT-SVG both using the same CPAL palettes)
+    config, glyph_inputs = test_helper.color_font_config(
+        {"color_format": "glyf_colr_1"}, ("cpal_color_indices.svg",)
+    )
+    _, ttfont = write_font._generate_color_font(config, glyph_inputs)
+    ttfont = test_helper.reload_font(ttfont)
+
+    assert len(ttfont["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord) == 1
+    assert len(ttfont["CPAL"].palettes) == 1
+    # check that color entries are sorted by their original palette entry index
+    # instead of by numerical values of RGBA tuples
+    assert [c.hex() for c in ttfont["CPAL"].palettes[0]] == [
+        "#FF0000FF",  # red was var(--color0)
+        "#00FF00FF",  # 'lime' had no var(--color), implicitly placed in empty slot
+        "#0000FFFF",  # blue was var(--color2)
+        "#FFFFFFFF",  # white had no var(--color), no empty slots, appended at the end
+    ]
