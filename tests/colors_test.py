@@ -37,6 +37,9 @@ import pytest
         ("#00A1DE\n", Color(0, 161, 222, 1.0)),
         # 'currentColor' is a special keyword
         ("currentColor", Color(-1, -1, -1, 1.0)),
+        # CSS variables for CPAL palette entry indices
+        ("var(--color0, red)", Color(255, 0, 0, 1.0, index=0)),
+        ("var(--color123, #ABCDEF)", Color(0xAB, 0xCD, 0xEF, 1.0, index=123)),
     ],
 )
 def test_color_fromstring(color_string, expected_color):
@@ -58,7 +61,28 @@ def test_color_fromstring(color_string, expected_color):
         (Color(0xF5, 0xDE, 0xB3, 0.4), "#F5DEB366"),
         # special sentinel value that stands for 'currentColor' keyword
         (Color(-1, -1, -1, 1.0), "currentColor"),
+        # CSS var(--color{index]) when index is not None
+        (Color(255, 0, 0, 1.0, index=0), "var(--color0, red)"),
+        (Color(0xAB, 0xCD, 0xEF, 1.0, index=123), "var(--color123, #ABCDEF)"),
     ],
 )
 def test_color_to_string(color, expected_string):
     assert expected_string == color.to_string()
+
+
+def test_color_like_namedtuple():
+    color = Color(0x00, 0x11, 0x22, 1.0, index=4)
+
+    assert color.red == color[0] == 0x00
+    assert color.green == color[1] == 0x11
+    assert color.blue == color[2] == 0x22
+    assert color.alpha == color[3] == 1.0
+    assert color.index == color[4] == 4
+
+    assert len(color) == 5
+
+    assert tuple(color) == (0x00, 0x11, 0x22, 1.0, 4)
+
+    assert color[:3] == (0x00, 0x11, 0x22)
+
+    assert color._replace(index=5) == Color(0x00, 0x11, 0x22, 1.0, 5)
