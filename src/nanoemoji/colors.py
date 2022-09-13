@@ -194,7 +194,7 @@ class Color(Sequence):
     green: int
     blue: int
     alpha: float = 1.0
-    index: Optional[int] = None
+    palette_index: Optional[int] = None
 
     # the default color is optional but for now we require one for simplicity
     _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
@@ -221,10 +221,10 @@ class Color(Sequence):
         # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#color-palettes
         m = cls._COLOR_VARIABLE_RE.match(s)
         if m:
-            palette_entry_index = int(m.group(1))
+            palette_index = int(m.group(1))
             default_color = m.group(2)
             tmp = cls.fromstring(default_color, alpha=alpha)
-            return tmp._replace(index=palette_entry_index)
+            return tmp._replace(palette_index=palette_index)
 
         if s == "currentColor":
             # For the 'currentColor' special keyword, we return a sentinel value (with
@@ -277,8 +277,8 @@ class Color(Sequence):
 
     def to_string(self) -> str:
         # A CSS or SVG friendly string
-        if self.index is not None:
-            return f"var(--color{self.index}, {self.default().to_string()})"
+        if self.palette_index is not None:
+            return f"var(--color{self.palette_index}, {self.without_palette_index().to_string()})"
 
         if self.is_current_color():
             if self.alpha != 1.0:
@@ -302,12 +302,12 @@ class Color(Sequence):
     def is_current_color(self):
         return self[:3] == self.current_color()[:3]
 
-    def default(self) -> "Color":
-        if self.index is None:
+    def without_palette_index(self) -> "Color":
+        if self.palette_index is None:
             return self
-        return self._replace(index=None)
+        return self._replace(palette_index=None)
 
-    def palette_index(self, palette: Sequence["Color"]) -> int:
+    def index_from(self, palette: Sequence["Color"]) -> int:
         if self.is_current_color():
             return 0xFFFF
         return palette.index(self)
@@ -331,13 +331,13 @@ def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
     # Check that color palette entry indices unambiguously map to only one color
     indexed_colors = {}
     for color in all_colors:
-        if color.index is not None:
-            if color.index in indexed_colors:
+        if color.palette_index is not None:
+            if color.palette_index in indexed_colors:
                 raise ValueError(
-                    f"Palette entry {color.index} already maps to "
-                    f"{indexed_colors[color.index]}; can't also map to {color}"
+                    f"Palette entry {color.palette_index} already maps to "
+                    f"{indexed_colors[color.palette_index]}; can't also map to {color}"
                 )
-            indexed_colors[color.index] = color
+            indexed_colors[color.palette_index] = color
 
     # We need enough slots for all the colors, or to reach the max index, whichever is greater
     cpal_slots = max(len(all_colors), max(indexed_colors, default=-1) + 1)
@@ -345,8 +345,8 @@ def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
     # cpal_slots is > the highest index so it will push all unindexed items right
     # this can be written as a ternary but it's pretty illegible that way
     def _color_sort_key(c: Color):
-        if c.index is not None:
-            return (c.index,)
+        if c.palette_index is not None:
+            return (c.palette_index,)
         # negate value of colors so when we popright we get them in ascending order
         return (cpal_slots,) + tuple(-v for v in c[:4])
 
@@ -354,9 +354,9 @@ def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
     cpal_colors = deque(sorted(all_colors, key=_color_sort_key))
     result = [black] * cpal_slots
     for i in range(cpal_slots):
-        if i == cpal_colors[0].index:
+        if i == cpal_colors[0].palette_index:
             result[i] = cpal_colors.popleft()
-        elif cpal_colors[-1].index is None:
+        elif cpal_colors[-1].palette_index is None:
             result[i] = cpal_colors.pop()
         # We have more gaps in indices than unindexed items; leave it black
 

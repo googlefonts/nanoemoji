@@ -121,7 +121,7 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
         green=cpal_color.green,
         blue=cpal_color.blue,
         alpha=alpha * cpal_color.alpha / 255,
-        index=palette_index if len(ttfont["CPAL"].palettes) > 1 else None,
+        palette_index=palette_index if len(ttfont["CPAL"].palettes) > 1 else None,
     )
 
 

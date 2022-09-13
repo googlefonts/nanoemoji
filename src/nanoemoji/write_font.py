@@ -473,7 +473,7 @@ def _colr0_layers(color_glyph: ColorGlyph, root: Paint, palette: Sequence[Color]
                 color_glyph, paint_glyph, context.transform
             ).name
 
-        layers.append((glyph_name, color.palette_index(palette)))
+        layers.append((glyph_name, color.index_from(palette)))
     return layers
 
 
