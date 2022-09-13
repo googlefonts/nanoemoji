@@ -592,7 +592,7 @@ def _colr_ufo(
         cpal_colors = {black}
 
     # We need enough slots for all the colors, or to reach the max index, whichever is greater
-    cpal_slots = max(len(cpal_colors), max(c.index or -1 for c in cpal_colors))
+    cpal_slots = max(len(cpal_colors), max(c.index or -1 for c in cpal_colors) + 1)
 
     # cpal_slots+1 is > the highest index so it will push all unindexed items right
     # this can be written as a ternary but it's pretty illegible that way
