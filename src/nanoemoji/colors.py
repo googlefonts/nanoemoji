@@ -196,8 +196,6 @@ class Color(Sequence):
     alpha: float = 1.0
     index: Optional[int] = None
 
-    _CURRENT_COLOR: ClassVar[Tuple[int, int, int]] = (-1, -1, -1)
-
     # the default color is optional but for now we require one for simplicity
     _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
         r"var\s*\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
@@ -233,7 +231,7 @@ class Color(Sequence):
             # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
             # CPAL color palette index.
             # https://docs.microsoft.com/en-us/typography/opentype/spec/SVG#colors
-            return cls(*cls._CURRENT_COLOR, alpha=alpha)
+            return cls.current_color(alpha=alpha)
         if s.startswith("#"):
             # https://www.w3.org/TR/css-color-4/#hex-notation
             ss = s[1:]
@@ -296,8 +294,13 @@ class Color(Sequence):
                 string += f"{int(self.alpha * 255):02X}"
         return string
 
+    @classmethod
+    def current_color(cls, alpha=alpha) -> "Color":
+        # sentinel value for "currentColor" (text foreground color)
+        return cls(-1, -1, -1, alpha=alpha)
+
     def is_current_color(self):
-        return self[:3] == self._CURRENT_COLOR
+        return self[:3] == self.current_color()[:3]
 
     def default(self) -> "Color":
         if self.index is None:
