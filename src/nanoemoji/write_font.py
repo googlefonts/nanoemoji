@@ -599,7 +599,8 @@ def _colr_ufo(
     def _color_sort_key(c: Color):
         if c.index is not None:
             return (c.index,)
-        return (cpal_slots + 1,) + c[:4]
+        # negate value of colors so when we popright we get them in ascending order
+        return (cpal_slots + 1,) + tuple(-v for v in c[:4])
 
     # Push colors into CPAL, either at their index or at the next open slot
     cpal_colors = deque(sorted(cpal_colors, key=_color_sort_key))
