@@ -200,7 +200,7 @@ class Color(Sequence):
 
     # the default color is optional but for now we require one for simplicity
     _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
-        r"var\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
+        r"var\s*\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
     )
 
     def __getitem__(self, i):

@@ -40,6 +40,8 @@ import pytest
         # CSS variables for CPAL palette entry indices
         ("var(--color0, red)", Color(255, 0, 0, 1.0, index=0)),
         ("var(--color123, #ABCDEF)", Color(0xAB, 0xCD, 0xEF, 1.0, index=123)),
+        # CSS variables with funky whitespace
+        ("  var\t  ( --color1 ,   yellow ) ", Color(255, 255, 0, 1.0, index=1)),
     ],
 )
 def test_color_fromstring(color_string, expected_color):
