@@ -18,7 +18,7 @@
 from absl import app
 from absl import flags
 from absl import logging
-from collections import deque, Counter
+from collections import Counter
 import csv
 import dataclasses
 import enum
@@ -33,7 +33,7 @@ from itertools import chain
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.bitmap_tables import make_cbdt_table, make_sbix_table
 from nanoemoji import codepoints, config, glyphmap
-from nanoemoji.colors import Color
+from nanoemoji.colors import Color, uniq_sort_cpal_colors
 from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.fixed import fixed_safe
@@ -580,39 +580,14 @@ def _colr_ufo(
 
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
-    cpal_colors = set(
-        c if colr_version == 0 else c.opaque()
-        for c in chain.from_iterable(g.colors() for g in color_glyphs)
-        if not c.is_current_color()
+    colors = uniq_sort_cpal_colors(
+        (
+            c if colr_version == 0 else c.opaque()
+            for c in chain.from_iterable(g.colors() for g in color_glyphs)
+            if not c.is_current_color()
+        )
     )
-
-    # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette so make sure we have at least one
-    # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
-    if not cpal_colors:
-        cpal_colors = {black}
-
-    # We need enough slots for all the colors, or to reach the max index, whichever is greater
-    cpal_slots = max(len(cpal_colors), max(c.index or -1 for c in cpal_colors) + 1)
-
-    # cpal_slots+1 is > the highest index so it will push all unindexed items right
-    # this can be written as a ternary but it's pretty illegible that way
-    def _color_sort_key(c: Color):
-        if c.index is not None:
-            return (c.index,)
-        # negate value of colors so when we popright we get them in ascending order
-        return (cpal_slots + 1,) + tuple(-v for v in c[:4])
-
-    # Push colors into CPAL, either at their index or at the next open slot
-    cpal_colors = deque(sorted(cpal_colors, key=_color_sort_key))
-    colors = [black] * cpal_slots
-    for i in range(cpal_slots):
-        if i == cpal_colors[0].index:
-            colors[i] = cpal_colors.popleft().default()  # TODO rename default
-        elif cpal_colors[-1].index is None:
-            colors[i] = cpal_colors.pop()
-        # We have more gaps in indices than unindexed items; leave it black
-
-    assert not cpal_colors, f"Should be empty: {cpal_colors}"
+    logging.debug("colors %s", colors)
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]

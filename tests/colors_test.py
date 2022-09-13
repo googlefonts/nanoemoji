@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nanoemoji.colors import Color
+from nanoemoji.colors import Color, uniq_sort_cpal_colors
 import pytest
 
 
@@ -86,3 +86,62 @@ def test_color_like_namedtuple():
     assert color[:3] == (0x00, 0x11, 0x22)
 
     assert color._replace(index=5) == Color(0x00, 0x11, 0x22, 1.0, 5)
+
+
+@pytest.mark.parametrize(
+    "colors, expected",
+    [
+        # empty CPAL is filled with no-op color, or else Chrome rejects it
+        pytest.param([], [Color(0, 0, 0, 1.0)], id="empty"),
+        # colors with explicit index are sorted accordingly
+        pytest.param(
+            [Color(255, 0, 0, 1.0, index=1), Color(0, 255, 0, 1.0, index=0)],
+            [Color(0, 255, 0, 1.0, index=0), Color(255, 0, 0, 1.0, index=1)],
+            id="keep-orig-index",
+        ),
+        # same color can appear with different indices (not viceversa)
+        pytest.param(
+            [Color(255, 0, 0, 1.0, index=0), Color(255, 0, 0, 1.0, index=1)],
+            [Color(255, 0, 0, 1.0, index=0), Color(255, 0, 0, 1.0, index=1)],
+            id="no-dedup-indexed",
+        ),
+        # duplicate unindexed colors are made unique
+        pytest.param(
+            [Color(255, 0, 0, 1.0), Color(255, 0, 0, 1.0)],
+            [Color(255, 0, 0, 1.0)],
+            id="dedup-unindexed",
+        ),
+        # unindexed colors are placed in empty slots, sorted by > RGBA
+        pytest.param(
+            [
+                Color(0, 0, 0, 1.0, index=1),
+                Color(0xFF, 0xFF, 0xFF, 1.0, index=3),
+                Color(2, 2, 2, 1.0),
+                Color(1, 1, 1, 1.0),
+                Color(3, 3, 3, 1.0),
+            ],
+            [
+                Color(1, 1, 1, 1.0),
+                Color(0, 0, 0, 1.0, index=1),
+                Color(2, 2, 2, 1.0),
+                Color(0xFF, 0xFF, 0xFF, 1.0, index=3),
+                Color(3, 3, 3, 1.0),
+            ],
+            id="fill-empty-slots",
+        ),
+    ],
+)
+def test_uniq_sort_cpal_colors(colors, expected):
+    assert uniq_sort_cpal_colors(colors) == expected
+
+
+def test_uniq_sort_cpal_colors_ambiguous_indices():
+    with pytest.raises(ValueError, match="Palette entry 1 already maps to"):
+        uniq_sort_cpal_colors(
+            [
+                Color(0, 0, 0, 1.0, index=0),
+                Color(0x80, 0, 0, 1.0, index=1),
+                Color(0, 0, 0, 1.0, index=0),
+                Color(0, 0x80, 0, 1.0, index=1),
+            ]
+        )

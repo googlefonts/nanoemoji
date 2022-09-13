@@ -14,7 +14,9 @@
 
 import dataclasses
 import re
-from typing import ClassVar, Optional, Sequence, Tuple
+from collections import deque
+from itertools import groupby
+from typing import ClassVar, Iterable, List, Optional, Sequence, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -305,4 +307,56 @@ class Color(Sequence):
     def palette_index(self, palette: Sequence["Color"]) -> int:
         if self.is_current_color():
             return 0xFFFF
-        return palette.index(self.default())
+        return palette.index(self)
+
+
+def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
+    """Return list of unique colors sorted by CPAL palette entry index.
+
+    Keep colors with explicit index in the original position, and place the unindexed
+    colors in the empty slots or after the indexed ones, sorted by > RGBA value.
+    """
+    black = Color.fromstring("black")
+    all_colors = set(colors)
+
+    # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette so make sure we
+    # have at least one
+    # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
+    if not all_colors:
+        all_colors = {black}
+
+    # Check that color palette entry indices unambiguously map to only one color
+    indexed_colors = {}
+    for color in all_colors:
+        if color.index is not None:
+            if color.index in indexed_colors:
+                raise ValueError(
+                    f"Palette entry {color.index} already maps to "
+                    f"{indexed_colors[color.index]}; can't also map to {color}"
+                )
+            indexed_colors[color.index] = color
+
+    # We need enough slots for all the colors, or to reach the max index, whichever is greater
+    cpal_slots = max(len(all_colors), max(indexed_colors, default=-1) + 1)
+
+    # cpal_slots is > the highest index so it will push all unindexed items right
+    # this can be written as a ternary but it's pretty illegible that way
+    def _color_sort_key(c: Color):
+        if c.index is not None:
+            return (c.index,)
+        # negate value of colors so when we popright we get them in ascending order
+        return (cpal_slots,) + tuple(-v for v in c[:4])
+
+    # Push colors into CPAL, either at their index or at the next open slot
+    cpal_colors = deque(sorted(all_colors, key=_color_sort_key))
+    result = [black] * cpal_slots
+    for i in range(cpal_slots):
+        if i == cpal_colors[0].index:
+            result[i] = cpal_colors.popleft()
+        elif cpal_colors[-1].index is None:
+            result[i] = cpal_colors.pop()
+        # We have more gaps in indices than unindexed items; leave it black
+
+    assert not cpal_colors, f"Should be empty: {cpal_colors}"
+
+    return result
