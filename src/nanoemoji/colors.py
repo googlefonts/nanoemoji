@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
-from typing import Optional, Sequence, Tuple
+import dataclasses
+import re
+from collections import deque
+from typing import ClassVar, Iterable, List, Optional, Sequence, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -185,20 +187,52 @@ def color_name(rgb) -> Optional[str]:
     return None
 
 
-class Color(collections.namedtuple("Color", "red green blue alpha")):
-    _CURRENT_COLOR = (-1, -1, -1)
+@dataclasses.dataclass(frozen=True, order=True)
+class Color(Sequence):
+    red: int
+    green: int
+    blue: int
+    alpha: float = 1.0
+    palette_index: Optional[int] = None
+
+    # the default color is optional but for now we require one for simplicity
+    _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
+        r"var\s*\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
+    )
+
+    def __getitem__(self, i):
+        fields = dataclasses.fields(self)
+        if isinstance(i, slice):
+            return tuple(getattr(self, f.name) for f in fields[i])
+        return getattr(self, fields[i].name)
+
+    def __len__(self):
+        return len(dataclasses.fields(self))
+
+    def _replace(self, **kwargs):
+        return dataclasses.replace(self, **kwargs)
 
     @classmethod
-    def fromstring(cls, s, alpha=1.0) -> "Color":
-        # https://www.w3.org/TR/css-color-4/#hex-notation
+    def fromstring(cls, s: str, alpha: float = 1.0) -> "Color":
         s = s.strip()
+
+        # CSS variables referencing palette entries as custom properties:
+        # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#color-palettes
+        m = cls._COLOR_VARIABLE_RE.match(s)
+        if m:
+            palette_index = int(m.group(1))
+            default_color = m.group(2)
+            tmp = cls.fromstring(default_color, alpha=alpha)
+            return tmp._replace(palette_index=palette_index)
+
         if s == "currentColor":
             # For the 'currentColor' special keyword, we return a sentinel value (with
             # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
             # CPAL color palette index.
             # https://docs.microsoft.com/en-us/typography/opentype/spec/SVG#colors
-            return cls(*cls._CURRENT_COLOR, alpha=alpha)
+            return cls.current_color(alpha=alpha)
         if s.startswith("#"):
+            # https://www.w3.org/TR/css-color-4/#hex-notation
             ss = s[1:]
             if len(ss) in (3, 4):
                 ss = "".join((s + s for s in ss))
@@ -242,6 +276,9 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
 
     def to_string(self) -> str:
         # A CSS or SVG friendly string
+        if self.palette_index is not None:
+            return f"var(--color{self.palette_index}, {self.without_palette_index().to_string()})"
+
         if self.is_current_color():
             if self.alpha != 1.0:
                 raise ValueError("'currentColor' can't encode alpha != 1.0")
@@ -256,10 +293,72 @@ class Color(collections.namedtuple("Color", "red green blue alpha")):
                 string += f"{int(self.alpha * 255):02X}"
         return string
 
-    def is_current_color(self):
-        return self[:3] == self._CURRENT_COLOR
+    @classmethod
+    def current_color(cls, alpha=alpha) -> "Color":
+        # sentinel value for "currentColor" (text foreground color)
+        return cls(-1, -1, -1, alpha=alpha)
 
-    def palette_index(self, palette: Sequence["Color"]) -> int:
+    def is_current_color(self):
+        return self[:3] == self.current_color()[:3]
+
+    def without_palette_index(self) -> "Color":
+        if self.palette_index is None:
+            return self
+        return self._replace(palette_index=None)
+
+    def index_from(self, palette: Sequence["Color"]) -> int:
         if self.is_current_color():
             return 0xFFFF
         return palette.index(self)
+
+
+def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
+    """Return list of unique colors sorted by CPAL palette entry index.
+
+    Keep colors with explicit index in the original position, and place the unindexed
+    colors in the empty slots or after the indexed ones, sorted by > RGBA value.
+    """
+    black = Color.fromstring("black")
+    all_colors = set(colors)
+
+    # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette so make sure we
+    # have at least one
+    # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
+    if not all_colors:
+        all_colors = {black}
+
+    # Check that color palette entry indices unambiguously map to only one color
+    indexed_colors = {}
+    for color in all_colors:
+        if color.palette_index is not None:
+            if color.palette_index in indexed_colors:
+                raise ValueError(
+                    f"Palette entry {color.palette_index} already maps to "
+                    f"{indexed_colors[color.palette_index]}; can't also map to {color}"
+                )
+            indexed_colors[color.palette_index] = color
+
+    # We need enough slots for all the colors, or to reach the max index, whichever is greater
+    cpal_slots = max(len(all_colors), max(indexed_colors, default=-1) + 1)
+
+    # cpal_slots is > the highest index so it will push all unindexed items right
+    # this can be written as a ternary but it's pretty illegible that way
+    def _color_sort_key(c: Color):
+        if c.palette_index is not None:
+            return (c.palette_index,)
+        # negate value of colors so when we popright we get them in ascending order
+        return (cpal_slots,) + tuple(-v for v in c[:4])
+
+    # Push colors into CPAL, either at their index or at the next open slot
+    cpal_colors = deque(sorted(all_colors, key=_color_sort_key))
+    result = [black] * cpal_slots
+    for i in range(cpal_slots):
+        if i == cpal_colors[0].palette_index:
+            result[i] = cpal_colors.popleft()
+        elif cpal_colors[-1].palette_index is None:
+            result[i] = cpal_colors.pop()
+        # We have more gaps in indices than unindexed items; leave it black
+
+    assert not cpal_colors, f"Should be empty: {cpal_colors}"
+
+    return result

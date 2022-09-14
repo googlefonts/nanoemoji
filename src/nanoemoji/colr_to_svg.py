@@ -82,7 +82,7 @@ def _svg_root(view_box: Rect) -> etree.Element:
 
 def _draw_svg_path(
     svg_path: etree.Element,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     glyph_name: str,
     font_to_vbox: Affine2D,
 ):
@@ -97,7 +97,8 @@ def _draw_svg_path(
     svg_path.attrib["d"] = svg_pen.path.d
 
 
-def _first_cpal_palette(ttfont: ttLib.TTFont) -> List[C_P_A_L_.Color]:
+def _default_cpal_palette(ttfont: ttLib.TTFont) -> List[C_P_A_L_.Color]:
+    # Return the first palette as the default
     try:
         return ttfont["CPAL"].palettes[0]
     except KeyError:
@@ -110,10 +111,7 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
     if palette_index == _FOREGROUND_COLOR_INDEX:
         return colors.Color.fromstring("currentColor", alpha=alpha)
 
-    # Only take the first palette for now:
-    # https://github.com/googlefonts/nanoemoji/issues/421
-    # TODO: Support multiple palettes
-    palette = _first_cpal_palette(ttfont)
+    palette = _default_cpal_palette(ttfont)
 
     if palette_index >= len(palette):
         raise IndexError(f"{palette_index} illegal in palette of {len(palette)}")
@@ -123,6 +121,7 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
         green=cpal_color.green,
         blue=cpal_color.blue,
         alpha=alpha * cpal_color.alpha / 255,
+        palette_index=palette_index if len(ttfont["CPAL"].palettes) > 1 else None,
     )
 
 
@@ -196,7 +195,7 @@ def _apply_gradient_ot_paint(
 
 def _colr_v0_glyph_to_svg(
     ttfont: ttLib.TTFont,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     view_box_callback: ViewboxCallback,
     glyph_name: str,
 ) -> etree.Element:
@@ -346,7 +345,7 @@ def _view_box_and_transform(
 
 def _colr_v1_glyph_to_svg(
     ttfont: ttLib.TTFont,
-    glyph_set: ttLib.ttFont._TTGlyphSet,
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     view_box_callback: ViewboxCallback,
     glyph: otTables.BaseGlyphRecord,
 ) -> etree.Element:
@@ -414,11 +413,6 @@ def colr_to_svg(
     rounding_ndigits: Optional[int] = None,
 ) -> Dict[str, SVG]:
     """For testing only, don't use for real!"""
-    if "CPAL" in ttfont and len(ttfont["CPAL"].palettes) > 1:
-        logging.warning(
-            "Multiple CPAL palettes are not supported! Only using the first"
-        )
-
     colr_version = ttfont["COLR"].version
     if colr_version == 0:
         svgs = _colr_v0_to_svgs(view_box_callback, ttfont)

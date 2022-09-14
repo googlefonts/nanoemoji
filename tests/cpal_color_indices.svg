@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs/>
+  <path fill="var(--color0, #FF0000)" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+  <path fill="var(--color2, #0000FF)" d="M20,20 L80,20 L80,80 L20,80 Z"/>
+  <path fill="#00FF00" d="M30,30 L70,30 L70,70 L30,70 Z"/>
+  <path fill="#FFFFFF" d="M40,40 L60,40 L60,60 L40,60 Z"/>
+  <path fill="#FF0000" d="M45,45 L55,45 L55,55 L45,55 Z"/>
+</svg>

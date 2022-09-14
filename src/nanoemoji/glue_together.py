@@ -71,7 +71,12 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
 
     target.setGlyphOrder(target.getGlyphOrder() + glyphs_to_copy)
 
-    target["CPAL"] = donor["CPAL"]
+    if "CPAL" not in target:
+        target["CPAL"] = donor["CPAL"]
+    else:
+        # update the target's default palette (index=0) but leave others alone
+        assert len(donor["CPAL"].palettes) == 1
+        target["CPAL"].palettes[0] = donor["CPAL"].palettes[0]
     target["COLR"] = donor["COLR"]
 
 

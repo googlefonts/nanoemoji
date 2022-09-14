@@ -33,7 +33,7 @@ from itertools import chain
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.bitmap_tables import make_cbdt_table, make_sbix_table
 from nanoemoji import codepoints, config, glyphmap
-from nanoemoji.colors import Color
+from nanoemoji.colors import Color, uniq_sort_cpal_colors
 from nanoemoji.config import FontConfig
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.fixed import fixed_safe
@@ -473,7 +473,7 @@ def _colr0_layers(color_glyph: ColorGlyph, root: Paint, palette: Sequence[Color]
                 color_glyph, paint_glyph, context.transform
             ).name
 
-        layers.append((glyph_name, color.palette_index(palette)))
+        layers.append((glyph_name, color.index_from(palette)))
     return layers
 
 
@@ -573,26 +573,21 @@ def _colr_ufo(
     ufo: ufoLib2.Font,
     color_glyphs: Tuple[ColorGlyph, ...],
 ):
+    black = Color(0, 0, 0, 1.0)
+
     # We want to mutate our view of color glyphs
     color_glyphs = list(color_glyphs)
 
-    # Sort colors so the index into colors == index into CPAL palette.
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
-    colors = sorted(
-        set(
+    colors = uniq_sort_cpal_colors(
+        (
             c if colr_version == 0 else c.opaque()
             for c in chain.from_iterable(g.colors() for g in color_glyphs)
             if not c.is_current_color()
         )
     )
     logging.debug("colors %s", colors)
-
-    if len(colors) == 0:
-        # Chrome 98 doesn't like when COLRv1 font has empty CPAL palette, so we
-        # add one unused color as workaround.
-        # TODO(anthrotype): File a bug and remove hack once the bug is fixed upstream
-        colors.append(Color(0, 0, 0, 1.0))
 
     # KISS; use a single global palette
     ufo.lib[ufo2ft.constants.COLOR_PALETTES_KEY] = [[c.to_ufo_color() for c in colors]]
