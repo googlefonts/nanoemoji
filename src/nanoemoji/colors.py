@@ -15,7 +15,6 @@
 import dataclasses
 import re
 from collections import deque
-from itertools import groupby
 from typing import ClassVar, Iterable, List, Optional, Sequence, Tuple
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
