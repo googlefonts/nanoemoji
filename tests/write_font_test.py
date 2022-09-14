@@ -645,5 +645,6 @@ def test_colr_keep_cpal_palette_entry_indices():
         "#FF0000FF",  # red was var(--color0)
         "#00FF00FF",  # 'lime' had no var(--color), implicitly placed in empty slot
         "#0000FFFF",  # blue was var(--color2)
+        "#FF0000FF",  # same as #0 but no explicit index; placed in unindexed slot
         "#FFFFFFFF",  # white had no var(--color), no empty slots, appended at the end
     ]

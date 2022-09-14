@@ -143,6 +143,20 @@ def test_color_like_namedtuple():
             ],
             id="fill-empty-slots",
         ),
+        # unindexed color are never conflated with those with an explicit index
+        # even if == RGBA value, for selecting a different palette should not
+        # inadvertently affect colors that weren't explicitly assigned an index
+        pytest.param(
+            [
+                Color(0xFF, 0, 0, 1.0),
+                Color(0xFF, 0, 0, 1.0, palette_index=0),
+            ],
+            [
+                Color(0xFF, 0, 0, 1.0, palette_index=0),
+                Color(0xFF, 0, 0, 1.0),
+            ],
+            id="keep-unindexed-distinct",
+        ),
     ],
 )
 def test_uniq_sort_cpal_colors(colors, expected):
