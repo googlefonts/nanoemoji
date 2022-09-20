@@ -440,10 +440,16 @@ def _run(argv):
         input_file.resolve() != (build_dir() / final_output).resolve()
     ), "In == Out is bad"
 
+    color_table = _vector_color_table(font)
+    if color_table == "COLR" and font["COLR"].version == 0:
+        logging.info(
+            f"Font has colr v0 table which is widely supported in most "
+            "browsers so the font does not require an SVG color table."
+            )
+        return
+
     build_file = build_dir() / "build.ninja"
     build_dir().mkdir(parents=True, exist_ok=True)
-
-    color_table = _vector_color_table(font)
 
     if gen_ninja():
         logging.info(f"Generating {build_file.relative_to(build_dir())}")
