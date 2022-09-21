@@ -43,7 +43,7 @@ from nanoemoji.ninja import (
 )
 from nanoemoji.util import only
 from pathlib import Path
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 
 FLAGS = flags.FLAGS
@@ -59,6 +59,13 @@ flags.DEFINE_bool(
     False,
     "If true, generate a bitmap table (specificaly CBDT)",
 )
+flags.DEFINE_integer(
+    "colr_version",
+    1,
+    "COLR table version to generate",
+    lower_bound=0,
+    upper_bound=1,
+)
 
 
 # attribute names need to match inputs to write_font rule
@@ -69,26 +76,43 @@ class WriteFontInputs(NamedTuple):
 
     @property
     def table_tag(self) -> str:
-        return f"{Path(self.glyphmap_file).stem:4}"
+        basename = Path(self.glyphmap_file).stem
+        table_tag, _, _ = basename.partition("_")
+        return f"{table_tag:4}"
+
+    @property
+    def table_version(self) -> Optional[int]:
+        basename = Path(self.glyphmap_file).stem
+        _, _, version = basename.partition("_")
+        return int(version) if version else None
 
     @property
     def color_format(self) -> str:
         identifier = self.table_tag.strip().lower()
+        table_version = self.table_version
 
         if identifier == "svg":
             # for good woff2 performance, at cost of inflated size
             return "picosvg"
         elif identifier == "colr":
             # optimize for woff2 performance
-            return "glyf_colr_1"
+            if table_version not in (0, 1):
+                raise ValueError(
+                    f"Invalid COLR version, expected 0 or 1, got {table_version}"
+                )
+            return f"glyf_colr_{table_version}"
         elif identifier == "cbdt":
             return "cbdt"
         else:
             raise ValueError(f"What is {identifier}?!")
 
     @classmethod
-    def for_tag(cls, table_tag: str) -> "WriteFontInputs":
+    def for_tag(
+        cls, table_tag: str, table_version: Optional[int] = None
+    ) -> "WriteFontInputs":
         basename = table_tag.strip()
+        if table_version is not None:
+            basename += f"_{table_version}"
         return cls(
             Path(basename + ".glyphmap"),
             Path(basename + ".toml"),
@@ -296,8 +320,9 @@ def _generate_additional_color_table(
     glyphmap_inputs: List[Path],
     table_tag: str,
     glue_target: Path,
+    table_version: Optional[int] = None,
 ) -> Path:
-    write_font_inputs = WriteFontInputs.for_tag(table_tag)
+    write_font_inputs = WriteFontInputs.for_tag(table_tag, table_version)
     identifier = write_font_inputs.color_format
     del table_tag
 
@@ -363,6 +388,7 @@ def _generate_colr_from_svg(
     font_config: config.FontConfig,
     input_font: Path,
     font: ttLib.TTFont,
+    colr_version: int,
 ) -> Tuple[Path, List[Path]]:
     # extract the svgs
     svg_files = [
@@ -376,7 +402,12 @@ def _generate_colr_from_svg(
     part_file = _part_file(nw, font_config, picosvgs)
 
     output_file = _generate_additional_color_table(
-        nw, input_font, picosvgs + [input_font], "COLR", input_font
+        nw,
+        input_font,
+        picosvgs + [input_font],
+        "COLR",
+        input_font,
+        table_version=colr_version,
     )
     return output_file, picosvgs
 
@@ -460,7 +491,7 @@ def _run(argv):
                 )
             else:
                 wip_file, picosvg_files = _generate_colr_from_svg(
-                    nw, font_config, wip_file, font
+                    nw, font_config, wip_file, font, FLAGS.colr_version
                 )
 
             if FLAGS.bitmaps:
