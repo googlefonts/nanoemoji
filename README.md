@@ -49,9 +49,14 @@ The intended result is a font that will Just Work in any modern browser:
 | SVG | Firefox, Safari | |
 | CBDT | Chrome <98 | Only generated if you pass `--bitmaps` to `maximum_color`|
 
-Note that at time of writing Chrome 98+ prefers CBDT to COLR. Also CBDT is
-huge. So ... maybe take the resulting font and subset it per-browser if at
+Note that at time of writing Chrome 98+ prefers CBDT to COLR. Same for any environment,
+such as Android, that relies on Skia, which in turns depends on FreeType to parse color
+tables (cf. [Skia's issue 12945][skia-12945] and [FreeType's issue 1142][ft-1142]).
+Also CBDT is huge. So ... maybe take the resulting font and subset it per-browser if at
 all possible. Wouldn't it be nice if Google Fonts did that for you?
+
+[skia-12945]: https://bugs.chromium.org/p/skia/issues/detail?id=12945
+[ft-1142]: https://gitlab.freedesktop.org/freetype/freetype/-/issues/1142
 
 ## Releasing
 
