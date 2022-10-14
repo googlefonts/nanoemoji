@@ -222,3 +222,18 @@ def test_colr_to_svg_with_colored_notdef(tmp_path):
     assert maximum_font["SVG "].docList[0].startGlyphID == 0
     assert maximum_font["SVG "].docList[1].endGlyphID == 2
     assert maximum_font["SVG "].docList[1].endGlyphID == 2
+
+
+def test_colr_to_svg_with_variable_colrv1(tmp_path):
+    # https://github.com/googlefonts/nanoemoji/issues/426
+    initial_font = ttLib.TTFont()
+    # this subset of Foldit only contains space and 'A'
+    initial_font.importXML(locate_test_file("fonts/Foldit.subset.ttx"))
+    initial_font_file = tmp_path / "Foldit.subset.ttf"
+    initial_font.save(initial_font_file)
+
+    maxmium_font_file = _maximize_color(initial_font_file, ())
+
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+
+    assert "SVG " in maximum_font
