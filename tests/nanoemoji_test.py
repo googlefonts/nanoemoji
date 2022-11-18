@@ -415,3 +415,19 @@ def test_glyph_with_zero_advance_width(color_format, tmp_path):
         assert list(cbdt.strikeData[0].keys()) == [gname]
 
     assert font["hmtx"][gname] == (0, 0)
+
+
+@pytest.mark.parametrize("font_type", ["static", "vf"])
+def test_build_output_file_with_spaces(font_type):
+    tmp_dir = run_nanoemoji(
+        (
+            locate_test_file(f"minimal_{font_type}/config.toml"),
+            "--output_file",
+            "Font With Spaces.ttf",
+        )
+    )
+
+    output_file = tmp_dir / "Font With Spaces.ttf"
+    assert output_file.is_file()
+
+    assert "COLR" in TTFont(output_file)
