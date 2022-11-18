@@ -51,6 +51,7 @@ setup(
         "resvg-cli>=0.22.0.post3",
         "zopfli>=0.2.1",
         "pngquant-cli>=2.17.0.post5",
+        "mslex; sys_platform == 'win32'",
     ],
     extras_require=extras_require,
     # this is so we can use the built-in dataclasses module
