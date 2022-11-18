@@ -17,7 +17,7 @@
 
 from absl import flags
 from absl import logging
-from nanoemoji.util import rel
+from nanoemoji.util import rel, quote_if_path
 from ninja import ninja_syntax
 import os
 from pathlib import Path
@@ -63,8 +63,19 @@ class NinjaWriter:
         self._nw.rule(*args, **kwargs)
 
     def build(self, *args, **kwargs):
+        # ninja already shell-quotes paths containing spaces/special characters when
+        # when expanding $in or $out variables in rule commands, however other
+        # user-defined variables are not quoted automatically. So when we pass a path
+        # as a variable, we need to make sure it's correctly quoted. Other string
+        # variables we leave unquoted as they may contain multiple arguments (e.g.
+        # $pngquant_flags).
+        variables = {
+            k: quote_if_path(v) for k, v in kwargs.pop("variables", {}).items()
+        }
         self._nw.build(
-            *_str_paths(args), **{k: _str_paths(v) for k, v in kwargs.items()}
+            *_str_paths(args),
+            **{k: _str_paths(v) for k, v in kwargs.items()},
+            variables=variables,
         )
 
     def newline(self):
