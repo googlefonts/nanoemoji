@@ -64,6 +64,14 @@ def _maximize_color(initial_font_file: Path, additional_flags: Tuple[str, ...]) 
 
 
 @pytest.mark.parametrize(
+    "input_file",
+    [
+        "Font.ttf",
+        # test that we don't crash when filename contains spaces
+        "Color Font.ttf",
+    ],
+)
+@pytest.mark.parametrize(
     "color_format, expected_new_tables",
     [
         ("picosvg", {"COLR", "CPAL"}),
@@ -71,8 +79,11 @@ def _maximize_color(initial_font_file: Path, additional_flags: Tuple[str, ...]) 
     ],
 )
 @pytest.mark.parametrize("bitmaps", [True, False])
-def test_build_maximum_font(color_format, expected_new_tables, bitmaps):
+def test_build_maximum_font(color_format, expected_new_tables, bitmaps, input_file):
     initial_font_file = _build_initial_font(color_format)
+
+    input_file = initial_font_file.parent / input_file
+    initial_font_file.rename(input_file)
 
     bitmap_flag = "--nobitmaps"
     if bitmaps:
@@ -80,9 +91,9 @@ def test_build_maximum_font(color_format, expected_new_tables, bitmaps):
         expected_new_tables = copy.copy(expected_new_tables)
         expected_new_tables.update({"CBDT", "CBLC"})
 
-    maxmium_font_file = _maximize_color(initial_font_file, (bitmap_flag,))
+    maxmium_font_file = _maximize_color(input_file, (bitmap_flag,))
 
-    initial_font = ttLib.TTFont(initial_font_file)
+    initial_font = ttLib.TTFont(input_file)
     maximum_font = ttLib.TTFont(maxmium_font_file)
     assert set(maximum_font.keys()) - set(initial_font.keys()) == expected_new_tables
 

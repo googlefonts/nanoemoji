@@ -25,6 +25,8 @@ from io import BytesIO
 import os
 from pathlib import Path
 import shlex
+import subprocess
+import sys
 from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
 
 
@@ -51,7 +53,7 @@ def expand_ninja_response_files(argv: List[str]) -> List[str]:
         if arg.startswith("@"):
             with open(arg[1:], "r") as rspfile:
                 rspfile_content = rspfile.read()
-            result.extend(shlex.split(rspfile_content, posix=os.name == "posix"))
+            result.extend(shell_split(rspfile_content))
         else:
             result.append(arg)
     return result
@@ -160,3 +162,51 @@ def _traverse_ot_data(
             new_entries.append(path + (subtable_entry,))
 
         add_to_frontier_fn(frontier, new_entries)
+
+
+def shell_quote(s: Union[str, Path]) -> str:
+    """Quote a string or pathlib.Path for use in a shell command."""
+    s = str(s)
+    # shlex.quote() is POSIX-only, for Windows we use subprocess.list2cmdline()
+    # which converts a list of args to a command line string following the
+    # the MS C runtime rules.
+    if sys.platform.startswith("win"):
+        return subprocess.list2cmdline([s])
+    else:
+        return shlex.quote(s)
+
+
+# Python has no cmdline2list() equivalent to list2cmdline(), so we resort to
+# using the MS C runtime's CommandLineToArgvW() function via ctypes.
+if sys.platform.startswith("win"):
+    from ctypes import POINTER, byref, c_int, windll  # type: ignore
+    from ctypes.wintypes import LPCWSTR, LPWSTR, HLOCAL  # type: ignore
+
+    CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+    CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+    CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+    LocalFree = windll.kernel32.LocalFree
+    LocalFree.argtypes = [HLOCAL]
+    LocalFree.restype = HLOCAL
+
+    def shell_split(s: str) -> List[str]:
+        """Split a shell command line into a list of arguments."""
+        argc = c_int(0)
+        # we don't care about argv[0] which is the program name
+        cmdline = "foobar.exe " + s
+        argv = CommandLineToArgvW(cmdline, byref(argc))
+        result = [argv[i] for i in range(1, argc.value)]
+        LocalFree(argv)
+        return result
+
+else:
+
+    def shell_split(s: str) -> List[str]:
+        """Split a shell command line into a list of arguments."""
+        return shlex.split(s, posix=os.name == "posix")
+
+
+def quote_if_path(s: Union[str, Path]) -> str:
+    """Quote pathlib.Path for use in a shell command, keep str as-is."""
+    return shell_quote(s) if isinstance(s, Path) else s
