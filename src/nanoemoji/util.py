@@ -24,13 +24,10 @@ from functools import partial
 from io import BytesIO
 import os
 from pathlib import Path
+import shlex
+import subprocess
 import sys
 from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
-
-if sys.platform == "win32":
-    from mslex import split as shell_split, quote as shell_quote
-else:
-    from shlex import split as shell_split, quote as shell_quote
 
 
 def only(iterable, filter_fn=lambda v: v):
@@ -56,7 +53,7 @@ def expand_ninja_response_files(argv: List[str]) -> List[str]:
         if arg.startswith("@"):
             with open(arg[1:], "r") as rspfile:
                 rspfile_content = rspfile.read()
-            result.extend(shell_split(rspfile_content))
+            result.extend(shlex.split(rspfile_content, posix=os.name == "posix"))
         else:
             result.append(arg)
     return result
@@ -167,6 +164,18 @@ def _traverse_ot_data(
         add_to_frontier_fn(frontier, new_entries)
 
 
+def quote(s: Union[str, Path]) -> str:
+    """Quote a string or pathlib.Path for use in a shell command."""
+    s = str(s)
+    # shlex.quote() is POSIX-only, for Windows we use subprocess.list2cmdline()
+    # which converts a list of args to a command line string following the
+    # the MS C runtime rules.
+    if sys.platform.startswith("win"):
+        return subprocess.list2cmdline([s])
+    else:
+        return shlex.quote(s)
+
+
 def quote_if_path(s: Union[str, Path]) -> str:
     """Quote pathlib.Path for use in a shell command, keep str as-is."""
-    return shell_quote(str(s)) if isinstance(s, Path) else s
+    return quote(s) if isinstance(s, Path) else s

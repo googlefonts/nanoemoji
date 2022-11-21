@@ -43,11 +43,12 @@ from nanoemoji.ninja import (
     rel_build,
     NinjaWriter,
 )
-from nanoemoji.util import fs_root, rel, only, abspath, shell_quote
+from nanoemoji.util import fs_root, rel, only, abspath
 import os
 from pathlib import Path
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -154,7 +155,7 @@ def _chrome_command() -> str:
     if not validator(cmd):
         raise ValueError(f"Chrome ({cmd}) not found")
 
-    return shell_quote(cmd)
+    return shlex.quote(cmd)
 
 
 def write_preamble(nw):
