@@ -394,7 +394,7 @@ def _generate_cbdt(
         nw.build(bitmap, "write_bitmap", picosvg)
     nw.newline()
 
-    # create and merge a COLR table
+    # create and merge a CBDT table
     output_file = _generate_additional_color_table(
         nw, input_font, picosvg_files + bitmap_files + [input_font], "CBDT", color_font
     )
