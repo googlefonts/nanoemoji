@@ -15,9 +15,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
-        # typed_ast (used by pytype) has a problem when run under 3.9.8, pin to 3.9.7
-        # until resolved: https://github.com/python/typed_ast/issues/169
-        python-version: "3.9.7"
+        python-version: "3.9"
     - name: Install tox
       run: pip install tox
     - name: Run style and typing checks

@@ -98,6 +98,24 @@ def test_build_maximum_font(color_format, expected_new_tables, bitmaps, input_fi
     assert set(maximum_font.keys()) - set(initial_font.keys()) == expected_new_tables
 
 
+@pytest.mark.parametrize("colr_version", [None, 0, 1])
+def test_build_colrv0_from_svg(colr_version):
+    initial_font_file = _build_initial_font("picosvg")
+
+    additional_flags = ()
+    if colr_version is not None:
+        additional_flags = ("--colr_version", str(colr_version))
+
+    maxmium_font_file = _maximize_color(initial_font_file, additional_flags)
+
+    initial_font = ttLib.TTFont(initial_font_file)
+    maximum_font = ttLib.TTFont(maxmium_font_file)
+    assert set(maximum_font.keys()) - set(initial_font.keys()) == {"COLR", "CPAL"}
+
+    expected_version = 1 if colr_version is None else colr_version
+    assert maximum_font["COLR"].version == expected_version
+
+
 @pytest.mark.parametrize("keep_names", [True, False])
 def test_keep_glyph_names(keep_names):
     initial_font_file = _build_initial_font("glyf_colr_1")

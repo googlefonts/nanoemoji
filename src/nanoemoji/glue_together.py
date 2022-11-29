@@ -46,9 +46,21 @@ class CbdtGlyphInfo(NamedTuple):
 
 def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # Copy all glyphs used by COLR over
-    glyphs_to_copy = sorted(
-        {p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)}
-    )
+    colr_version = donor["COLR"].version
+    if colr_version == 1:
+        glyphs_to_copy = sorted(
+            {p.Glyph for p in paints_of_type(donor, ot.PaintFormat.PaintGlyph)}
+        )
+    elif colr_version == 0:
+        glyphs_to_copy = sorted(
+            {
+                rec.name
+                for layers in donor["COLR"].ColorLayers.values()
+                for rec in layers
+            }
+        )
+    else:
+        raise NotImplementedError(colr_version)
 
     # We avoid using the glyf table's `__setitem__` for it appends to the TTFont's
     # glyphOrder list without also invalidating the {glyphNames:glyphID} cache,
