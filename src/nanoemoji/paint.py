@@ -282,9 +282,7 @@ class PaintLinearGradient(Paint):
 
 def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2D]:
     scale, remaining_transform = transform.decompose_scale()
-    # we take the minimum of (sx, sy) to try to minimize the risk of OverflowErrors
-    # when encoding these to F16Dot16
-    s = min(*scale.getscale())
+    s = max(*scale.getscale())
     # most transforms will contain a Y-flip component as result of mapping from SVG to
     # font coordinate space. Here we keep this negative Y sign as part of the uniform
     # transform since it does not affect the circle-ness, and also makes so that the
