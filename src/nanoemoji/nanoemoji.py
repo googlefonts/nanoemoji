@@ -434,7 +434,6 @@ def write_compressed_bitmap_builds(
 
 
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
-
     nw.build(
         rel_build(_fea_file(font_config)),
         "write_fea",

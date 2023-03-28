@@ -155,7 +155,6 @@ def _cbdt_bitmapdata_offsets(
 def _cbdt_bitmap_data(
     config: FontConfig, metrics: BitmapMetrics, image_data: PNG
 ) -> CbdtBitmapFormat17:
-
     bitmap_data = CbdtBitmapFormat17(b"", None)
     bitmap_data.metrics = SmallGlyphMetrics()
     bitmap_data.metrics.width, bitmap_data.metrics.height = image_data.size
@@ -171,7 +170,6 @@ def make_sbix_table(
     ttfont: ttLib.TTFont,
     color_glyphs: Sequence[ColorGlyph],
 ):
-
     sbix = ttLib.newTable("sbix")
     ttfont[sbix.tableTag] = sbix
 

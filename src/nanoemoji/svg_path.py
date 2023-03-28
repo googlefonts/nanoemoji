@@ -106,7 +106,7 @@ class SVGPathPen(DecomposingPen):
 
     def qCurveTo(self, *points):
         # handle TrueType quadratic splines with implicit on-curve mid-points
-        for (control_pt, end_pt) in pathops.decompose_quadratic_segment(points):
+        for control_pt, end_pt in pathops.decompose_quadratic_segment(points):
             self.path.Q(*control_pt, *end_pt)
 
     def closePath(self):
