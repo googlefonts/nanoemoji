@@ -291,7 +291,6 @@ def _painted_layers(
     picosvg: SVG,
     glyph_width: int,
 ) -> Tuple[Paint, ...]:
-
     defs_seen = False
     layers = []
 

@@ -20,7 +20,6 @@ from typing import Tuple, Union
 
 
 class PNG(bytes):
-
     # The first eight bytes of a PNG file always contain the following (decimal) values:
     #   137 80 78 71 13 10 26 10
     # https://www.w3.org/TR/PNG-Structure.html
