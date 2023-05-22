@@ -45,7 +45,7 @@ setup(
         "picosvg>=0.20.4",
         "pillow>=7.2.0",
         "regex>=2020.4.4",
-        "toml>=0.10.1",
+        "tomlkit",
         "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
         "resvg-cli>=0.22.0.post3",
