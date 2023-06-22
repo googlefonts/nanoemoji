@@ -353,7 +353,10 @@ def _advance_width(view_box: Rect, config: FontConfig) -> int:
     # Scale advance width proportionally to viewbox aspect ratio.
     # Use the default advance width if it's larger than the proportional one.
     font_height = config.ascender - config.descender  # descender <= 0
-    return max(config.width, round(font_height * view_box.w / view_box.h))
+
+    # If the viewbox width is lower than standard viewbox width(32), then use the zero advance width to get proportional scaling.
+    width = 0 if view_box.w < config.standard_viewbox_width else config.width
+    return max(width, round(font_height * view_box.w / view_box.h))
 
 
 def _mutating_traverse(paint, mutator):

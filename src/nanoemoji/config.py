@@ -54,6 +54,7 @@ _COLOR_FORMATS = [
 # CLI flags override config file (which overrides default FontConfig).
 flags.DEFINE_integer("upem", None, "Units per em.")
 flags.DEFINE_integer("width", None, "Width.")
+flags.DEFINE_integer("standard_viewbox_width", None, "viewBox width of the majority input SVGs.")
 flags.DEFINE_integer("ascender", None, "Ascender")
 flags.DEFINE_integer("descender", None, "Descender.")
 flags.DEFINE_integer("linegap", None, "Line gap.")
@@ -152,6 +153,7 @@ class FontConfig(NamedTuple):
     # metrics default based on Noto Emoji
     upem: int = 1024
     width: int = 1275
+    standard_viewbox_width: int = 32
     ascender: int = 950
     descender: int = -250
     linegap: int = 0
@@ -214,6 +216,7 @@ class FontConfig(NamedTuple):
         for attr_name in (
             "upem",
             "width",
+            "standard_viewbox_width",
             "ascender",
             "linegap",
             "version_major",
@@ -268,6 +271,7 @@ def write(dest: Path, config: FontConfig):
         "color_format": config.color_format,
         "upem": config.upem,
         "width": config.width,
+        "standard_viewbox_width": config.standard_viewbox_width,
         "ascender": config.ascender,
         "descender": config.descender,
         "linegap": config.linegap,
@@ -356,6 +360,7 @@ def load(
     color_format = _pop_flag(config, "color_format")
     upem = int(_pop_flag(config, "upem"))
     width = int(_pop_flag(config, "width"))
+    standard_viewbox_width = int(_pop_flag(config, "standard_viewbox_width"))
     ascender = int(_pop_flag(config, "ascender"))
     descender = int(_pop_flag(config, "descender"))
     linegap = int(_pop_flag(config, "linegap"))
@@ -441,6 +446,7 @@ def load(
         color_format=color_format,
         upem=upem,
         width=width,
+        standard_viewbox_width=standard_viewbox_width,
         ascender=ascender,
         descender=descender,
         linegap=linegap,
