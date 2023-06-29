@@ -359,7 +359,6 @@ def _advance_width(view_box: Rect, config: FontConfig) -> int:
     return max(width, round(font_height * view_box.w / view_box.h))
 
 
-
 def _mutating_traverse(paint, mutator):
     paint = mutator(paint)
     assert paint is not None, "Return the input for no change, not None"
