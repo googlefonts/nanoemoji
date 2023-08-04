@@ -20,9 +20,9 @@ except ImportError:
     import importlib_resources as resources  # pytype: disable=import-error
 
 import itertools
-import tomlkit
 from pathlib import Path
 from picosvg.svg_transform import Affine2D
+import toml
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
 from nanoemoji import util
@@ -247,20 +247,6 @@ class FontConfig(NamedTuple):
         raise ValueError("Must have a default master")
 
 
-def toml_strip(data):
-    """
-    Workaround for:
-    https://github.com/sdispater/tomlkit/issues/240
-    """
-    new_data = {}
-    for key, val in data.items():
-        if isinstance(val, dict):
-            val = toml_strip(val)
-        if val is not None:
-            new_data[key] = val
-    return new_data
-
-
 def write(dest: Path, config: FontConfig):
     toml_cfg = {
         "family": config.family,
@@ -302,8 +288,7 @@ def write(dest: Path, config: FontConfig):
             for m in config.masters
         },
     }
-    with open(dest, "w") as toml_file:
-        tomlkit.dump(toml_strip(toml_cfg), toml_file)
+    dest.write_text(toml.dumps(toml_cfg))
 
 
 def _resolve_config(
@@ -311,11 +296,9 @@ def _resolve_config(
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
         with resources.path("nanoemoji.data", _DEFAULT_CONFIG_FILE) as config_file:
-            with open(config_file) as file:
-                # no config_dir in this context; bad input if we need it
-                return None, tomlkit.load(file)
-    with open(config_file) as file:
-        return config_file.parent, tomlkit.load(file)
+            # no config_dir in this context; bad input if we need it
+            return None, toml.load(config_file)
+    return config_file.parent, toml.load(config_file)
 
 
 def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:

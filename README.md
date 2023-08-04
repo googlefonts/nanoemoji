@@ -14,7 +14,7 @@ nanoemoji --helpfull
 nanoemoji --color_format glyf_colr_1 $(find ../noto-emoji/svg -name 'emoji_u270d*.svg')
 ```
 
-Requires Python 3.7 or greater.
+Requires Python 3.8 or greater.
 
 ## Color table support
 

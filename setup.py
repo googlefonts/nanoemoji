@@ -45,7 +45,7 @@ setup(
         "picosvg>=0.22.1",
         "pillow>=7.2.0",
         "regex>=2020.4.4",
-        "tomlkit",
+        "toml>=0.10.1",
         "ufo2ft[cffsubr]>=2.24.0",
         "ufoLib2>=0.6.2",
         "resvg-cli>=0.22.0.post3",
@@ -53,8 +53,7 @@ setup(
         "pngquant-cli>=2.17.0.post5",
     ],
     extras_require=extras_require,
-    # this is so we can use the built-in dataclasses module
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18
