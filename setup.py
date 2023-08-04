@@ -42,7 +42,7 @@ setup(
         "importlib_resources>=3.3.0; python_version < '3.9'",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
-        "picosvg>=0.20.4",
+        "picosvg>=0.22.1",
         "pillow>=7.2.0",
         "regex>=2020.4.4",
         "tomlkit",
