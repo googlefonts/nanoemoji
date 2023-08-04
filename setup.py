@@ -53,8 +53,7 @@ setup(
         "pngquant-cli>=2.17.0.post5",
     ],
     extras_require=extras_require,
-    # this is so we can use the built-in dataclasses module
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18
