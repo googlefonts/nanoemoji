@@ -25,10 +25,11 @@ jobs:
     strategy:
       matrix:
         config:
-          - {platform: ubuntu-latest, python-version: 3.7}
-          - {platform: ubuntu-latest, python-version: 3.8}
-          - {platform: ubuntu-latest, python-version: 3.9}
-          - {platform: windows-latest, python-version: 3.9}
+          - {platform: ubuntu-latest, python-version: "3.8"}
+          - {platform: ubuntu-latest, python-version: "3.9"}
+          - {platform: ubuntu-latest, python-version: "3.10"}
+          - {platform: ubuntu-latest, python-version: "3.11"}
+          - {platform: windows-latest, python-version: "3.11"}
     steps:
     - uses: actions/checkout@v2
 
