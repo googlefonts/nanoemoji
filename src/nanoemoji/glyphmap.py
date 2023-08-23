@@ -66,5 +66,7 @@ def load_from(file) -> Tuple[GlyphMapping]:
 
 
 def parse_csv(filename) -> Tuple[GlyphMapping]:
-    with open(filename) as f:
+    # 'utf-8-sig' is meant to skip MS Notepad's BOM which sometimes gets added
+    # https://docs.python.org/3/library/codecs.html#encodings-and-unicode
+    with open(filename, encoding="utf-8-sig") as f:
         return load_from(f)
