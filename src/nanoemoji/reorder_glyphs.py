@@ -14,7 +14,7 @@
 
 """Helps with glyph reordering.
 
-See https://docs.google.com/document/d/14b8bivUBdWSkeGLIVcqVLBVWNbXXFawguq52D2olvEA/edit for context."""
+See https://docs.google.com/document/d/1h9O-C_ndods87uY0QeIIcgAMiX2gDTpvO_IhMJsKAqs for context."""
 
 
 from fontTools import ttLib
