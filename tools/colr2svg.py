@@ -7,7 +7,7 @@ import argparse
 # extend PYTHONPATH to include ../tests dir where colr_to_svg module is located
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "tests"))
 
-from colr_to_svg import colr_to_svg
+from nanoemoji.colr_to_svg import colr_to_svg
 from fontTools.ttLib import TTFont
 from picosvg.geometric_types import Rect
 
