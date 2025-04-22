@@ -431,3 +431,18 @@ def test_build_output_file_with_spaces(font_type):
     assert output_file.is_file()
 
     assert "COLR" in TTFont(output_file)
+
+
+def test_builds_hires_sbix():
+    tmp_dir = run_nanoemoji(
+        (
+            locate_test_file("emoji_u42.svg"),  # glyph 'B'
+            "--color_format",
+            "sbix",
+            "--bitmap_resolution",
+            "512",
+        ),
+    )
+
+    font = TTFont(tmp_dir / "Font.ttf")
+    assert "sbix" in font, font.keys()

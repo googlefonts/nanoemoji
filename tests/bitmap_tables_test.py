@@ -29,6 +29,6 @@ def test_bitmap_data_for_non_square_image():
     image_bytes = image_bytes.read()
     png = PNG(image_bytes)
 
-    metrics = BitmapMetrics.create(font_config, png, 120)
+    metrics = BitmapMetrics.for_cbdt(font_config, png, 120)
     cbdt_bitmap = _cbdt_bitmap_data(font_config, metrics, png)
     assert (cbdt_bitmap.metrics.width, cbdt_bitmap.metrics.height) == (90, 120)
