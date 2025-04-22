@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test glyphmap writer. Writes a glyphmap where every second glyph gets no codepoints.
-
-"""
+"""Test glyphmap writer. Writes a glyphmap where every second glyph gets no codepoints."""
 
 
 from absl import app

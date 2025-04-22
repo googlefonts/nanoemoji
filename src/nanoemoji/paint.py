@@ -116,12 +116,10 @@ class Paint(ABC):
     format: ClassVar[int] = -1  # so pytype knows all Paint have format
 
     @abstractmethod
-    def colors(self) -> Generator[Color, None, None]:
-        ...
+    def colors(self) -> Generator[Color, None, None]: ...
 
     @abstractmethod
-    def to_ufo_paint(self, colors: Sequence[Color]):
-        ...
+    def to_ufo_paint(self, colors: Sequence[Color]): ...
 
     def breadth_first(self) -> Generator[PaintTraverseContext, None, None]:
         frontier = [PaintTraverseContext((), self, Affine2D.identity())]
@@ -432,8 +430,7 @@ class _BasePaintTransform(Paint):
     paint: Paint
 
     @abstractmethod
-    def gettransform(self) -> Affine2D:
-        ...
+    def gettransform(self) -> Affine2D: ...
 
 
 @dataclasses.dataclass(frozen=True)

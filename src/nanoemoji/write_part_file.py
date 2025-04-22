@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates a part file from 1 source, typically an svg file.
-"""
+"""Generates a part file from 1 source, typically an svg file."""
 
 
 from absl import app
