@@ -397,7 +397,9 @@ class ColorGlyph(NamedTuple):
     ufo: ufoLib2.Font
     svg_filename: str  # empty string means no svg or bitmap filenames
     bitmap_filename: str
-    ufo_glyph_name: str  # only if config has keep_glyph_names will this match in font binary
+    ufo_glyph_name: (
+        str  # only if config has keep_glyph_names will this match in font binary
+    )
     glyph_id: int
     codepoints: Tuple[int, ...]
     painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched and bitmap formats

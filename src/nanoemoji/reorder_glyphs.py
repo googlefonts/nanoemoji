@@ -14,7 +14,8 @@
 
 """Helps with glyph reordering.
 
-See https://docs.google.com/document/d/1h9O-C_ndods87uY0QeIIcgAMiX2gDTpvO_IhMJsKAqs for context."""
+See https://docs.google.com/document/d/1h9O-C_ndods87uY0QeIIcgAMiX2gDTpvO_IhMJsKAqs for context.
+"""
 
 
 from fontTools import ttLib
@@ -61,8 +62,7 @@ class ReorderRule(ABC):
     """A rule to reorder something in a font to match the fonts glyph order."""
 
     @abstractmethod
-    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None:
-        ...
+    def apply(self, font: ttLib.TTFont, value: otBase.BaseTable) -> None: ...
 
 
 @dataclass(frozen=True)
