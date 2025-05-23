@@ -16,6 +16,7 @@
 
 CBDT inspired by https://github.com/googlefonts/noto-emoji/blob/main/third_party/color_emoji/emoji_builder.py.
 """
+from collections import defaultdict
 from fontTools import ttLib
 from fontTools.ttLib.tables.BitmapGlyphMetrics import BigGlyphMetrics, SmallGlyphMetrics
 from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
@@ -72,7 +73,9 @@ class BitmapMetrics(NamedTuple):
     line_ascent: int
 
     @classmethod
-    def create(cls, config: FontConfig, image_data: PNG, ppem: int) -> "BitmapMetrics":
+    def create(
+        cls, config: FontConfig, bitmap_resolution: int, image_data: PNG, ppem: int
+    ) -> "BitmapMetrics":
         ascent = config.ascender
         descent = -config.descender
 
@@ -85,18 +88,14 @@ class BitmapMetrics(NamedTuple):
                 _INT8_RANGE,
                 max(
                     round(
-                        (
-                            _width_in_pixels(config, image_data)
-                            - config.bitmap_resolution
-                        )
-                        / 2
+                        (_width_in_pixels(config, image_data) - bitmap_resolution) / 2
                     ),
                     0,
                 ),
             ),
             y_offset=_nudge_into_range(
                 _INT8_RANGE,
-                round(line_ascent - 0.5 * (line_height - config.bitmap_resolution)),
+                round(line_ascent - 0.5 * (line_height - bitmap_resolution)),
             ),
             line_height=line_height,
             line_ascent=round(line_ascent),
@@ -105,8 +104,8 @@ class BitmapMetrics(NamedTuple):
         # The FontTools errors when values are out of bounds are a bit nasty
         # so check here for earlier and more helpful termination
         assert (
-            config.bitmap_resolution in _UINT8_RANGE
-        ), f"bitmap_resolution out of bounds: {config.bitmap_resolution}"
+            bitmap_resolution in _UINT8_RANGE
+        ), f"bitmap_resolution out of bounds: {bitmap_resolution}"
         assert metrics.y_offset in _INT8_RANGE, f"y_offset out of bounds: {metrics}"
 
         return metrics
@@ -173,28 +172,34 @@ def make_sbix_table(
     sbix = ttLib.newTable("sbix")
     ttfont[sbix.tableTag] = sbix
 
-    bitmap_pixel_height = only({c.bitmap.size[1] for c in color_glyphs})
-    ppem = _ppem(config, bitmap_pixel_height)
-
-    strike = SbixStrike()
-    strike.ppem = ppem
-    strike.resolution = 72  # pixels per inch
-    sbix.strikes[strike.ppem] = strike
-
+    glyphs_by_bitmap_size = defaultdict(list)
     for color_glyph in color_glyphs:
-        # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
-        image_data = color_glyph.bitmap
-        metrics = BitmapMetrics.create(config, image_data, strike.ppem)
+        glyphs_by_bitmap_size[color_glyph.bitmap.size[1]].append(color_glyph)
 
-        glyph_name = ttfont.getGlyphName(color_glyph.glyph_id)
-        glyph = SbixGlyph(
-            graphicType="png",
-            glyphName=glyph_name,
-            imageData=image_data,
-            originOffsetX=metrics.x_offset,
-            originOffsetY=metrics.line_ascent - metrics.line_height,
-        )
-        strike.glyphs[glyph_name] = glyph
+    for bitmap_pixel_height in sorted(glyphs_by_bitmap_size.keys()):
+        ppem = _ppem(config, bitmap_pixel_height)
+
+        strike = SbixStrike()
+        strike.ppem = ppem
+        strike.resolution = 72  # pixels per inch
+        sbix.strikes[strike.ppem] = strike
+
+        for color_glyph in color_glyphs:
+            # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
+            image_data = color_glyph.bitmap
+            metrics = BitmapMetrics.create(
+                config, bitmap_pixel_height, image_data, strike.ppem
+            )
+
+            glyph_name = ttfont.getGlyphName(color_glyph.glyph_id)
+            glyph = SbixGlyph(
+                graphicType="png",
+                glyphName=glyph_name,
+                imageData=image_data,
+                originOffsetX=metrics.x_offset,
+                originOffsetY=metrics.line_ascent - metrics.line_height,
+            )
+            strike.glyphs[glyph_name] = glyph
 
 
 def _make_cbdt_strike(
@@ -234,7 +239,10 @@ def _make_cbdt_strike(
     line_metrics.pad2 = 0
 
     metrics = {
-        c.glyph_id: BitmapMetrics.create(config, c.bitmap, ppem) for c in color_glyphs
+        c.glyph_id: BitmapMetrics.create(
+            config, only(config.bitmap_resolutions), c.bitmap, ppem
+        )
+        for c in color_glyphs
     }
     data = {
         ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
@@ -260,7 +268,7 @@ def _make_cbdt_strike(
     # We are using small metrics and PNG images exclusively for now
     index_subtable.indexFormat = 1
     index_subtable.imageFormat = _CBDT_SMALL_METRIC_PNGS
-    index_subtable.imageSize = config.bitmap_resolution
+    index_subtable.imageSize = only(config.bitmap_resolutions)
     index_subtable.names = [ttfont.getGlyphName(c.glyph_id) for c in color_glyphs]
 
     index_subtable.locations = _cbdt_bitmapdata_offsets(

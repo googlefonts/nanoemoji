@@ -168,6 +168,19 @@ def test_build_sbix_font(use_pngquant, use_zopflipng):
         )
 
 
+def test_build_sbix_font_3res():
+    config_file = locate_test_file("minimal_static/config_sbix_3res.toml")
+    font = generate_font_memoized(config_file)
+    assert "sbix" in font
+    sbix = font["sbix"]
+    count_by_ppem = tuple(
+        (ppem, len(sbix.strikes[ppem].glyphs)) for ppem in sorted(sbix.strikes.keys())
+    )
+    # (ppem, glyph_count) tuples
+    # the weird ppem is adjusted from 32, 72, 96
+    assert count_by_ppem == ((27, 3), (61, 3), (82, 3)), f"{count_by_ppem}"
+
+
 @pytest.mark.parametrize("use_pngquant", [True, False])
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_pngquant, use_zopflipng):

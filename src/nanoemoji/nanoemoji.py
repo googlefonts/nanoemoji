@@ -325,16 +325,18 @@ def part_file_dest(picosvg_file: Path) -> Path:
     return picosvg_file.with_suffix(".parts.json")
 
 
-def bitmap_dest(input_svg: Path) -> Path:
-    return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, ".png")
+def bitmap_dest(input_svg: Path, resolution: int) -> Path:
+    return _dest_for_src(bitmap_dest, bitmap_dir(), input_svg, f".{resolution}.png")
 
 
-def zopflipng_dest(input_svg: Path) -> Path:
-    return _dest_for_src(zopflipng_dest, zopflipng_dir(), input_svg, ".png")
+def zopflipng_dest(input_svg: Path, resolution: int) -> Path:
+    return _dest_for_src(
+        zopflipng_dest, zopflipng_dir(), input_svg, f".{resolution}.png"
+    )
 
 
-def pngquant_dest(input_svg: Path) -> Path:
-    return _dest_for_src(pngquant_dest, pngquant_dir(), input_svg, ".png")
+def pngquant_dest(input_svg: Path, resolution: int) -> Path:
+    return _dest_for_src(pngquant_dest, pngquant_dir(), input_svg, f".{resolution}.png")
 
 
 def svg2png_dest(input_svg: Path) -> Path:
@@ -397,28 +399,30 @@ def write_bitmap_builds(
     bitmap_builds: Set[Path],
     nw: NinjaWriter,
     clipped: bool,
-    resolution: int,
+    resolutions: Set[int],
     master: MasterConfig,
 ):
     os.makedirs(str(bitmap_dir()), exist_ok=True)
     for svg_file in master.sources:
-        dest = bitmap_dest(svg_file)
-        if dest in bitmap_builds:
-            continue
-        bitmap_builds.add(dest)
-        nw.build(
-            dest, "write_bitmap", rel_build(svg_file), variables={"res": resolution}
-        )
+        for resolution in resolutions:
+            dest = bitmap_dest(svg_file, resolution)
+            if dest in bitmap_builds:
+                continue
+            bitmap_builds.add(dest)
+            nw.build(
+                dest, "write_bitmap", rel_build(svg_file), variables={"res": resolution}
+            )
 
 
 def write_compressed_bitmap_builds(
     builds: Set[Path],
+    resolutions: Set[int],
     nw: NinjaWriter,
     master: MasterConfig,
     rule_name: str,
     dest_dir: Path,
-    infile_fn: Callable[[Path], Path],
-    outfile_fn: Callable[[Path], Path],
+    infile_fn: Callable[[Path, int], Path],
+    outfile_fn: Callable[[Path, int], Path],
     variables: Optional[Mapping[str, Any]] = None,
 ):
     if variables is None:
@@ -426,11 +430,14 @@ def write_compressed_bitmap_builds(
 
     os.makedirs(str(dest_dir), exist_ok=True)
     for svg_file in master.sources:
-        dest = outfile_fn(svg_file)
-        if dest in builds:
-            continue
-        builds.add(dest)
-        nw.build(dest, rule_name, infile_fn(svg_file), variables=variables)
+        for resolution in resolutions:
+            dest = outfile_fn(svg_file, resolution)
+            if dest in builds:
+                continue
+            builds.add(dest)
+            nw.build(
+                dest, rule_name, infile_fn(svg_file, resolution), variables=variables
+            )
 
 
 def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
@@ -443,16 +450,17 @@ def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
 
 
 def write_svg_font_diff_build(
-    nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path], resolution: int
+    nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path], resolutions: Set[int]
 ):
     # render each svg => png
     for svg_file in svg_files:
-        nw.build(
-            svg2png_dest(svg_file),
-            "screenshot",
-            rel_build(svg_file),
-            variables={"res": resolution},
-        )
+        for resolution in sorted(resolutions):
+            nw.build(
+                svg2png_dest(svg_file),
+                "screenshot",
+                rel_build(svg_file),
+                variables={"res": resolution},
+            )
     nw.newline()
 
     # copy the output font to the screenshot directory
@@ -507,7 +515,8 @@ def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
             dest_func = pngquant_dest
         # zopflipng always happens after pngquant, so when both are true
         # the final desired file is zopflipng_dest
-        input_files.extend(dest_func(f) for f in master.sources)
+        for resolution in set(font_config.bitmap_resolutions):
+            input_files.extend(dest_func(f, resolution) for f in master.sources)
     return input_files
 
 
@@ -689,7 +698,7 @@ def _run(argv):
                         bitmap_builds,
                         nw,
                         font_config.clip_to_viewbox,  # currently unused
-                        font_config.bitmap_resolution,
+                        set(font_config.bitmap_resolutions),
                         font_config.masters[0],
                     )
             nw.newline()
@@ -707,6 +716,7 @@ def _run(argv):
                 if font_config.use_pngquant:
                     write_compressed_bitmap_builds(
                         pngquant_builds,
+                        set(font_config.bitmap_resolutions),
                         nw,
                         master,
                         rule_name="pngquant",
@@ -723,6 +733,7 @@ def _run(argv):
                         nw.newline()
                     write_compressed_bitmap_builds(
                         zopflipng_builds,
+                        set(font_config.bitmap_resolutions),
                         nw,
                         master,
                         rule_name="zopflipng",
@@ -739,7 +750,7 @@ def _run(argv):
                         nw,
                         font_config.output_file,
                         font_config.masters[0].sources,
-                        font_config.bitmap_resolution,
+                        set(font_config.bitmap_resolutions),
                     )
 
                 for master in font_config.masters:

@@ -1,0 +1,14 @@
+output_file = "Font.ttf"
+color_format = "sbix"
+bitmap_resolutions = [32, 72, 96]
+
+[axis.wght]
+name = "Weight"
+default = 400
+
+[master.regular]
+style_name = "Regular"
+srcs = ["svg/*.svg"]
+
+[master.regular.position]
+wght = 400
