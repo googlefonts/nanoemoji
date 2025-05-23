@@ -227,7 +227,12 @@ def _write_preamble(nw: NinjaWriter):
     nw.newline()
 
     # set height only, let width scale proportionally
-    res = config.load().bitmap_resolution
+    resolutions = config.load().bitmap_resolutions
+    if len(resolutions) != 1:
+        raise ValueError(f"Must have exactly 1 bitmap resolution, not {resolutions}")
+    res = resolutions[0]
+    if res <= 0:
+        raise ValueError(f"Producing bitmaps with resolution {res} doesn't make sense")
     nw.rule(
         "write_bitmap",
         f"resvg -h {res} $in $out",

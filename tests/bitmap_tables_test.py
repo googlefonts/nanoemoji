@@ -17,6 +17,7 @@ from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji import config
 from nanoemoji.bitmap_tables import _cbdt_bitmap_data, BitmapMetrics
 from nanoemoji.png import PNG
+from nanoemoji.util import only
 from PIL import Image
 from test_helper import *
 
@@ -29,6 +30,8 @@ def test_bitmap_data_for_non_square_image():
     image_bytes = image_bytes.read()
     png = PNG(image_bytes)
 
-    metrics = BitmapMetrics.create(font_config, png, 120)
+    metrics = BitmapMetrics.create(
+        font_config, only(font_config.bitmap_resolutions), png, 120
+    )
     cbdt_bitmap = _cbdt_bitmap_data(font_config, metrics, png)
     assert (cbdt_bitmap.metrics.width, cbdt_bitmap.metrics.height) == (90, 120)
