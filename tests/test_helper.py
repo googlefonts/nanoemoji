@@ -50,6 +50,10 @@ def parse_svg(filename, locate=False, topicosvg=True):
 
 
 def rasterize_svg(input_file: Path, output_file: Path, resolution: int = 128) -> PNG:
+    if resolution <= 0:
+        raise ValueError(
+            f"Rendering {resolution} x {resolution} for {input_file} doesn't make sense"
+        )
     resvg = shutil.which("resvg")
     if not resvg:
         pytest.skip("resvg not installed")
@@ -109,15 +113,17 @@ def color_font_config(
 
     bitmap_inputs = [(None, None)] * len(svgs)
     if has_bitmaps:
-        bitmap_inputs = [
-            (
-                tmp_dir / (svg.stem + ".png"),
-                rasterize_svg(
-                    svg, tmp_dir / (svg.stem + ".png"), font_config.bitmap_resolution
-                ),
+        bitmap_inputs = []
+        for resolution in font_config.bitmap_resolutions:
+            bitmap_inputs.extend(
+                [
+                    (
+                        tmp_dir / (svg.stem + ".png"),
+                        rasterize_svg(svg, tmp_dir / (svg.stem + ".png"), resolution),
+                    )
+                    for svg in svgs
+                ]
             )
-            for svg in svgs
-        ]
 
     if glyphname_fn is None:
 

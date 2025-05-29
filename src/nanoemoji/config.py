@@ -105,8 +105,10 @@ flags.DEFINE_string(
     None,
     "A program that takes a list of filenames and outputs a file csv whose rows contain filename, codepoint(s), glyph name.",
 )
-flags.DEFINE_integer(
-    "bitmap_resolution", None, "Resolution of bitmap in pixels. Always square for now."
+flags.DEFINE_list(
+    "bitmap_resolution",
+    None,
+    "Resolution of bitmap in pixels. Always square for now. Specify many times for multiple strikes.",
 )
 flags.DEFINE_bool(
     "use_zopflipng", None, "Whether or not to compress PNGs using zopfli."
@@ -165,7 +167,9 @@ class FontConfig(NamedTuple):
     clipbox_quantization: Optional[int] = None
     fea_file: str = "features.fea"
     glyphmap_generator: str = "nanoemoji.write_glyphmap"
-    bitmap_resolution: int = 128
+    # legacy field
+    bitmap_resolution: int = 0
+    bitmap_resolutions: Tuple[int, ...] = (128,)
     use_zopflipng: bool = True
     use_pngquant: bool = True
     # we default to the same PNGQUANTFLAGS used in noto-emoji's Makefile:
@@ -268,7 +272,7 @@ def write(dest: Path, config: FontConfig):
         "pretty_print": config.pretty_print,
         "fea_file": config.fea_file,
         "glyphmap_generator": config.glyphmap_generator,
-        "bitmap_resolution": config.bitmap_resolution,
+        "bitmap_resolutions": tuple(sorted(config.bitmap_resolutions)),
         "use_zopflipng": config.use_zopflipng,
         "use_pngquant": config.use_pngquant,
         "pngquant_flags": config.pngquant_flags,
@@ -320,12 +324,25 @@ def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
 _DEFAULT_CONFIG = FontConfig()
 
 
-def _pop_flag(config: MutableMapping[str, Any], name: str) -> Any:
-    config_value = config.pop(name, None)
-    flag_value = getattr(FLAGS, name)
-    if config_value is None and flag_value is None:
-        return getattr(_DEFAULT_CONFIG, name)
-    return flag_value if flag_value is not None else config_value
+def _pop_flag(
+    config: MutableMapping[str, Any], config_name: str, flag_name: str = ""
+) -> Any:
+    if not flag_name:
+        flag_name = config_name
+    # grab both values to ensure we call pop on config
+    value = getattr(FLAGS, flag_name)
+    config_value = config.pop(config_name, None)
+
+    # prefer flag values
+    if value is not None:
+        return value
+
+    # failing that, config value
+    value = config_value
+    if value is None:
+        # failing that, default config value
+        value = getattr(_DEFAULT_CONFIG, config_name)
+    return value
 
 
 def load(
@@ -356,7 +373,22 @@ def load(
     pretty_print = _pop_flag(config, "pretty_print")
     fea_file = _pop_flag(config, "fea_file")
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
-    bitmap_resolution = _pop_flag(config, "bitmap_resolution")
+
+    # restore legacy flag if relevant
+    bitmap_resolutions = set()
+    if FLAGS.bitmap_resolution is None:
+        if "bitmap_resolution" in config:
+            bitmap_resolutions.add(config.pop("bitmap_resolution"))
+        if "bitmap_resolutions" in config:
+            print(config.get("bitmap_resolutions", "NONE"))
+            for bitmap_resolution in config.pop("bitmap_resolutions"):
+                bitmap_resolutions.add(bitmap_resolution)
+        bitmap_resolutions = tuple(sorted(bitmap_resolutions))
+    if not bitmap_resolutions:
+        bitmap_resolutions = tuple(
+            int(v) for v in _pop_flag(config, "bitmap_resolutions", "bitmap_resolution")
+        )
+
     use_zopflipng = _pop_flag(config, "use_zopflipng")
     use_pngquant = _pop_flag(config, "use_pngquant")
     pngquant_flags = _pop_flag(config, "pngquant_flags")
@@ -438,7 +470,7 @@ def load(
         pretty_print=pretty_print,
         fea_file=fea_file,
         glyphmap_generator=glyphmap_generator,
-        bitmap_resolution=bitmap_resolution,
+        bitmap_resolutions=bitmap_resolutions,
         use_zopflipng=use_zopflipng,
         use_pngquant=use_pngquant,
         pngquant_flags=pngquant_flags,

@@ -530,8 +530,9 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
 
         bitmap_file = None
         if expected_input_format & InputFormat.PNG:
-            bitmap_file = svg_file.with_suffix(".png")
-            test_helper.rasterize_svg(svg_file, bitmap_file, config.bitmap_resolution)
+            for resolution in config.bitmap_resolutions:
+                bitmap_file = svg_file.with_suffix(f".{resolution}.png")
+                test_helper.rasterize_svg(svg_file, bitmap_file, resolution)
 
         if not expected_input_format & InputFormat.SVG:
             svg_file = None
