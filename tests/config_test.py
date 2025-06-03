@@ -15,7 +15,7 @@
 from nanoemoji import config
 from pathlib import Path
 import pytest
-from test_helper import test_data_dir, locate_test_file
+from test_helper import TEST_DATA_DIR, locate_test_file
 import shutil
 import tempfile
 from typing import Iterable
@@ -51,13 +51,13 @@ def test_read_write_config(config_file):
     [
         # relative single file
         (
-            test_data_dir(),
+            TEST_DATA_DIR,
             "minimal_static/svg/61.svg",
             {locate_test_file("minimal_static/svg/61.svg")},
         ),
         # relative pattern
         (
-            test_data_dir(),
+            TEST_DATA_DIR,
             "linear_gradient_transform*.svg",
             {
                 locate_test_file("linear_gradient_transform.svg"),
@@ -67,14 +67,14 @@ def test_read_write_config(config_file):
         ),
         # absolute single file
         (
-            test_data_dir(),
+            TEST_DATA_DIR,
             locate_test_file("minimal_static/svg/61.svg").resolve(),
             {locate_test_file("minimal_static/svg/61.svg")},
         ),
         # absolute pattern
         (
             None,
-            test_data_dir().resolve() / "**" / "linear_gradient_transform_*.svg",
+            TEST_DATA_DIR.resolve() / "**" / "linear_gradient_transform_*.svg",
             {
                 locate_test_file("linear_gradient_transform_2.svg"),
                 locate_test_file("linear_gradient_transform_3.svg"),
