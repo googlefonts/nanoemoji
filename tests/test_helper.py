@@ -34,6 +34,7 @@ import shutil
 import tempfile
 
 
+@pytest.mark.skip(reason="It's not a test!!")
 def test_data_dir() -> Path:
     return Path(__file__).parent
 
