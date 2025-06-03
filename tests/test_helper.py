@@ -34,12 +34,11 @@ import shutil
 import tempfile
 
 
-def test_data_dir() -> Path:
-    return Path(__file__).parent
+TEST_DATA_DIR = Path(__file__).parent
 
 
 def locate_test_file(filename) -> Path:
-    return test_data_dir() / filename
+    return TEST_DATA_DIR / filename
 
 
 def parse_svg(filename, locate=False, topicosvg=True):
