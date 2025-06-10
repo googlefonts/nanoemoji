@@ -380,7 +380,6 @@ def load(
         if "bitmap_resolution" in config:
             bitmap_resolutions.add(config.pop("bitmap_resolution"))
         if "bitmap_resolutions" in config:
-            print(config.get("bitmap_resolutions", "NONE"))
             for bitmap_resolution in config.pop("bitmap_resolutions"):
                 bitmap_resolutions.add(bitmap_resolution)
         bitmap_resolutions = tuple(sorted(bitmap_resolutions))
