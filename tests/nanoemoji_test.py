@@ -14,9 +14,11 @@
 
 # Integration tests for nanoemoji
 
+from collections import defaultdict
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
 from functools import lru_cache
+import io
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji import config
 from nanoemoji.glyph import glyph_name
@@ -27,6 +29,7 @@ from pathlib import Path
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 import pytest
+from PIL import Image
 import shutil
 import subprocess
 import tempfile
@@ -173,12 +176,23 @@ def test_build_sbix_font_3res():
     font = generate_font_memoized(config_file)
     assert "sbix" in font
     sbix = font["sbix"]
-    count_by_ppem = tuple(
-        (ppem, len(sbix.strikes[ppem].glyphs)) for ppem in sorted(sbix.strikes.keys())
-    )
+    count_by_ppem_resolution = defaultdict(int)
+    for ppem, strike in sbix.strikes.items():
+        for glyph_name, glyph in strike.glyphs.items():
+            if glyph.imageData is None:
+                continue
+            image = Image.open(io.BytesIO(glyph.imageData))
+            (w, h) = image.size
+            assert w == h, f"{glyph_name} has non-square size {w} x {h}"
+            count_by_ppem_resolution[(ppem, w)] += 1
+
     # (ppem, glyph_count) tuples
     # the weird ppem is adjusted from 32, 72, 96
-    assert count_by_ppem == ((27, 3), (61, 3), (82, 3)), f"{count_by_ppem}"
+    assert dict(count_by_ppem_resolution) == {
+        (27, 32): 1,
+        (61, 72): 1,
+        (82, 96): 1,
+    }, f"{count_by_ppem_resolution}"
 
 
 @pytest.mark.parametrize("use_pngquant", [True, False])

@@ -184,7 +184,7 @@ def make_sbix_table(
         strike.resolution = 72  # pixels per inch
         sbix.strikes[strike.ppem] = strike
 
-        for color_glyph in color_glyphs:
+        for color_glyph in glyphs_by_bitmap_size[bitmap_pixel_height]:
             # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
             image_data = color_glyph.bitmap
             metrics = BitmapMetrics.create(
