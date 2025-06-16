@@ -195,6 +195,29 @@ def test_build_sbix_font_3res():
     }, f"{count_by_ppem_resolution}"
 
 
+def test_build_sbix_font_hires():
+    config_file = locate_test_file("minimal_static/config_sbix_hires.toml")
+    font = generate_font_memoized(config_file)
+    assert "sbix" in font
+    sbix = font["sbix"]
+    count_by_ppem_resolution = defaultdict(int)
+    for ppem, strike in sbix.strikes.items():
+        for glyph_name, glyph in strike.glyphs.items():
+            if glyph.imageData is None:
+                continue
+            image = Image.open(io.BytesIO(glyph.imageData))
+            (w, h) = image.size
+            assert w == h, f"{glyph_name} has non-square size {w} x {h}"
+            count_by_ppem_resolution[(ppem, w)] += 1
+
+    # There should be two (ppem, resolution) values, each with one value
+    assert all(
+        res > 128 for _, res in count_by_ppem_resolution.keys()
+    ), f"{count_by_ppem_resolution}"
+    assert len(count_by_ppem_resolution) == 2, f"{count_by_ppem_resolution}"
+    assert set(count_by_ppem_resolution.values()) == {1}, f"{count_by_ppem_resolution}"
+
+
 @pytest.mark.parametrize("use_pngquant", [True, False])
 @pytest.mark.parametrize("use_zopflipng", [True, False])
 def test_build_cbdt_font(use_pngquant, use_zopflipng):

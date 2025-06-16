@@ -45,6 +45,8 @@ import sys
 
 _INT8_RANGE = range(-128, 127 + 1)
 _UINT8_RANGE = range(0, 255 + 1)
+_INT16_RANGE = range(-32768, 32767 + 1)
+_UINT16_RANGE = range(0, 65536 + 1)
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/cbdt#table-structure
 CBDT_HEADER_SIZE = 4
@@ -74,7 +76,13 @@ class BitmapMetrics(NamedTuple):
 
     @classmethod
     def create(
-        cls, config: FontConfig, bitmap_resolution: int, image_data: PNG, ppem: int
+        cls,
+        config: FontConfig,
+        bitmap_resolution: int,
+        image_data: PNG,
+        ppem: int,
+        offset_range: range,
+        resolution_range: range,
     ) -> "BitmapMetrics":
         ascent = config.ascender
         descent = -config.descender
@@ -85,7 +93,7 @@ class BitmapMetrics(NamedTuple):
         # center within advance
         metrics = BitmapMetrics(
             x_offset=_nudge_into_range(
-                _INT8_RANGE,
+                offset_range,
                 max(
                     round(
                         (_width_in_pixels(config, image_data) - bitmap_resolution) / 2
@@ -94,7 +102,7 @@ class BitmapMetrics(NamedTuple):
                 ),
             ),
             y_offset=_nudge_into_range(
-                _INT8_RANGE,
+                offset_range,
                 round(line_ascent - 0.5 * (line_height - bitmap_resolution)),
             ),
             line_height=line_height,
@@ -104,9 +112,9 @@ class BitmapMetrics(NamedTuple):
         # The FontTools errors when values are out of bounds are a bit nasty
         # so check here for earlier and more helpful termination
         assert (
-            bitmap_resolution in _UINT8_RANGE
+            bitmap_resolution in resolution_range
         ), f"bitmap_resolution out of bounds: {bitmap_resolution}"
-        assert metrics.y_offset in _INT8_RANGE, f"y_offset out of bounds: {metrics}"
+        assert metrics.y_offset in offset_range, f"y_offset out of bounds: {metrics}"
 
         return metrics
 
@@ -188,7 +196,12 @@ def make_sbix_table(
             # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
             image_data = color_glyph.bitmap
             metrics = BitmapMetrics.create(
-                config, bitmap_pixel_height, image_data, strike.ppem
+                config,
+                bitmap_pixel_height,
+                image_data,
+                strike.ppem,
+                _INT16_RANGE,
+                _UINT16_RANGE,
             )
 
             glyph_name = ttfont.getGlyphName(color_glyph.glyph_id)
@@ -240,7 +253,12 @@ def _make_cbdt_strike(
 
     metrics = {
         c.glyph_id: BitmapMetrics.create(
-            config, only(config.bitmap_resolutions), c.bitmap, ppem
+            config,
+            only(config.bitmap_resolutions),
+            c.bitmap,
+            ppem,
+            _INT8_RANGE,
+            _UINT8_RANGE,
         )
         for c in color_glyphs
     }
