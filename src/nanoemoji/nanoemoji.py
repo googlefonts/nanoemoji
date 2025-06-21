@@ -122,18 +122,14 @@ def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, master_part + ".glyphmap")
 
 
-def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
-    master_part = ""
-    if font_config.is_vf:
-        master_part = "." + master.output_ufo
-    return _per_config_file(font_config, master_part + ".glyphmap")
-
-
-def write_glyphmap_rule(nw, glyphmap_generator):
+def write_glyphmap_rule(nw, glyphmap_generator, glyphmap_file=None):
+    options = "--output_file $out @$out.rsp"
+    if glyphmap_file is not None:
+        options += f" --input_csv {rel_build(glyphmap_file)}"
     module_rule(
         nw,
         glyphmap_generator,
-        f"--output_file $out @$out.rsp",
+        options,
         rspfile="$out.rsp",
         rspfile_content="$in",
         allow_external=True,
@@ -651,6 +647,7 @@ def _run(argv):
 
     if gen_ninja():
         logging.info(f"Generating {build_file.relative_to(build_dir())}")
+        glyphmap_file = FLAGS.glyphmap_file
         with open(build_file, "w") as f:
             nw = NinjaWriter(f)
             write_preamble(nw)
@@ -658,7 +655,7 @@ def _run(argv):
             for glyphmap_generator in sorted(
                 {fc.glyphmap_generator for fc in font_configs}
             ):
-                write_glyphmap_rule(nw, glyphmap_generator)
+                write_glyphmap_rule(nw, glyphmap_generator, glyphmap_file)
 
             # After rules, builds
 
