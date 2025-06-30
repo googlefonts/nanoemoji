@@ -125,6 +125,19 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
     )
 
 
+# Map PaintVarXxx.Format to its corresponding non-var Format
+_PAINT_VAR_MAPPING = {
+    v: otTables.PaintFormat[k.replace("PaintVar", "Paint")]
+    for k, v in otTables.PaintFormat.__members__.items()
+    if k.startswith("PaintVar")
+}
+
+
+def _static_paint_format(fmt: int) -> otTables.PaintFormat:
+    fmt = otTables.PaintFormat(fmt)
+    return _PAINT_VAR_MAPPING.get(fmt, fmt)
+
+
 def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _GradientPaint:
     stops = tuple(
         ColorStop(
@@ -134,7 +147,8 @@ def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _Gradient
         for stop in ot_paint.ColorLine.ColorStop
     )
     extend = Extend((ot_paint.ColorLine.Extend,))
-    if ot_paint.Format == PaintLinearGradient.format:
+    fmt = _static_paint_format(ot_paint.Format)
+    if fmt == PaintLinearGradient.format:
         return PaintLinearGradient(
             stops=stops,
             extend=extend,
@@ -142,7 +156,7 @@ def _gradient_paint(ttfont: ttLib.TTFont, ot_paint: otTables.Paint) -> _Gradient
             p1=Point(ot_paint.x1, ot_paint.y1),
             p2=Point(ot_paint.x2, ot_paint.y2),
         )
-    elif ot_paint.Format == PaintRadialGradient.format:
+    elif fmt == PaintRadialGradient.format:
         return PaintRadialGradient(
             stops=stops,
             extend=extend,
@@ -251,13 +265,14 @@ def _colr_v1_paint_to_svg(
             transform=transform,
         )
 
-    if ot_paint.Format == PaintSolid.format:
+    fmt = _static_paint_format(ot_paint.Format)
+    if fmt == PaintSolid.format:
         _apply_solid_ot_paint(parent_el, ttfont, ot_paint)
-    elif ot_paint.Format in _GRADIENT_PAINT_FORMATS:
+    elif fmt in _GRADIENT_PAINT_FORMATS:
         _apply_gradient_ot_paint(
             svg_defs, parent_el, ttfont, font_to_vbox, ot_paint, reuse_cache, transform
         )
-    elif ot_paint.Format == PaintGlyph.format:
+    elif fmt == PaintGlyph.format:
         layer_glyph = ot_paint.Glyph
         svg_path = etree.SubElement(parent_el, "path")
 
@@ -267,12 +282,12 @@ def _colr_v1_paint_to_svg(
         descend(svg_path, ot_paint.Paint)
         _draw_svg_path(svg_path, glyph_set, layer_glyph, font_to_vbox)
 
-    elif is_transform(ot_paint.Format):
+    elif is_transform(fmt):
         paint = Paint.from_ot(ot_paint)
         transform @= paint.gettransform()
         descend(parent_el, ot_paint.Paint)
 
-    elif ot_paint.Format == PaintColrLayers.format:
+    elif fmt == PaintColrLayers.format:
         layerList = ttfont["COLR"].table.LayerList.Paint
         assert layerList, "Paint layers without a layer list :("
         for child_paint in layerList[
@@ -280,7 +295,7 @@ def _colr_v1_paint_to_svg(
         ]:
             descend(parent_el, child_paint)
 
-    elif ot_paint.Format == PaintComposite.format:
+    elif fmt == PaintComposite.format:
         if (
             ot_paint.CompositeMode == CompositeMode.SRC_IN
             and ot_paint.BackdropPaint.Format == PaintSolid.format
@@ -304,7 +319,7 @@ def _colr_v1_paint_to_svg(
         )
         descend(parent_el, ot_paint.BackdropPaint)
 
-    elif ot_paint.Format == PaintColrGlyph.format:
+    elif fmt == PaintColrGlyph.format:
         el = parent_el
         if transform != Affine2D.identity():
             el = etree.SubElement(parent_el, "g")
