@@ -70,7 +70,7 @@ MULTI_CPAL = [SIMPLE_CPAL[0], [(1, 0, 0, 1), (0, 1, 0, 1)]]
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
-              <path d="M10,10 L90,10 L90,90 L10,90 Z"/>
+              <path fill="black" d="M10,10 L90,10 L90,90 L10,90 Z"/>
             </svg>
             """,
         ),
@@ -90,7 +90,7 @@ MULTI_CPAL = [SIMPLE_CPAL[0], [(1, 0, 0, 1), (0, 1, 0, 1)]]
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
-              <path d="M10,10 L90,10 L90,90 L10,90 Z"/>
+              <path fill="black" d="M10,10 L90,10 L90,90 L10,90 Z"/>
             </svg>
             """,
         ),
@@ -134,8 +134,8 @@ MULTI_CPAL = [SIMPLE_CPAL[0], [(1, 0, 0, 1), (0, 1, 0, 1)]]
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
               <g opacity="0.5">
-                <path opacity="0.8" d="M10,10 L90,10 L90,90 L10,90 Z"/>
-                <path transform="translate(10, 10)" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+                <path fill="black" opacity="0.8" d="M10,10 L90,10 L90,90 L10,90 Z"/>
+                <path transform="translate(10, 10)" fill="black" d="M10,10 L90,10 L90,90 L10,90 Z"/>
               </g>
             </svg>
             """,
@@ -173,7 +173,7 @@ MULTI_CPAL = [SIMPLE_CPAL[0], [(1, 0, 0, 1), (0, 1, 0, 1)]]
             """
             <svg xmlns="http://www.w3.org/2000/svg">
               <defs/>
-              <path d="M10,10 L90,10 L90,90 L10,90 Z"/>
+              <path fill="black" d="M10,10 L90,10 L90,90 L10,90 Z"/>
             </svg>
             """,
         ),
