@@ -398,7 +398,11 @@ def _attrib_apply_paint_uses(el: etree.Element) -> Set[str]:
     # Per https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use
     # only a few attributes of target can be overriden by <use>. However, we need
     # only concern ourselves with the subset of those that _apply_paint might set.
-    return set(el.attrib) & _PAINT_ATTRIB_APPLY_PAINT_MAY_SET
+    attrs = set(el.attrib) & _PAINT_ATTRIB_APPLY_PAINT_MAY_SET
+    # Don't treat fill="black" as needing override since that's the SVG default
+    if attrs == {"fill"} and el.attrib.get("fill") == "black":
+        attrs = set()
+    return attrs
 
 
 def _migrate_to_defs(
