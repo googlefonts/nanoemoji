@@ -188,8 +188,7 @@ def _apply_solid_paint(el: etree.Element, paint: PaintSolid):
         assert paint.color.opaque() == Color.fromstring(
             "black"
         ), "Unexpected color choice"
-    if paint.color.opaque() != Color.fromstring("black"):
-        el.attrib["fill"] = paint.color.opaque().to_string()
+    el.attrib["fill"] = paint.color.opaque().to_string()
     if paint.color.alpha != 1.0:
         el.attrib["opacity"] = _ntos(paint.color.alpha)
 
