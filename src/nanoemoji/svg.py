@@ -188,6 +188,10 @@ def _apply_solid_paint(el: etree.Element, paint: PaintSolid):
         assert paint.color.opaque() == Color.fromstring(
             "black"
         ), "Unexpected color choice"
+    # Always set fill explicitly, even for black (the SVG default).
+    # This works around a Firefox rendering bug:
+    # https://github.com/googlefonts/noto-emoji/issues/480
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1908302
     el.attrib["fill"] = paint.color.opaque().to_string()
     if paint.color.alpha != 1.0:
         el.attrib["opacity"] = _ntos(paint.color.alpha)
