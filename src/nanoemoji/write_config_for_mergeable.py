@@ -32,12 +32,13 @@ def main(argv):
     upem = font["head"].unitsPerEm
     ascender = font["OS/2"].sTypoAscender
     descender = font["OS/2"].sTypoDescender
+    suffix = 'otf' if FLAGS.color_format.startswith('cff') else 'ttf'
 
     with open(config_file, "w") as f:
         f.write(
             textwrap.dedent(
                 f"""
-            output_file = "COLR.ttf"
+            output_file = "COLR.{suffix}"
             color_format = "{FLAGS.color_format}"
             upem = {upem}
             width = 0  # from input width
