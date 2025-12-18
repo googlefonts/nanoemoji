@@ -195,10 +195,10 @@ def _ufo(config: FontConfig) -> ufoLib2.Font:
 
     # Must have .notdef and Win 10 Chrome likes a blank gid1 so make gid1 space
     ufo.newGlyph(".notdef")
-    space = ufo.newGlyph(".space")
+    space = ufo.newGlyph("space")
     space.unicodes = [0x0020]
     space.width = config.width
-    ufo.glyphOrder = [".notdef", ".space"]
+    ufo.glyphOrder = [".notdef", "space"]
 
     # Always the .notdef outline, even for things like a pure SVG font
     # This decreases the odds of triggering https://github.com/khaledhosny/ots/issues/52
@@ -232,7 +232,8 @@ def _make_ttfont(
         if config.color_format.startswith("cff2_"):
             cff_version = 2
         ttfont = ufo2ft.compileOTF(
-            ufo, cffVersion=cff_version, overlapsBackend="pathops"
+            ufo, cffVersion=cff_version, overlapsBackend="pathops",
+            optimizeCFF=False
         )
 
     if not ttfont:
