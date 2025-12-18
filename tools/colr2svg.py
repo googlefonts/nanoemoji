@@ -37,12 +37,14 @@ parser.add_argument(
 options = parser.parse_args(sys.argv[1:])
 
 font = TTFont(options.fontfile)
-viewbox = Rect(0, 0, options.viewbox_size, options.viewbox_size)
 
 os.makedirs(options.destdir, exist_ok=True)
 
+def viewbox_callback(_: str) -> Rect:
+    return Rect(0, 0, options.viewbox_size, options.viewbox_size)
+
 for glyph_name, svg in colr_to_svg(
-    viewbox, font, rounding_ndigits=options.rounding_ndigits
+    viewbox_callback, font, rounding_ndigits=options.rounding_ndigits
 ).items():
     output_file = os.path.join(options.destdir, f"{glyph_name}.svg")
     with open(output_file, "w") as f:
