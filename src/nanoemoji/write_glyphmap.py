@@ -30,14 +30,15 @@ import enum
 from absl import app
 from absl import flags
 from nanoemoji.glyph import glyph_name
-from nanoemoji.glyphmap import GlyphMapping
+from nanoemoji.glyphmap import GlyphMapping, parse_csv
 from nanoemoji import codepoints
 from nanoemoji import util
 from pathlib import Path
-from typing import Iterator, Sequence, Tuple
+from typing import Iterator, Optional, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string("input_csv", None, "Optional CSV file to read glyph mappings from")
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
@@ -46,7 +47,9 @@ class InputFileSuffix(enum.Enum):
     PNG = ".png"
 
 
-def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
+def _glyphmappings(
+    input_csv: Optional[Tuple[GlyphMapping]], input_files: Sequence[str]
+) -> Iterator[GlyphMapping]:
     # group .svg and/or .png files with the same filename stem
     sources_by_stem = {}
     suffix_index = {InputFileSuffix.SVG: 0, InputFileSuffix.PNG: 1}
@@ -54,15 +57,41 @@ def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
         input_file = Path(filename)
         i = suffix_index[InputFileSuffix(input_file.suffix)]
         sources_by_stem.setdefault(input_file.stem, [None, None])[i] = input_file
+    input_mappings = {}
+    if input_csv:
+        for m in input_csv:
+            stem = None
+            if m.svg_file:
+                stem = m.svg_file.stem
+            elif m.bitmap_file:
+                stem = m.bitmap_file.stem
+            else:
+                raise ValueError(f"GlyphMapping {m} has no input files")
+            input_mappings[stem] = m
     for source_stem, files in sources_by_stem.items():
-        cps = tuple(codepoints.from_filename(source_stem))
-        yield GlyphMapping(*files, cps, glyph_name(cps))
+        if source_stem in input_mappings:
+            m = input_mappings[source_stem]
+            cps = m.codepoints
+            name = m.glyph_name
+            if not m.glyph_name:
+                if len(cps) < 1:
+                    raise ValueError(
+                        f"GlyphMapping {m} has neither glyph name nor codepoints"
+                    )
+                name = glyph_name(cps)
+            yield GlyphMapping(*files, cps, name)
+        else:
+            cps = tuple(codepoints.from_filename(source_stem))
+            yield GlyphMapping(*files, cps, glyph_name(cps))
 
 
 def main(argv):
+    input_csv = None
+    if FLAGS.input_csv:
+        input_csv = parse_csv(Path(FLAGS.input_csv))
     input_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
-        for gm in _glyphmappings(input_files):
+        for gm in _glyphmappings(input_csv, input_files):
             # filename(s), glyph_name, codepoint(s)
             print(gm.csv_line())
 
