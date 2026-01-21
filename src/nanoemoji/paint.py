@@ -358,6 +358,15 @@ class PaintRadialGradient(Paint):
                 )
         return self
 
+    def _apply_uniform_transform(self, transform: Affine2D) -> "PaintRadialGradient":
+        sx, sy = transform.getscale()
+        assert almost_equal(abs(sx), abs(sy))
+        c0 = transform.map_point(self.c0)
+        c1 = transform.map_point(self.c1)
+        r0 = self.r0 * sx
+        r1 = self.r1 * sx
+        return dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1)
+
     def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:
         # if gradientUnits="objectBoundingBox" and the bbox is not square, or there's some
         # gradientTransform, we may end up with a transformation that does not keep the
@@ -367,18 +376,35 @@ class PaintRadialGradient(Paint):
         # then encode any remaining non-uniform transformation as a COLRv1 transform
         # that wraps the PaintRadialGradient (see further below).
         uniform_transform, remaining_transform = _decompose_uniform_transform(transform)
+        gradient = self._apply_uniform_transform(uniform_transform)
 
-        c0 = uniform_transform.map_point(self.c0)
-        c1 = uniform_transform.map_point(self.c1)
-
-        sx, _ = uniform_transform.getscale()
-        r0 = self.r0 * sx
-        r1 = self.r1 * sx
-
-        # TODO handle degenerate cases, fallback to solid, w/e
-        gradient = dataclasses.replace(self, c0=c0, c1=c1, r0=r0, r1=r1)
         if check_overflows:
-            gradient.check_overflows()
+            # If the scaled up gradient geometry doesn't fit the 16-bit integer limits,
+            # we try to scale it down by 1/10th until it does, while also scaling up the
+            # remaining_transform 10x to even things out.
+            try:
+                gradient.check_overflows()
+            except OverflowError as error:
+                onetenth = Affine2D.identity().scale(1 / 10)
+                tenfold = Affine2D.identity().scale(10)
+                # 10 attempts ought to be enough! (the last famous words)
+                for _ in range(10):
+                    uniform_transform = Affine2D.compose_ltr(
+                        (uniform_transform, onetenth)
+                    )
+                    remaining_transform = Affine2D.compose_ltr(
+                        (tenfold, remaining_transform)
+                    )
+                    gradient = self._apply_uniform_transform(uniform_transform)
+                    try:
+                        gradient.check_overflows()
+                    except OverflowError:
+                        continue  # try one more time
+                    else:
+                        error = None  # success!
+                        break
+                if error:
+                    raise error
         return transformed(remaining_transform, gradient)
 
     def round(self, ndigits: int) -> "PaintRadialGradient":
