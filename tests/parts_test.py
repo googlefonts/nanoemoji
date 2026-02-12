@@ -254,3 +254,36 @@ def test_squares_stay_squares():
     assert {p.d for p in paths} == {
         "M0,0 l3,0 l0,3 l-3,0 l0,-3 z"
     }, "The square should remain 3x3; converted to relative and starting at 0,0 they should be identical"
+
+
+def test_negative_tolerance_no_reuse():
+    """reuse_tolerance=-1 means no reuse: shapes that would normally be grouped
+    together (same rects at different scales) must stay in separate shape sets,
+    and compute_donors must not crash (it used to raise ZeroDivisionError
+    because _compute_donor passed -1 tolerance through to affine_between).
+
+    See https://github.com/googlefonts/picosvg/pull/334"""
+    svg = SVG.fromstring(
+        """
+        <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
+          <rect width="2" height="1"/>
+          <rect width="4" height="2" y="1.5"/>
+        </svg>
+        """
+    ).topicosvg()
+
+    # With positive tolerance these two rects normalize to the same shape
+    reuse_parts = ReusableParts(view_box=Rect(0, 0, 10, 10), reuse_tolerance=0.1)
+    reuse_parts.add(svg)
+    assert len(reuse_parts.shape_sets) == 1, "rects should be reusable"
+
+    # With -1 tolerance each shape is its own group, no reuse
+    no_reuse_parts = ReusableParts(view_box=Rect(0, 0, 10, 10), reuse_tolerance=-1)
+    no_reuse_parts.add(svg)
+    assert len(no_reuse_parts.shape_sets) == 2, "rects should NOT be grouped"
+
+    # Each shape set has exactly one member that is its own donor
+    no_reuse_parts.compute_donors()
+    for norm, shapes in no_reuse_parts.shape_sets.items():
+        assert len(shapes) == 1
+        assert no_reuse_parts._donor_cache[norm] == only(shapes)
