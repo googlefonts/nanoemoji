@@ -185,6 +185,13 @@ class ReusableParts:
         )
         svg_paths = [SVGPath(d=s) for s in svg_paths]
 
+        if self.reuse_tolerance == -1:
+            # No reuse across different shapes; all paths in the set are identical
+            # strings (since normalize() returns raw paths when tolerance is -1),
+            # so any path is a valid donor.
+            self._donor_cache[norm] = Shape(svg_paths[0].d)
+            return
+
         for svg_path in svg_paths:
             if all(
                 affine_between(svg_path, svg_path2, self.reuse_tolerance) is not None
