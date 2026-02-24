@@ -21,6 +21,7 @@ from absl import logging
 import copy
 from fontTools.ttLib.tables import otTables as ot
 from fontTools.ttLib.tables.C_B_D_T_ import cbdt_bitmap_format_17 as CbdtBitmapFormat17
+from fontTools.cffLib import CharStrings
 from fontTools import ttLib
 from nanoemoji import bitmap_tables
 from nanoemoji.colr import paints_of_type
@@ -29,6 +30,8 @@ from nanoemoji.util import load_fully
 import os
 from pathlib import Path
 from typing import Iterable, List, Mapping, NamedTuple, Tuple
+
+import pdb
 
 
 FLAGS = flags.FLAGS
@@ -69,19 +72,27 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
     # call TTFont.setGlyphOrder at the end, which automatically triggers a rebuild
     # of glyphID cache.
     # https://github.com/fonttools/fonttools/issues/2605
-    target_glyphs = target["glyf"].glyphs
-    for glyph_name in glyphs_to_copy:
-        target_glyphs[glyph_name] = donor["glyf"][glyph_name]
+    donor_glyphs = donor["CFF "].cff[0].CharStrings
+    orig_target_glyphs = target["CFF "].cff[0].CharStrings
+    target_glyphs = CharStrings(None, None, orig_target_glyphs.globalSubrs, None, None, None)
+    target["CFF "].cff[0].CharStrings = target_glyphs
+    target["CFF "].cff[0].charset = None
 
-        if glyph_name in target["hmtx"].metrics:
-            assert (
-                target["hmtx"][glyph_name] == donor["hmtx"][glyph_name]
-            ), f"Unexpected change in metrics for {glyph_name}"
+    order = target.getGlyphOrder() + glyphs_to_copy
+
+    for glyph_name in order:
+        if glyph_name in glyphs_to_copy:
+            target_glyphs[glyph_name] = donor_glyphs[glyph_name]
+
+            if glyph_name in target["hmtx"].metrics:
+                assert (
+                    target["hmtx"][glyph_name] == donor["hmtx"][glyph_name]
+                ), f"Unexpected change in metrics for {glyph_name}"
+            else:
+                # new glyph, new metrics
+                target["hmtx"][glyph_name] = donor["hmtx"][glyph_name]
         else:
-            # new glyph, new metrics
-            target["hmtx"][glyph_name] = donor["hmtx"][glyph_name]
-
-    target.setGlyphOrder(target.getGlyphOrder() + glyphs_to_copy)
+            target_glyphs[glyph_name] = orig_target_glyphs[glyph_name]
 
     if "CPAL" not in target:
         target["CPAL"] = donor["CPAL"]
@@ -91,6 +102,7 @@ def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
         target["CPAL"].palettes[0] = donor["CPAL"].palettes[0]
     target["COLR"] = donor["COLR"]
 
+    target.setGlyphOrder(order)
 
 def _svg_glyphs(font: ttLib.TTFont) -> Iterable[Tuple[int, str]]:
     for _, min_gid, max_gid in font["SVG "].docList:

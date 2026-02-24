@@ -42,6 +42,8 @@ flags.DEFINE_string(
     "ERROR, or FATAL.",
 )
 
+flags.DEFINE_integer("ascender_override", 0xFFFFFFFF, "Override ascender value for translate.")
+
 
 def main(argv):
     logging.set_verbosity(FLAGS.log_level)
@@ -55,6 +57,9 @@ def main(argv):
     upem = font["head"].unitsPerEm
     ascender = font["OS/2"].sTypoAscender
     descender = font["OS/2"].sTypoDescender
+    trans_ascender = ascender
+    if FLAGS.ascender_override != 0xFFFFFFFF:
+        trans_ascender = FLAGS.ascender_override
     metrics = font["hmtx"].metrics
     logging.debug("Writing svgs from %s to %s", font_file, out_dir)
     logging.debug("upem %d ascender %d descender %d", upem, ascender, descender)
@@ -66,7 +71,7 @@ def main(argv):
     for gid, svg in svg_glyphs(font):
         svg_defs = etree.Element("defs")
         svg_g = etree.Element("g")
-        svg_g.attrib["transform"] = f"translate(0, {ascender})"
+        svg_g.attrib["transform"] = f"translate(0, {trans_ascender})"
 
         for el in svg.svg_root:
             if strip_ns(el.tag) == "defs":

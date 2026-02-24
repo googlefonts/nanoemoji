@@ -308,7 +308,8 @@ def _decompose_uniform_transform(transform: Affine2D) -> Tuple[Affine2D, Affine2
     return uniform_transform, remaining_transform
 
 
-@dataclasses.dataclass(frozen=True)
+# @dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class PaintRadialGradient(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRadialGradient)
     extend: Extend = Extend.PAD
@@ -336,26 +337,42 @@ class PaintRadialGradient(Paint):
         return paint
 
     def check_overflows(self) -> "PaintRadialGradient":
-        int_bounds = {
-            "c": (MIN_INT16, MAX_INT16),
-            "r": (MIN_UINT16, MAX_UINT16),
-        }
         attrs = []
         for prefix in ("c", "r"):
             for i in range(2):
                 attr_name = f"{prefix}{i}"
                 value = getattr(self, attr_name)
-                if prefix == "c":
-                    attrs.extend((f"{attr_name}[{j}]", value[j]) for j in range(2))
-                else:
-                    attrs.append((f"{attr_name}", value))
+                attrs.append((f"{attr_name}", value))
         for attr_name, value in attrs:
-            min_value, max_value = int_bounds[attr_name[0]]
-            if not (min_value <= value <= max_value):
-                raise OverflowError(
-                    f"{self.__class__.__name__}.{attr_name} ({value}) is "
-                    f"out of bounds: [{min_value}...{max_value}]"
-                )
+            changed = False
+            if type(value) == Point:
+                if value[0] < MIN_INT16:
+                    value = Point(MIN_INT16, value[1])
+                    changed = True
+                elif value[0] > MAX_INT16:
+                    value = Point(MAX_INT16, value[1])
+                    changed = True
+                if value[1] < MIN_INT16:
+                    value = Point(value[0], MIN_INT16)
+                    changed = True
+                elif value[1] > MAX_INT16:
+                    value = Point(value[0], MAX_INT16)
+                    changed = True
+            else:
+                if value < MIN_UINT16:
+                    value = MIN_UINT16
+                    changed = True
+                elif value > MAX_UINT16:
+                    value = MAX_UINT16
+                    changed = True
+            if changed:
+                setattr(self, attr_name, value)
+                print("Radial Gradient value change")
+#            if not (min_value <= value <= max_value):
+#                raise OverflowError(
+#                    f"{self.__class__.__name__}.{attr_name} ({value}) is "
+#                    f"out of bounds: [{min_value}...{max_value}]"
+#                )
         return self
 
     def apply_transform(self, transform: Affine2D, check_overflows=True) -> Paint:

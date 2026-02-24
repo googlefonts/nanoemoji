@@ -66,6 +66,7 @@ flags.DEFINE_integer(
     lower_bound=0,
     upper_bound=1,
 )
+flags.DEFINE_integer("ascender_override", 0xFFFFFFFF, "Override ascender value for translate.")
 
 
 # attribute names need to match inputs to write_font rule
@@ -100,7 +101,7 @@ class WriteFontInputs(NamedTuple):
                 raise ValueError(
                     f"Invalid COLR version, expected 0 or 1, got {table_version}"
                 )
-            return f"glyf_colr_{table_version}"
+            return f"cff_colr_{table_version}"
         elif identifier == "cbdt":
             return "cbdt"
         else:
@@ -167,10 +168,13 @@ def bitmap_dest(input_svg: Path) -> Path:
 
 
 def _write_preamble(nw: NinjaWriter):
+    ascoverstr = ''
+    if FLAGS.ascender_override != 0xFFFFFFFF:
+        ascoverstr = f"--ascender_override {FLAGS.ascender_override}"
     module_rule(
         nw,
         "extract_svgs_from_otsvg",
-        f"--output_dir {rel_build(svg_extract_dir())} $in $out",
+        f"--output_dir {rel_build(svg_extract_dir())} {ascoverstr} $in $out",
     )
     nw.newline()
 
@@ -329,6 +333,7 @@ def _generate_additional_color_table(
 ) -> Path:
     write_font_inputs = WriteFontInputs.for_tag(table_tag, table_version)
     identifier = write_font_inputs.color_format
+    is_cff = identifier.startswith('cff')
     del table_tag
 
     # make a glyphmap
@@ -345,7 +350,7 @@ def _generate_additional_color_table(
     )
 
     # generate a new font with SVG glyphs that use the same names as the original
-    font_with_new_table = Path("MergeSource." + identifier + ".ttf")
+    font_with_new_table = Path("MergeSource." + identifier + ('.otf' if is_cff else '.ttf'))
     _write_font(nw, font_with_new_table, write_font_inputs)
 
     # stick our shiny new table onto the input font
