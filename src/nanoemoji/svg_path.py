@@ -20,7 +20,6 @@ import pathops
 from picosvg.svg_types import SVGPath
 from picosvg.svg_transform import Affine2D
 
-
 _SVG_CMD_TO_PEN_METHOD = {
     "M": "moveTo",
     "L": "lineTo",

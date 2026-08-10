@@ -18,12 +18,12 @@ See:
     https://pillow.readthedocs.io/en/stable/reference/ImageChops.html
     https://pillow.readthedocs.io/en/stable/reference/ImageStat.html
 """
+
 from absl import app
 from absl import flags
 from absl import logging
 from PIL import Image, ImageChops, ImageStat
 import os
-
 
 FLAGS = flags.FLAGS
 

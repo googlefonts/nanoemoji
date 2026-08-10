@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Generate a png using Skia."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -22,7 +23,6 @@ import os
 import shutil
 import subprocess
 import sys
-
 
 FLAGS = flags.FLAGS
 

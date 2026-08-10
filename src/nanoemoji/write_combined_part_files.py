@@ -14,13 +14,11 @@
 
 """Combines N part files to 1"""
 
-
 from absl import app
 from absl import flags
 from nanoemoji.parts import ReusableParts
 from nanoemoji import util
 from pathlib import Path
-
 
 FLAGS = flags.FLAGS
 

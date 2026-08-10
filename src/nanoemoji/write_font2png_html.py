@@ -14,13 +14,11 @@
 
 """Writes an html file suitable to screenshot for a single font glyph"""
 
-
 from absl import app
 from absl import flags
 from nanoemoji import codepoints, util
 from pathlib import Path
 import textwrap
-
 
 FLAGS = flags.FLAGS
 

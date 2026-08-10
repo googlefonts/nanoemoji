@@ -14,7 +14,6 @@
 
 """Generates a part file from 1 source, typically an svg file."""
 
-
 from absl import app
 from absl import flags
 from nanoemoji.parts import ReusableParts
@@ -22,7 +21,6 @@ from nanoemoji import util
 from pathlib import Path
 from picosvg.geometric_types import Rect
 from picosvg.svg import SVG
-
 
 FLAGS = flags.FLAGS
 

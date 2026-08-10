@@ -25,7 +25,6 @@ as hexadecimal digits; a single codepoint gets added to the cmap, more than one 
 a GSUB ligature, no codepoint leaves the glyph unmapped.
 """
 
-
 import enum
 from absl import app
 from absl import flags

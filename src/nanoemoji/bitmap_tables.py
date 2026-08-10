@@ -16,6 +16,7 @@
 
 CBDT inspired by https://github.com/googlefonts/noto-emoji/blob/main/third_party/color_emoji/emoji_builder.py.
 """
+
 from collections import defaultdict
 from fontTools import ttLib
 from fontTools.ttLib.tables.BitmapGlyphMetrics import BigGlyphMetrics, SmallGlyphMetrics
@@ -41,7 +42,6 @@ from typing import (
     Tuple,
 )
 import sys
-
 
 _INT8_RANGE = range(-128, 127 + 1)
 _UINT8_RANGE = range(0, 255 + 1)

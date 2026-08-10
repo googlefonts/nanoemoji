@@ -59,7 +59,6 @@ from typing import (
     Union,
 )
 
-
 # topicosvg()'s default
 _DEFAULT_ROUND_NDIGITS = 3
 

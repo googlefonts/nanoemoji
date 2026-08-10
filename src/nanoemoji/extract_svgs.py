@@ -14,7 +14,6 @@
 
 """Helpers for extracting svg files from the SVG table."""
 
-
 import copy
 from fontTools import ttLib
 from picosvg.svg import SVG

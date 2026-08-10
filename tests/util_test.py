@@ -18,7 +18,6 @@ from nanoemoji.util import shell_quote, shell_split
 
 import pytest
 
-
 # Source:
 # https://github.com/python/cpython/blob/653e563/Lib/test/test_subprocess.py#L1198-L1214
 LIST2CMDLINE_TEST_DATA = [

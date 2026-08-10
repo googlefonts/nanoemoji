@@ -52,7 +52,6 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
-
 _FOREGROUND_COLOR_INDEX = 0xFFFF
 _GRADIENT_PAINT_FORMATS = (PaintLinearGradient.format, PaintRadialGradient.format)
 _COLR_TO_SVG_TEMPLATE = r'<svg viewBox="TBD" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs/></svg>'

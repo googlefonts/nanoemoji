@@ -25,6 +25,7 @@ Use cbdt for bitmaps because sbix is less x-platform than you'd guess
 Sample usage:
 
 maximum_color MySvgFont.ttf"""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -44,7 +45,6 @@ from nanoemoji.ninja import (
 from nanoemoji.util import only
 from pathlib import Path
 from typing import List, NamedTuple, Optional, Tuple
-
 
 FLAGS = flags.FLAGS
 

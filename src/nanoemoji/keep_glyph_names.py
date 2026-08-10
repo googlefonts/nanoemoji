@@ -13,12 +13,12 @@
 # limitations under the License.
 
 """Update post to keep glyph names."""
+
 from absl import app
 from absl import flags
 from absl import logging
 from fontTools import ttLib
 from pathlib import Path
-
 
 FLAGS = flags.FLAGS
 

@@ -14,7 +14,6 @@
 
 """Helps work with ninja."""
 
-
 from absl import flags
 from absl import logging
 from nanoemoji.util import rel, quote_if_path
@@ -24,7 +23,6 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import MutableSequence
-
 
 FLAGS = flags.FLAGS
 

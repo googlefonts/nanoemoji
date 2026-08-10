@@ -27,7 +27,6 @@ from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
 from typing import Mapping, NamedTuple, Set, Tuple
 
-
 FLAGS = flags.FLAGS
 
 

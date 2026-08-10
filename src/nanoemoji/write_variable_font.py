@@ -25,7 +25,6 @@ from pathlib import Path
 import ufo2ft
 import ufoLib2
 
-
 FLAGS = flags.FLAGS
 
 
