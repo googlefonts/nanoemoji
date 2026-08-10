@@ -31,8 +31,30 @@ import pytest
         ("wheat", Color(0xF5, 0xDE, 0xB3, 1.0)),
         # rgb(r,g,b)
         ("rgb(0, 256, -1)", Color(0, 255, 0, 1.0)),
+        ("rgb(255, 140.5, 0)", Color(255, 140, 0, 1.0)),
+        ("rgb(100%, 0%, 0%)", Color(255, 0, 0, 1.0)),
+        ("rgb(0%, 100%, 0%)", Color(0, 255, 0, 1.0)),
+        ("rgb(0%, 0%, 100%)", Color(0, 0, 255, 1.0)),
+        ("rgb(50%, 50%, 50%)", Color(128, 128, 128, 1.0)),
+        ("RGB(255, 255, 255)", Color(255, 255, 255, 1.0)),
+        ("rgb(  10 ,  20 ,  30  )", Color(10, 20, 30, 1.0)),
         # rgb(r g b)
         ("rgb(42 101 43)", Color(42, 101, 43, 1.0)),
+        ("rgb(42 101 43 / 0.5)", Color(42, 101, 43, 0.5)),
+        ("rgb(42 101 43 / 50%)", Color(42, 101, 43, 0.5)),
+        # rgba(r,g,b,a)
+        ("rgba(100%, 5%, 11.5%, 0.9)", Color(255, 13, 29, 0.9)),
+        ("rgba(100%, 35%, 11.5%, 0.9)", Color(255, 89, 29, 0.9)),
+        ("rgba(255, 0, 128, 0.5)", Color(255, 0, 128, 0.5)),
+        ("rgba(255, 0, 128, 50%)", Color(255, 0, 128, 0.5)),
+        ("rgba(0, 0, 0, 0)", Color(0, 0, 0, 0.0)),
+        ("rgba(0, 0, 0, 1)", Color(0, 0, 0, 1.0)),
+        ("RGBA(255, 255, 255, 0.5)", Color(255, 255, 255, 0.5)),
+        ("rgba( -10% , 120% , 0% , 1.5 )", Color(0, 255, 0, 1.0)),
+        ("rgba(0, 0, 0, -0.5)", Color(0, 0, 0, 0.0)),
+        # rgba(r g b / a)
+        ("rgba(42 101 43 / 0.75)", Color(42, 101, 43, 0.75)),
+        ("rgba(100% 50% 25% / 80%)", Color(255, 128, 64, 0.8)),
         # extra whitespace as found in the noto-emoji Luxembourg flag
         ("#00A1DE\n", Color(0, 161, 222, 1.0)),
         # 'currentColor' is a special keyword
@@ -173,3 +195,27 @@ def test_uniq_sort_cpal_colors_ambiguous_indices():
                 Color(0, 0x80, 0, 1.0, palette_index=1),
             ]
         )
+
+
+def test_color_fromstring_rgb_with_alpha_arg():
+    assert Color(255, 0, 0, 0.5) == Color.fromstring("rgb(255, 0, 0)", alpha=0.5)
+
+
+@pytest.mark.parametrize(
+    "invalid_color",
+    [
+        "rgb(1, 2)",
+        "rgba(1, 2)",
+        "rgb(1, 2, 3, 4, 5)",
+        "rgba(1, 2, 3, 4, 5)",
+        "rgb(1, 2 3)",
+        "rgb(1 2, 3)",
+        "rgb(abc, 0, 0)",
+        "rgba(100%, 50%)",
+        "rgba()",
+        "rgb()",
+    ],
+)
+def test_color_fromstring_invalid(invalid_color):
+    with pytest.raises(ValueError, match="invalid or unsupported color string"):
+        Color.fromstring(invalid_color)

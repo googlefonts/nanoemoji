@@ -479,4 +479,22 @@ def test_color_glyph_layers(svg_in, expected_paints):
     assert actual_paints == expected_paints
 
 
+def test_rgb_rgba_svg():
+    config = FontConfig(upem=1000, ascender=1000, descender=0, width=1000)
+    color_glyph = ColorGlyph.create(
+        config, _ufo(config), "duck", 1, "g_name", [0x0042], _nsvg("rgb_rgba.svg")
+    ).mutating_traverse(_round_coords)
+    assert len(color_glyph.painted_layers) == 1
+    paint_glyph = color_glyph.painted_layers[0]
+    assert isinstance(paint_glyph, PaintGlyph)
+    assert isinstance(paint_glyph.paint, PaintLinearGradient)
+    gradient = paint_glyph.paint
+    assert len(gradient.stops) == 3
+    assert gradient.stops[0] == ColorStop(
+        stopOffset=0.0, color=Color(255, 95, 109, 1.0)
+    )
+    assert gradient.stops[1] == ColorStop(stopOffset=0.5, color=Color(255, 140, 0, 1.0))
+    assert gradient.stops[2] == ColorStop(stopOffset=1.0, color=Color(255, 13, 29, 0.9))
+
+
 # TODO test that a composite is NOT formed where paint changes
