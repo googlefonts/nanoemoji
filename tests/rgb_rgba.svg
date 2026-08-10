@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pleasingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <!-- Stop 1: #hex format -->
+      <stop offset="0%" stop-color="#FF5F6D" />
+      
+      <!-- Stop 2: rgb format (without %, mixing decimal and non-decimal values) -->
+      <stop offset="50%" stop-color="rgb(255, 140.5, 0)" />
+      
+      <!-- Stop 3: rgba format (with %, mixing decimal and non-decimal percentages, and an alpha decimal) -->
+      <stop offset="100%" stop-color="rgba(100%, 5%, 11.5%, 0.9)" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded box styled with the gradient -->
+  <rect x="25" y="25" width="350" height="350" rx="40" fill="url(#pleasingGradient)" />
+</svg>
