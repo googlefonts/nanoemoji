@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Generate SVG files from the SVG font table."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -29,7 +30,6 @@ import sys
 from pathlib import Path
 from picosvg.svg import SVG
 from picosvg.svg_meta import strip_ns
-
 
 FLAGS = flags.FLAGS
 

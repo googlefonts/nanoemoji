@@ -29,7 +29,6 @@ from absl import flags
 import shutil
 import subprocess
 
-
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("input_file", None, "Input filename", short_name="i")

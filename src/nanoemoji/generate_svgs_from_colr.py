@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Creates svg files from a COLR table."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -21,7 +22,6 @@ from nanoemoji.colr_to_svg import colr_to_svg, glyph_region, map_font_space_to_v
 from nanoemoji import util
 from pathlib import Path
 from picosvg.geometric_types import Rect
-
 
 FLAGS = flags.FLAGS
 

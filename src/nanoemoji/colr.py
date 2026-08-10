@@ -14,7 +14,6 @@
 
 """Helpers for dealing with COLR."""
 
-
 from fontTools.ttLib.tables import otTables as ot
 from fontTools import ttLib
 from typing import Iterable

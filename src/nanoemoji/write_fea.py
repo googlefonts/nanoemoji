@@ -23,7 +23,6 @@ from nanoemoji import glyphmap
 from nanoemoji import features
 from nanoemoji import util
 
-
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")

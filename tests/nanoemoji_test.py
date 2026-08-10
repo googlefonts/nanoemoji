@@ -182,7 +182,7 @@ def test_build_sbix_font_3res():
             if glyph.imageData is None:
                 continue
             image = Image.open(io.BytesIO(glyph.imageData))
-            (w, h) = image.size
+            w, h = image.size
             assert w == h, f"{glyph_name} has non-square size {w} x {h}"
             count_by_ppem_resolution[(ppem, w)] += 1
 
@@ -206,7 +206,7 @@ def test_build_sbix_font_hires():
             if glyph.imageData is None:
                 continue
             image = Image.open(io.BytesIO(glyph.imageData))
-            (w, h) = image.size
+            w, h = image.size
             assert w == h, f"{glyph_name} has non-square size {w} x {h}"
             count_by_ppem_resolution[(ppem, w)] += 1
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Generates a glyphmap for svgs named by glyph id."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -20,7 +21,6 @@ from fontTools import ttLib
 from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import util
 from pathlib import Path
-
 
 FLAGS = flags.FLAGS
 

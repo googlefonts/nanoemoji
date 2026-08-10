@@ -14,7 +14,6 @@
 
 """Test glyphmap writer. Writes a glyphmap where every second glyph gets no codepoints."""
 
-
 from absl import app
 from absl import flags
 from nanoemoji.glyphmap import GlyphMapping

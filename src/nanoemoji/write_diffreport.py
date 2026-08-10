@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Writes a simple html report on a set of image diffs."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -21,7 +22,6 @@ from PIL import Image, ImageChops, ImageStat
 from pathlib import Path
 from textwrap import dedent
 from nanoemoji import util
-
 
 FLAGS = flags.FLAGS
 

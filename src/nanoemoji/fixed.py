@@ -14,7 +14,6 @@
 
 from picosvg.geometric_types import almost_equal
 
-
 MIN_INT16 = -(1 << 15)
 MAX_INT16 = (1 << 15) - 1
 

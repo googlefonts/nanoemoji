@@ -14,7 +14,6 @@
 
 """Writes UFO and/or font files."""
 
-
 from absl import app
 from absl import flags
 from absl import logging
@@ -80,7 +79,6 @@ from typing import (
 )
 from ufoLib2.objects import Component, Glyph
 import ufo2ft
-
 
 FLAGS = flags.FLAGS
 

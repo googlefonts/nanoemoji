@@ -15,6 +15,7 @@
 """Copies color assets from one font to another.
 
 Both must use the same glyph names."""
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -29,7 +30,6 @@ from nanoemoji.util import load_fully
 import os
 from pathlib import Path
 from typing import Iterable, List, Mapping, NamedTuple, Tuple
-
 
 FLAGS = flags.FLAGS
 

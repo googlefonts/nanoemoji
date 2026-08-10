@@ -44,7 +44,6 @@ from typing import (
     Union,
 )
 
-
 PathSource = Union[SVG, "ReusableParts"]
 
 

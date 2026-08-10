@@ -27,7 +27,6 @@ from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, S
 
 from nanoemoji import util
 
-
 FLAGS = flags.FLAGS
 
 

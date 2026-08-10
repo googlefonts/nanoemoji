@@ -19,7 +19,6 @@
 
 from nanoemoji.glyph import glyph_name
 
-
 DEFAULT_GSUB_FEATURE_TAG = "ccmp"
 
 

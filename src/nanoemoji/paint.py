@@ -16,6 +16,7 @@
 
 Based on https://github.com/googlefonts/colr-gradients-spec/blob/main/colr-gradients-spec.md#structure-of-gradient-colr-v1-extensions.
 """
+
 import dataclasses
 from abc import ABC, abstractmethod
 from enum import Enum, IntEnum

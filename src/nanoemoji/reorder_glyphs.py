@@ -17,7 +17,6 @@
 See https://docs.google.com/document/d/1h9O-C_ndods87uY0QeIIcgAMiX2gDTpvO_IhMJsKAqs for context.
 """
 
-
 from fontTools import ttLib
 from fontTools.ttLib.tables import otBase
 from fontTools.ttLib.tables import otTables as ot
@@ -25,7 +24,6 @@ from nanoemoji.util import bfs_base_table, require_fully_loaded, SubTablePath
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
-
 
 _COVERAGE_ATTR = "Coverage"  # tables that have one coverage use this name
 

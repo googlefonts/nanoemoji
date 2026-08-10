@@ -27,6 +27,7 @@ Sample usage:
 nanoemoji -v 1 $(find ~/oss/noto-emoji/svg -name '*.svg')
 nanoemoji $(find ~/oss/twemoji/assets/svg -name '*.svg')
 """
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -64,7 +65,6 @@ from typing import (
     Set,
     Sequence,
 )
-
 
 FLAGS = flags.FLAGS
 
