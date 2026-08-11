@@ -65,50 +65,42 @@ def _from_svg(svg, view_box=None) -> ReusableParts:
 
 
 def test_add_svg():
-    parts = _from_svg(
-        """
+    parts = _from_svg("""
         <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"
              xmlns:xlink="http://www.w3.org/1999/xlink">
           <rect x="2" y="2" width="6" height="2" fill="blue" />
           <rect x="4" y="4" width="6" height="2" fill="blue" opacity="0.8" />
         </svg>
-        """
-    )
+        """)
     check_num_shapes(parts, 1)
 
 
 def test_collects_normalized_shapes():
-    parts = _from_svg(
-        """
+    parts = _from_svg("""
         <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
           <rect width="2" height="1"/>
           <rect width="4" height="2" y="1.5"/>
           <circle cx="5" cy="5" r="2"/>
         </svg>
-        """
-    )
+        """)
 
     check_num_shapes(parts, 2)
 
 
 def test_simple_merge():
-    p1 = _from_svg(
-        """
+    p1 = _from_svg("""
         <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
           <rect width="2" height="1"/>
         </svg>
-        """
-    )
+        """)
     check_num_shapes(p1, 1)
 
-    p2 = _from_svg(
-        """
+    p2 = _from_svg("""
         <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
           <rect width="4" height="2" y="1.5"/>
           <circle r="2"/>
         </svg>
-        """
-    )
+        """)
     check_num_shapes(p2, 2)
 
     p1.add(p2)
@@ -131,23 +123,19 @@ def test_file_io():
 @pytest.mark.parametrize(
     "svg",
     [
-        SVG.fromstring(
-            """
+        SVG.fromstring("""
             <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
               <rect width="2" height="1"/>
               <rect width="4" height="2" y="1.5"/>
             </svg>
-            """
-        ).topicosvg(),
+            """).topicosvg(),
         # https://github.com/googlefonts/nanoemoji/issues/415 arc normalization
-        SVG.fromstring(
-            """
+        SVG.fromstring("""
             <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
               <circle r="1"/>
               <circle r="2"/>
             </svg>
-            """
-        ).topicosvg(),
+            """).topicosvg(),
     ],
 )
 def test_reuse_finds_single_donor(svg):
@@ -193,14 +181,12 @@ def test_reuse_with_inconsistent_square_viewbox():
 
 
 def test_arcs_become_cubics():
-    parts = _from_svg(
-        """
+    parts = _from_svg("""
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
           <defs/>
           <path d="M2,0 A2 2 0 1 1 -2,0 A2 2 0 1 1 2,0 Z"/>
         </svg>
-        """
-    )
+        """)
 
     norm, path = only(parts.shape_sets.items())
     path = only(path)
@@ -263,14 +249,12 @@ def test_negative_tolerance_no_reuse():
     because _compute_donor passed -1 tolerance through to affine_between).
 
     See https://github.com/googlefonts/picosvg/pull/334"""
-    svg = SVG.fromstring(
-        """
+    svg = SVG.fromstring("""
         <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
           <rect width="2" height="1"/>
           <rect width="4" height="2" y="1.5"/>
         </svg>
-        """
-    ).topicosvg()
+        """).topicosvg()
 
     # With positive tolerance these two rects normalize to the same shape
     reuse_parts = ReusableParts(view_box=Rect(0, 0, 10, 10), reuse_tolerance=0.1)
