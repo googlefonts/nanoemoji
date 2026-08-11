@@ -431,13 +431,6 @@ def _name_prefix(color_glyph: ColorGlyph) -> Glyph:
 def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
     ufo = color_glyph.ufo
     glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{_name_prefix(color_glyph)}{i}"))
-    glyph.width = ufo.get(color_glyph.glyph_name).width
-    return glyph
-
-
-def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
-    ufo = color_glyph.ufo
-    glyph = ufo.newGlyph(_next_name(ufo, lambda i: f"{_name_prefix(color_glyph)}{i}"))
     glyph.width = color_glyph.ufo_glyph.width
     return glyph
 
