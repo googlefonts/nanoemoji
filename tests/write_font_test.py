@@ -15,9 +15,10 @@
 
 import dataclasses
 import enum
-import shutil
 from pathlib import Path
+import shutil
 from textwrap import dedent
+from typing import Optional
 from nanoemoji import write_font
 from nanoemoji.colr import paints_of_type
 from nanoemoji.config import _DEFAULT_CONFIG
@@ -525,20 +526,23 @@ def test_inputs_have_svg_and_or_bitmap(tmp_path, color_format, expected_input_fo
 
     cp = 0xE001
     glyph_mappings = []
-    for i, svg_file in enumerate(("rect.svg", "rect2.svg")):
-        svg_file = Path(shutil.copy(test_helper.locate_test_file(svg_file), tmp_path))
+    for i, svg_name in enumerate(("rect.svg", "rect2.svg")):
+        raw_svg_path = Path(
+            shutil.copy(test_helper.locate_test_file(svg_name), tmp_path)
+        )
 
         bitmap_file = None
         if expected_input_format & InputFormat.PNG:
             for resolution in config.bitmap_resolutions:
-                bitmap_file = svg_file.with_suffix(f".{resolution}.png")
-                test_helper.rasterize_svg(svg_file, bitmap_file, resolution)
+                bitmap_file = raw_svg_path.with_suffix(f".{resolution}.png")
+                test_helper.rasterize_svg(raw_svg_path, bitmap_file, resolution)
 
-        if not expected_input_format & InputFormat.SVG:
-            svg_file = None
+        svg_path: Optional[Path] = (
+            raw_svg_path if expected_input_format & InputFormat.SVG else None
+        )
 
         glyph_mappings.append(
-            GlyphMapping(svg_file, bitmap_file, (cp + i,), f"uni{i:04X}")
+            GlyphMapping(svg_path, bitmap_file, (cp + i,), f"uni{i:04X}")
         )
 
     inputs = list(write_font._inputs(config, glyph_mappings))
@@ -573,13 +577,12 @@ def test_square_varied_hmetrics():
     )
     config, glyph_inputs = test_helper.color_font_config({"width": 0}, svgs)
     _, font = write_font._generate_color_font(config, glyph_inputs)
+    assert font is not None
 
     colr = font["COLR"]
 
     glyph_names = {r.BaseGlyph for r in colr.table.BaseGlyphList.BaseGlyphPaintRecord}
-    assert (
-        len(glyph_names) == 3
-    ), f"Should have 3 color glyphs, got {names_of_colr_glyphs}"
+    assert len(glyph_names) == 3, f"Should have 3 color glyphs, got {glyph_names}"
 
     glyphs = {p.Glyph for p in paints_of_type(font, ot.PaintFormat.PaintGlyph)}
     assert (

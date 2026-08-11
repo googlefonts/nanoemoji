@@ -13,8 +13,11 @@
 # limitations under the License.
 
 from fontTools.ttLib.tables import otTables as ot
-from nanoemoji.paint import Color, _decompose_uniform_transform
+from nanoemoji.colors import Color
+from nanoemoji.paint import _decompose_uniform_transform
 from nanoemoji.paint import *
+from picosvg.geometric_types import Point
+from picosvg.svg_transform import Affine2D
 import pytest
 
 
@@ -149,7 +152,7 @@ def test_gettransform(input_point, paint, expected_point):
         ),
         # PaintScaleAroundCenter
         (
-            Affine2D(0.5, 0, 0, 1.5, 30, 40),
+            Affine2D(0.5, 0, 0, 1.5, 30, 40),  # type: ignore[call-arg]
             PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
             PaintScaleAroundCenter(
                 paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
@@ -160,7 +163,7 @@ def test_gettransform(input_point, paint, expected_point):
         ),
         # PaintScaleAroundCenter whilst avoiding / 0
         (
-            Affine2D(1, 0, 0, 0.5, 0, 100),
+            Affine2D(1, 0, 0, 0.5, 0, 100),  # type: ignore[call-arg]
             PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
             PaintScaleAroundCenter(
                 paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
@@ -171,7 +174,7 @@ def test_gettransform(input_point, paint, expected_point):
         ),
         # Do NOT PaintScaleAroundCenter when translation isn't ~int
         (
-            Affine2D(0.45, 0, 0, 1.5, 30, 40),
+            Affine2D(0.45, 0, 0, 1.5, 30, 40),  # type: ignore[call-arg]
             PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
             PaintTransform(
                 paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
@@ -180,7 +183,7 @@ def test_gettransform(input_point, paint, expected_point):
         ),
         # PaintScaleUniformAroundCenter
         (
-            Affine2D(0.75, 0, 0, 0.75, -20, 40),
+            Affine2D(0.75, 0, 0, 0.75, -20, 40),  # type: ignore[call-arg]
             PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
             PaintScaleUniformAroundCenter(
                 paint=PaintGlyph(glyph="A Glyph", paint=PaintSolid()),
@@ -198,29 +201,29 @@ def test_transformed(transform, target, expected_result):
     "transform, expected_uniform_transform, expected_remaining_transform",
     [
         (
-            Affine2D(2, 0, 0, 1, 0, 0),
-            Affine2D(2, 0, 0, 2, 0, 0),
-            Affine2D(1, 0, 0, 0.5, 0, 0),
+            Affine2D(2, 0, 0, 1, 0, 0),  # type: ignore[call-arg]
+            Affine2D(2, 0, 0, 2, 0, 0),  # type: ignore[call-arg]
+            Affine2D(1, 0, 0, 0.5, 0, 0),  # type: ignore[call-arg]
         ),
         (
-            Affine2D(8, 0, 0, -8, 0, 1024),
-            Affine2D(8, 0, 0, -8, 0, 1024),
-            Affine2D(1, 0, 0, 1, 0, 0),
+            Affine2D(8, 0, 0, -8, 0, 1024),  # type: ignore[call-arg]
+            Affine2D(8, 0, 0, -8, 0, 1024),  # type: ignore[call-arg]
+            Affine2D(1, 0, 0, 1, 0, 0),  # type: ignore[call-arg]
         ),
         (
             Affine2D.fromstring("rotate(-90) translate(50, -100)"),
-            Affine2D(1, 0, 0, 1, 50, -100),
-            Affine2D(0, -1.0, 1.0, 0, 0, 0),
+            Affine2D(1, 0, 0, 1, 50, -100),  # type: ignore[call-arg]
+            Affine2D(0, -1.0, 1.0, 0, 0, 0),  # type: ignore[call-arg]
         ),
         (
             Affine2D.fromstring("rotate(90) scale(2)"),
-            Affine2D(2, 0, 0, 2, 0, 0),
-            Affine2D(0, 1.0, -1.0, 0, 0, 0),
+            Affine2D(2, 0, 0, 2, 0, 0),  # type: ignore[call-arg]
+            Affine2D(0, 1.0, -1.0, 0, 0, 0),  # type: ignore[call-arg]
         ),
         (
             Affine2D.fromstring("translate(50, -100) scale(2) rotate(90)"),
-            Affine2D(2, 0, 0, 2, -100, -50),
-            Affine2D(0, 1.0, -1.0, 0, 0, 0),
+            Affine2D(2, 0, 0, 2, -100, -50),  # type: ignore[call-arg]
+            Affine2D(0, 1.0, -1.0, 0, 0, 0),  # type: ignore[call-arg]
         ),
     ],
 )

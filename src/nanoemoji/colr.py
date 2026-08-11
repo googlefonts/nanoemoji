@@ -24,7 +24,7 @@ def paints_of_type(
 ) -> Iterable[ot.Paint]:
     result = []
 
-    def _callback(paint):
+    def _callback(paint: ot.Paint) -> None:
         if paint.Format == paint_format:
             result.append(paint)
 

@@ -15,7 +15,18 @@
 import dataclasses
 import re
 from collections import deque
-from typing import ClassVar, Iterable, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 # See https://www.w3.org/TR/css-color-4/#named-colors
 # Chrome DevTools:
@@ -172,15 +183,15 @@ _CSS_COLORS = {
 }
 
 
-def css_colors():
+def css_colors() -> Mapping[str, Tuple[int, int, int]]:
     return _CSS_COLORS
 
 
-def css_color(name) -> Optional[Tuple[int, int, int]]:
+def css_color(name: str) -> Optional[Tuple[int, int, int]]:
     return _CSS_COLORS.get(name, None)
 
 
-def color_name(rgb) -> Optional[str]:
+def color_name(rgb: Tuple[int, int, int]) -> Optional[str]:
     for name, value in _CSS_COLORS.items():
         if value == rgb:
             return name
@@ -204,7 +215,7 @@ def _parse_alpha_channel(val: str) -> float:
 
 
 @dataclasses.dataclass(frozen=True, order=True)
-class Color(Sequence):
+class Color(Sequence[Any]):
     red: int
     green: int
     blue: int
@@ -212,11 +223,11 @@ class Color(Sequence):
     palette_index: Optional[int] = None
 
     # the default color is optional but for now we require one for simplicity
-    _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
+    _COLOR_VARIABLE_RE: ClassVar[re.Pattern[str]] = re.compile(
         r"var\s*\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
     )
     _NUM_OR_PCT: ClassVar[str] = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?"
-    _COLOR_RGB_RE: ClassVar[re.Pattern] = re.compile(
+    _COLOR_RGB_RE: ClassVar[re.Pattern[str]] = re.compile(
         rf"^rgba?\(\s*"
         rf"({_NUM_OR_PCT})"
         rf"(?:"
@@ -228,16 +239,16 @@ class Color(Sequence):
         re.IGNORECASE,
     )
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: Any) -> Any:
         fields = dataclasses.fields(self)
         if isinstance(i, slice):
             return tuple(getattr(self, f.name) for f in fields[i])
         return getattr(self, fields[i].name)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(dataclasses.fields(self))
 
-    def _replace(self, **kwargs):
+    def _replace(self, **kwargs: Any) -> "Color":
         return dataclasses.replace(self, **kwargs)
 
     @classmethod
@@ -324,12 +335,12 @@ class Color(Sequence):
         return string
 
     @classmethod
-    def current_color(cls, alpha=alpha) -> "Color":
+    def current_color(cls, alpha: float = 1.0) -> "Color":
         # sentinel value for "currentColor" (text foreground color)
         return cls(-1, -1, -1, alpha=alpha)
 
-    def is_current_color(self):
-        return self[:3] == self.current_color()[:3]
+    def is_current_color(self) -> bool:
+        return bool(self[:3] == self.current_color()[:3])
 
     def without_palette_index(self) -> "Color":
         if self.palette_index is None:
@@ -358,7 +369,7 @@ def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
         all_colors = {black}
 
     # Check that color palette entry indices unambiguously map to only one color
-    indexed_colors = {}
+    indexed_colors: Dict[int, Color] = {}
     for color in all_colors:
         if color.palette_index is not None:
             if color.palette_index in indexed_colors:
@@ -373,7 +384,7 @@ def uniq_sort_cpal_colors(colors: Iterable[Color]) -> List[Color]:
 
     # cpal_slots is > the highest index so it will push all unindexed items right
     # this can be written as a ternary but it's pretty illegible that way
-    def _color_sort_key(c: Color):
+    def _color_sort_key(c: Color) -> Tuple[Any, ...]:
         if c.palette_index is not None:
             return (c.palette_index,)
         # negate value of colors so when we popright we get them in ascending order

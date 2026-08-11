@@ -20,8 +20,11 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 from typing import (
+    Dict,
     NamedTuple,
     Optional,
+    Set,
+    Tuple,
 )
 from .fixed import fixed_safe
 
@@ -32,7 +35,12 @@ class ReuseResult(NamedTuple):
 
 
 class GlyphReuseCache:
-    def __init__(self, reuse_tolerance: float):
+    _known_glyphs: Set[str]
+    _reusable_paths: Dict[str, Tuple[str, str]]
+    _reuse_tolerance: float
+    _normalize_tolerance: float
+
+    def __init__(self, reuse_tolerance: float) -> None:
         self._reuse_tolerance = reuse_tolerance
         self._known_glyphs = set()
         self._reusable_paths = {}
@@ -78,7 +86,7 @@ class GlyphReuseCache:
 
         return ReuseResult(glyph_name, affine)
 
-    def add_glyph(self, glyph_name, glyph_path):
+    def add_glyph(self, glyph_name: str, glyph_path: str) -> None:
         assert glyph_path.startswith("M"), f"{glyph_path} doesn't look like a path"
         if self._reuse_tolerance != -1:
             norm_path = normalize(SVGPath(d=glyph_path), self._normalize_tolerance).d
@@ -87,5 +95,5 @@ class GlyphReuseCache:
         self._reusable_paths[norm_path] = (glyph_name, glyph_path)
         self._known_glyphs.add(glyph_name)
 
-    def is_known_glyph(self, glyph_name):
+    def is_known_glyph(self, glyph_name: str) -> bool:
         return glyph_name in self._known_glyphs

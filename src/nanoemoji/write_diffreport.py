@@ -17,6 +17,7 @@
 from absl import app
 from absl import flags
 from absl import logging
+from typing import Sequence
 import functools
 from PIL import Image, ImageChops, ImageStat
 from pathlib import Path
@@ -34,25 +35,27 @@ flags.DEFINE_integer(
 )
 
 
-def _diff_value(diff_file):
+def _diff_value(diff_file: Path) -> float:
     return sum(ImageStat.Stat(Image.open(diff_file)).sum2)
 
 
-def _lhs(diff_file):
+def _lhs(diff_file: Path) -> Path:
     return Path(FLAGS.lhs_dir) / diff_file.name
 
 
-def _rhs(diff_file):
+def _rhs(diff_file: Path) -> Path:
     return Path(FLAGS.rhs_dir) / diff_file.name
 
 
-def main(argv):
-    diff_files = (
+def main(argv: Sequence[str]) -> None:
+    diff_files = [
         Path(diff_file) for diff_file in util.expand_ninja_response_files(argv[1:])
-    )
-    diff_files = sorted(diff_files, key=_diff_value, reverse=True)
+    ]
+    sorted_diff_files = sorted(diff_files, key=_diff_value, reverse=True)
     with open(FLAGS.output_file, "w") as f:
-        f.write(dedent("""
+        f.write(
+            dedent(
+                """
         <!DOCTYPE html>
         <html>
         <head>
@@ -80,8 +83,10 @@ def main(argv):
                 <span class="title">Pink Diff</span>
                 <span class="title">COLRv1</span>
             </div>
-        """))
-        for diff_file in diff_files[: FLAGS.report_max_entries]:
+        """
+            )
+        )
+        for diff_file in sorted_diff_files[: FLAGS.report_max_entries]:
             logging.info("%s %s", diff_file.name, _diff_value(diff_file))
             pink_diff = diff_file.parent / (diff_file.stem + ".pink" + diff_file.suffix)
             vars = {
@@ -91,7 +96,9 @@ def main(argv):
                 "diff_file2": str(pink_diff),
                 "filename": diff_file.name,
             }
-            f.write(dedent("""
+            f.write(
+                dedent(
+                    """
             <div class="row">
                 <div class="filename">{filename}</div>
                 <img src="{lhs_file}">
@@ -99,13 +106,21 @@ def main(argv):
                 <img src="{diff_file2}">
                 <img src="{rhs_file}">
             </div>
-            """.format(**vars)))
+            """.format(
+                        **vars
+                    )
+                )
+            )
 
-        f.write(dedent("""
+        f.write(
+            dedent(
+                """
         </body>
 
         </html>
-        """))
+        """
+            )
+        )
 
 
 if __name__ == "__main__":

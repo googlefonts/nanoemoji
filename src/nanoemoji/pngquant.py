@@ -26,6 +26,7 @@ Usage:
 
 from absl import app
 from absl import flags
+from typing import Sequence
 import shutil
 import subprocess
 
@@ -35,7 +36,7 @@ flags.DEFINE_string("input_file", None, "Input filename", short_name="i")
 flags.DEFINE_string("output_file", None, "Output filename", short_name="o")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> int:
     pngquant = shutil.which("pngquant")
     if pngquant is None:
         raise RuntimeError(

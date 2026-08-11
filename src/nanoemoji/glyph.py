@@ -12,36 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Iterable, Union
+
 _MAX_NAME_LEN = 63  # fea for some reason insists on this
 
 
-# str.isascii was added with python 3.7
-try:
-    _isascii = str.isascii  # type: ignore
-except AttributeError:
-
-    def _isascii(s: str) -> bool:
-        try:
-            s.encode("ascii")
-        except UnicodeEncodeError:
-            return False
-        else:
-            return True
+def _isascii(s: str) -> bool:
+    return s.isascii()
 
 
-def _name(cp):
+def _name(cp: int) -> str:
     ch = chr(cp)
     if ch.isalpha() and _isascii(ch):
         return ch
     return "%x" % cp
 
 
-def glyph_name(codepoints):
-    try:
-        iter(codepoints)
-    except TypeError:
-        codepoints = [codepoints]
-    name = "_".join((_name(c) for c in codepoints))
+def glyph_name(codepoints: Union[int, Iterable[int]]) -> str:
+    if isinstance(codepoints, int):
+        cps: Iterable[int] = [codepoints]
+    else:
+        cps = codepoints
+    name = "_".join((_name(c) for c in cps))
     if len(name) > _MAX_NAME_LEN:
         import hashlib
         import base64

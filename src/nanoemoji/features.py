@@ -17,12 +17,16 @@
 # TODO if this is a qualified sequence create the unqualified version and vice versa
 
 
+from typing import Iterable, Sequence, Tuple
 from nanoemoji.glyph import glyph_name
 
 DEFAULT_GSUB_FEATURE_TAG = "ccmp"
 
 
-def generate_fea(rgi_sequences, feature_tag=DEFAULT_GSUB_FEATURE_TAG):
+def generate_fea(
+    rgi_sequences: Iterable[Tuple[int, ...]],
+    feature_tag: str = DEFAULT_GSUB_FEATURE_TAG,
+) -> str:
     # Generate feature with ligature lookup for multi-codepoint RGIs
     rules = []
     rules.append("languagesystem DFLT dflt;")

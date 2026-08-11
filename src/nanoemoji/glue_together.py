@@ -29,7 +29,7 @@ from nanoemoji.reorder_glyphs import reorder_glyphs
 from nanoemoji.util import load_fully
 import os
 from pathlib import Path
-from typing import Iterable, List, Mapping, NamedTuple, Tuple
+from typing import Iterable, List, Mapping, NamedTuple, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
@@ -44,7 +44,7 @@ class CbdtGlyphInfo(NamedTuple):
     size: int
 
 
-def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont):
+def _copy_colr(target: ttLib.TTFont, donor: ttLib.TTFont) -> None:
     # Copy all glyphs used by COLR over
     colr_version = donor["COLR"].version
     if colr_version == 1:
@@ -98,13 +98,13 @@ def _svg_glyphs(font: ttLib.TTFont) -> Iterable[Tuple[int, str]]:
             yield gid, font.getGlyphName(gid)
 
 
-def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont):
+def _copy_svg(target: ttLib.TTFont, donor: ttLib.TTFont) -> None:
     # SVG is exciting because nanoemoji likes to restructure glyph order
     # To keep things simple, let's build a new glyph order that keeps all the svg font gids stable
     target_glyph_order = list(target.getGlyphOrder())
     svg_glyphs = {gn for _, gn in _svg_glyphs(donor)}
     non_svg_target_glyphs = [gn for gn in target_glyph_order if gn not in svg_glyphs]
-    new_glyph_order = []
+    new_glyph_order: List[str] = []
 
     for svg_gid, svg_glyph_name in _svg_glyphs(donor):
         # we want gid to remain stable so copy non-svg glyphs until that will be true
@@ -137,7 +137,7 @@ def _cbdt_data_and_sizes(ttfont: ttLib.TTFont) -> Mapping[str, CbdtGlyphInfo]:
     }
 
 
-def _copy_cbdt(target: ttLib.TTFont, donor: ttLib.TTFont):
+def _copy_cbdt(target: ttLib.TTFont, donor: ttLib.TTFont) -> None:
     cbdt_glyph_info = _cbdt_data_and_sizes(donor)
 
     # reorder the bitmap table to match the targets glyph order
@@ -205,7 +205,7 @@ def _copy_cbdt(target: ttLib.TTFont, donor: ttLib.TTFont):
     target["CBLC"] = cblc
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     target = load_fully(Path(FLAGS.target_font))
     donor = load_fully(Path(FLAGS.donor_font))
 

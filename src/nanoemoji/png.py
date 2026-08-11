@@ -16,7 +16,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 from PIL import Image
-from typing import Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 
 class PNG(bytes):
@@ -24,8 +24,9 @@ class PNG(bytes):
     #   137 80 78 71 13 10 26 10
     # https://www.w3.org/TR/PNG-Structure.html
     SIGNATURE = b"\x89PNG\r\n\x1a\n"
+    _size: Optional[Tuple[int, int]]
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> "PNG":
         self = super().__new__(cls, *args, **kwargs)
         header = self[:8]
         if header != cls.SIGNATURE:
@@ -41,5 +42,5 @@ class PNG(bytes):
         return self._size
 
     @classmethod
-    def read_from(cls, path: Union[str, os.PathLike]) -> "PNG":
+    def read_from(cls, path: Union[str, os.PathLike[str], Path]) -> "PNG":
         return cls(Path(path).read_bytes())

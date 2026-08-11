@@ -16,7 +16,7 @@ import csv
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
-from typing import NamedTuple, Optional, Tuple
+from typing import IO, NamedTuple, Optional, Tuple, Union
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class GlyphMapping:
     codepoints: Tuple[int, ...]
     glyph_name: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not any((self.svg_file, self.bitmap_file)):
             raise ValueError("At least one of svg or bitmap filename is required")
 
@@ -44,7 +44,7 @@ class GlyphMapping:
         return f.getvalue()
 
 
-def load_from(file) -> Tuple[GlyphMapping]:
+def load_from(file: IO[str]) -> Tuple[GlyphMapping, ...]:
     results = []
     reader = csv.reader(file, skipinitialspace=True)
     for row in reader:
@@ -57,14 +57,14 @@ def load_from(file) -> Tuple[GlyphMapping]:
         bitmap_file = None if not bitmap_filename else Path(bitmap_filename)
 
         if cps and cps != [""]:
-            cps = tuple(int(cp, 16) for cp in cps)
+            codepoints = tuple(int(cp, 16) for cp in cps)
         else:
-            cps = ()
-        results.append(GlyphMapping(svg_file, bitmap_file, cps, glyph_name))
+            codepoints = ()
+        results.append(GlyphMapping(svg_file, bitmap_file, codepoints, glyph_name))
 
     return tuple(results)
 
 
-def parse_csv(filename) -> Tuple[GlyphMapping]:
+def parse_csv(filename: Union[str, Path]) -> Tuple[GlyphMapping, ...]:
     with open(filename) as f:
         return load_from(f)

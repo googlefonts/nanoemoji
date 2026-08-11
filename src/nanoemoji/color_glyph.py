@@ -16,7 +16,7 @@ import math
 from absl import logging
 import dataclasses
 from itertools import chain, groupby, combinations
-from lxml import etree  # type: ignore
+from lxml import etree
 from nanoemoji.colors import Color
 from nanoemoji.config import FontConfig
 from nanoemoji.paint import (
@@ -32,7 +32,7 @@ from nanoemoji.paint import (
     PaintSolid,
 )
 from nanoemoji.png import PNG
-from picosvg.geometric_types import Point, Rect
+from picosvg.geometric_types import Point, Rect, Vector
 from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
@@ -43,7 +43,20 @@ from picosvg.svg_types import (
     SVGRadialGradient,
     intersection,
 )
-from typing import Generator, NamedTuple, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 import ufoLib2
 from ufoLib2.objects.glyph import Glyph as UfoGlyph
 import pathops
@@ -51,7 +64,7 @@ import pathops
 
 def scale_viewbox_to_font_metrics(
     view_box: Rect, ascender: int, descender: int, width: int
-):
+) -> Affine2D:
     assert descender <= 0
     # scale height to (ascender - descender)
     scale = (ascender - descender) / view_box.h
@@ -60,8 +73,8 @@ def scale_viewbox_to_font_metrics(
     return Affine2D.compose_ltr(
         (
             # first normalize viewbox origin
-            Affine2D(1, 0, 0, 1, -view_box.x, -view_box.y),
-            Affine2D(scale, 0, 0, scale, dx, 0),
+            Affine2D(1, 0, 0, 1, -view_box.x, -view_box.y),  # type: ignore[call-arg]
+            Affine2D(scale, 0, 0, scale, dx, 0),  # type: ignore[call-arg]
         )
     )
 
@@ -73,7 +86,7 @@ def map_viewbox_to_font_space(
         [
             scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
             # flip y axis and shift so things are in the right place
-            Affine2D(1, 0, 0, -1, 0, ascender),
+            Affine2D(1, 0, 0, -1, 0, ascender),  # type: ignore[call-arg]
             user_transform,
         ]
     )
@@ -87,7 +100,7 @@ def map_viewbox_to_otsvg_space(
         [
             scale_viewbox_to_font_metrics(view_box, ascender, descender, width),
             # shift things in the [+x,-y] quadrant where OT-SVG expects them
-            Affine2D(1, 0, 0, 1, 0, -ascender),
+            Affine2D(1, 0, 0, 1, 0, -ascender),  # type: ignore[call-arg]
             user_transform,
         ]
     )
@@ -124,14 +137,14 @@ def _parse_linear_gradient(
     view_box: Rect,
     glyph_width: int,
     shape_opacity: float = 1.0,
-):
+) -> Paint:
     gradient = SVGLinearGradient.from_element(grad_el, view_box)
 
     p0 = Point(gradient.x1, gradient.y1)
     p1 = Point(gradient.x2, gradient.y2)
 
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
-    p2 = p0 + (p1 - p0).perpendicular()
+    p2 = p0 + (p1 - p0).perpendicular()  # type: ignore[union-attr]
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
 
@@ -139,8 +152,12 @@ def _parse_linear_gradient(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    return PaintLinearGradient(  # pytype: disable=wrong-arg-types
-        p0=p0, p1=p1, p2=p2, **common_args
+    return PaintLinearGradient(
+        extend=common_args["extend"],
+        stops=common_args["stops"],
+        p0=p0,
+        p1=p1,
+        p2=p2,
     ).apply_transform(transform)
 
 
@@ -151,7 +168,7 @@ def _parse_radial_gradient(
     view_box: Rect,
     glyph_width: int,
     shape_opacity: float = 1.0,
-):
+) -> Paint:
     gradient = SVGRadialGradient.from_element(grad_el, view_box)
 
     c0 = Point(gradient.fx, gradient.fy)
@@ -159,15 +176,19 @@ def _parse_radial_gradient(
     c1 = Point(gradient.cx, gradient.cy)
     r1 = gradient.r
 
-    gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
-    gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
+    common_args = _common_gradient_parts(grad_el, shape_opacity)
 
     transform = _get_gradient_transform(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    return PaintRadialGradient(  # pytype: disable=wrong-arg-types
-        **gradient_args
+    return PaintRadialGradient(
+        extend=common_args["extend"],
+        stops=common_args["stops"],
+        c0=c0,
+        c1=c1,
+        r0=r0,
+        r1=r1,
     ).apply_transform(transform)
 
 
@@ -177,7 +198,7 @@ _GRADIENT_INFO = {
 }
 
 
-def _color_stop(stop_el, shape_opacity=1.0) -> ColorStop:
+def _color_stop(stop_el: Any, shape_opacity: float = 1.0) -> ColorStop:
     offset = number_or_percentage(stop_el.attrib.get("offset", "0"))
     color = Color.fromstring(stop_el.attrib.get("stop-color", "black"))
     opacity = number_or_percentage(stop_el.attrib.get("stop-opacity", "1"))
@@ -185,7 +206,7 @@ def _color_stop(stop_el, shape_opacity=1.0) -> ColorStop:
     return ColorStop(stopOffset=offset, color=color)
 
 
-def _common_gradient_parts(el, shape_opacity=1.0):
+def _common_gradient_parts(el: Any, shape_opacity: float = 1.0) -> Dict[str, Any]:
     spread_method = el.attrib.get("spreadMethod", "pad").upper()
     if spread_method not in Extend.__members__:
         raise ValueError(f"Unknown spreadMethod {spread_method}")
@@ -201,12 +222,14 @@ def _paint(
 ) -> Paint:
     if shape.fill.startswith("url("):
         el = picosvg.resolve_url(shape.fill, "*")
+        view_box = picosvg.view_box()
+        assert view_box is not None
         try:
             return _GRADIENT_INFO[etree.QName(el).localname](
                 config,
                 el,
                 shape.bounding_box(),
-                picosvg.view_box(),
+                view_box,
                 glyph_width,
                 shape.opacity,
             )
@@ -229,12 +252,14 @@ def _paint_glyph(
 
     if shape.fill.startswith("url("):
         fill_el = picosvg.resolve_url(shape.fill, "*")
+        view_box = picosvg.view_box()
+        assert view_box is not None
         try:
-            glyph_paint = _GRADIENT_INFO[etree.QName(fill_el).localname](
+            glyph_paint: Paint = _GRADIENT_INFO[etree.QName(fill_el).localname](
                 config,
                 fill_el,
                 shape.bounding_box(),
-                picosvg.view_box(),
+                view_box,
                 glyph_width,
                 shape.opacity,
             )
@@ -292,7 +317,7 @@ def _painted_layers(
     glyph_width: int,
 ) -> Tuple[Paint, ...]:
     defs_seen = False
-    layers = []
+    layers: List[List[Paint]] = []
 
     # Reverse to get leaves first because that makes building Paint's easier
     # shapes *must* be leaves per picosvg
@@ -344,9 +369,9 @@ def _painted_layers(
 
     assert len(layers) == 1, f"Unexpected layers: {[len(l) for l in layers]}"
     # undo the reversed at the top of loop
-    layers = reversed(layers[0])
+    layers_rev = reversed(layers[0])
 
-    return tuple(layers)
+    return tuple(layers_rev)
 
 
 def _advance_width(view_box: Rect, config: FontConfig) -> int:
@@ -356,19 +381,19 @@ def _advance_width(view_box: Rect, config: FontConfig) -> int:
     return max(config.width, round(font_height * view_box.w / view_box.h))
 
 
-def _mutating_traverse(paint, mutator):
+def _mutating_traverse(paint: Paint, mutator: Callable[[Paint], Paint]) -> Paint:
     paint = mutator(paint)
     assert paint is not None, "Return the input for no change, not None"
 
     try:
-        fields = dataclasses.fields(paint)
+        fields = dataclasses.fields(cast(Any, paint))
     except TypeError as e:
         raise ValueError(f"{paint} is not a dataclass?") from e
 
-    changes = {}
+    changes: Dict[str, Any] = {}
     for field in fields:
         try:
-            is_paint = issubclass(field.type, Paint)
+            is_paint = isinstance(field.type, type) and issubclass(field.type, Paint)
         except TypeError:  # typing.Tuple and friends helpfully fail issubclass
             is_paint = False
         if is_paint:
@@ -384,12 +409,12 @@ def _mutating_traverse(paint, mutator):
             modified = _mutating_traverse(current, mutator)
             if current is not modified:
                 new_layers[i] = modified
-        new_layers = tuple(new_layers)
-        if new_layers != paint.layers:
-            changes["layers"] = tuple(new_layers)
+        new_layers_tuple = tuple(new_layers)
+        if new_layers_tuple != paint.layers:
+            changes["layers"] = new_layers_tuple
 
     if changes:
-        paint = dataclasses.replace(paint, **changes)
+        paint = dataclasses.replace(cast(Any, paint), **changes)
     return paint
 
 
@@ -443,9 +468,10 @@ class ColorGlyph(NamedTuple):
 
         # Grab the transform + (color, glyph) layers unless they aren't to be touched
         # or cannot possibly paint
-        painted_layers = ()
+        painted_layers: Optional[Tuple[Paint, ...]] = ()
         if not font_config.transform.is_degenerate():
             if font_config.has_picosvgs:
+                assert svg is not None
                 painted_layers = tuple(
                     _painted_layers(svg_filename, font_config, svg, base_glyph.width)
                 )
@@ -473,9 +499,10 @@ class ColorGlyph(NamedTuple):
             )
         return view_box is not None
 
-    def _transform(self, map_fn):
+    def _transform(self, map_fn: Callable[..., Affine2D]) -> Affine2D:
         if not self._has_viewbox_for_transform():
-            return Affine2D.identity()
+            return cast(Affine2D, Affine2D.identity())
+        assert self.svg is not None
         return map_fn(
             self.svg.view_box(),
             self.ufo.info.ascender,
@@ -484,31 +511,34 @@ class ColorGlyph(NamedTuple):
             self.user_transform,
         )
 
-    def transform_for_otsvg_space(self):
+    def transform_for_otsvg_space(self) -> Affine2D:
         return self._transform(map_viewbox_to_otsvg_space)
 
-    def transform_for_font_space(self):
+    def transform_for_font_space(self) -> Affine2D:
         return self._transform(map_viewbox_to_font_space)
 
     @property
     def ufo_glyph(self) -> UfoGlyph:
         return self.ufo[self.ufo_glyph_name]
 
-    def colors(self):
+    def colors(self) -> Set[Color]:
         """Set of Color used by this glyph."""
-        all_colors = set()
+        all_colors: Set[Color] = set()
         self.traverse(lambda paint: all_colors.update(paint.colors()))
         return all_colors
 
-    def traverse(self, visitor):
-        def _traverse_callback(paint):
+    def traverse(self, visitor: Callable[[Paint], None]) -> None:
+        def _traverse_callback(paint: Paint) -> Paint:
             visitor(paint)
             return paint
 
-        for p in self.painted_layers:
-            _mutating_traverse(p, _traverse_callback)
+        if self.painted_layers:
+            for p in self.painted_layers:
+                _mutating_traverse(p, _traverse_callback)
 
-    def mutating_traverse(self, mutator) -> "ColorGlyph":
+    def mutating_traverse(self, mutator: Callable[[Paint], Paint]) -> "ColorGlyph":
+        if self.painted_layers is None:
+            return self
         return self._replace(
             painted_layers=tuple(
                 _mutating_traverse(p, mutator) for p in self.painted_layers

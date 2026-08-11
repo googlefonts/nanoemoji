@@ -17,8 +17,8 @@
 from absl import app
 from absl import flags
 from absl import logging
-from nanoemoji import codepoints
-from nanoemoji import util
+from nanoemoji import codepoints, util
+from typing import Sequence
 import os
 import shutil
 import subprocess
@@ -32,7 +32,7 @@ flags.DEFINE_integer("width", None, "png width, pixels.")
 flags.DEFINE_string("output_file", None, "Output filename.")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     src_svg = util.only(argv, lambda a: a.endswith(".svg"))
     font_file = util.only(argv, lambda a: a.endswith(".ttf"))
     text = "".join(

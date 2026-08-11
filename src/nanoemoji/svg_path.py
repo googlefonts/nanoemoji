@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence, Tuple
 import itertools
 from fontTools.pens.basePen import AbstractPen, DecomposingPen
 from fontTools.pens.transformPen import TransformPen
@@ -34,7 +34,7 @@ def draw_svg_path(
     pen: AbstractPen,
     transform: Optional[Affine2D] = None,
     close_subpaths: bool = False,
-):
+) -> None:
     """Draw SVGPath using a FontTools Segment Pen."""
     if transform is not None:
         pen = TransformPen(pen, transform)
@@ -69,7 +69,7 @@ def draw_svg_path(
             pen.endPath()
 
 
-class SVGPathPen(DecomposingPen):
+class SVGPathPen(DecomposingPen):  # type: ignore[misc]
     """A FontTools Pen that draws onto a picosvg SVGPath.
 
     The pen automatically decomposes components using the provided `glyphSet`
@@ -93,23 +93,23 @@ class SVGPathPen(DecomposingPen):
         DecomposingPen.__init__(self, glyphSet or {})
         self.path = path or SVGPath()
 
-    def moveTo(self, pt):
+    def moveTo(self, pt: Tuple[float, float]) -> None:
         self.path.M(*pt)
 
-    def lineTo(self, pt):
+    def lineTo(self, pt: Tuple[float, float]) -> None:
         self.path.L(*pt)
 
-    def curveTo(self, *points):
+    def curveTo(self, *points: Tuple[float, float]) -> None:
         # flatten sequence of point tuples
         self.path.C(*(v for pt in points for v in pt))
 
-    def qCurveTo(self, *points):
+    def qCurveTo(self, *points: Tuple[float, float]) -> None:
         # handle TrueType quadratic splines with implicit on-curve mid-points
         for control_pt, end_pt in pathops.decompose_quadratic_segment(points):
             self.path.Q(*control_pt, *end_pt)
 
-    def closePath(self):
+    def closePath(self) -> None:
         self.path.end()
 
-    def endPath(self):
+    def endPath(self) -> None:
         pass

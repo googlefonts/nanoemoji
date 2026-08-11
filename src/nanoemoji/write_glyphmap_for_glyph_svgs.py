@@ -20,6 +20,7 @@ from absl import logging
 from fontTools import ttLib
 from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import util
+from typing import List, Sequence
 from pathlib import Path
 
 FLAGS = flags.FLAGS
@@ -28,15 +29,15 @@ flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 flags.DEFINE_bool("bitmaps", False, "True if bitmaps should be included in glyphmap")
 
 
-def main(argv):
-    input_files = util.expand_ninja_response_files(argv[1:])
+def main(argv: Sequence[str]) -> None:
+    raw_input_files = util.expand_ninja_response_files(argv[1:])
     del argv
-    source_font = util.only(input_files, lambda a: a.endswith(".ttf"))
+    source_font = util.only(raw_input_files, lambda a: a.endswith(".ttf"))
 
     glyph_order = ttLib.TTFont(source_font).getGlyphOrder()
 
-    input_files = sorted(
-        (Path(f) for f in input_files if f != source_font),
+    input_files: List[Path] = sorted(
+        (Path(f) for f in raw_input_files if f != source_font),
         key=lambda f: f.stem,
         reverse=True,
     )

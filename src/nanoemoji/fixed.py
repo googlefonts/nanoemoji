@@ -27,17 +27,17 @@ MIN_FIXED = MIN_INT16
 MAX_FIXED = ((1 << 31) - 1) / (1 << 16)
 
 
-def int16_safe(*values):
+def int16_safe(*values: float) -> bool:
     return all(almost_equal(v, int(v)) and MIN_INT16 <= v <= MAX_INT16 for v in values)
 
 
-def f2dot14_safe(*values):
+def f2dot14_safe(*values: float) -> bool:
     return all(MIN_F2DOT14 <= value <= MAX_F2DOT14 for value in values)
 
 
-def fixed_safe(*values):
+def fixed_safe(*values: float) -> bool:
     return all(MIN_FIXED <= value <= MAX_FIXED for value in values)
 
 
-def f2dot14_rotation_safe(*values):
+def f2dot14_rotation_safe(*values: float) -> bool:
     return all(MIN_F2DOT14 <= (value / 180.0) <= MAX_F2DOT14 for value in values)

@@ -23,6 +23,7 @@ from nanoemoji import codepoints
 from nanoemoji.color_glyph import map_viewbox_to_otsvg_space
 from nanoemoji.extract_svgs import svg_glyphs
 from nanoemoji import util
+from typing import Sequence
 import os
 import shutil
 import subprocess
@@ -43,7 +44,7 @@ flags.DEFINE_string(
 )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     logging.set_verbosity(FLAGS.log_level)
 
     font_file = util.only(argv, lambda a: a.endswith(".ttf"))

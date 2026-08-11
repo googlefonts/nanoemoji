@@ -83,11 +83,11 @@ def rel_self(path: Path) -> Path:
     return rel(self_dir(), path)
 
 
-def _get_bool_flag(name: str):
-    return getattr(FLAGS, name)
+def _get_bool_flag(name: str) -> bool:
+    return bool(getattr(FLAGS, name))
 
 
-def _bool_flag(name: str, value: bool):
+def _bool_flag(name: str, value: bool) -> str:
     flag = " --"
     if not value:
         flag += "no"
@@ -122,14 +122,7 @@ def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
     return _per_config_file(font_config, master_part + ".glyphmap")
 
 
-def _glyphmap_file(font_config: FontConfig, master: MasterConfig) -> Path:
-    master_part = ""
-    if font_config.is_vf:
-        master_part = "." + master.output_ufo
-    return _per_config_file(font_config, master_part + ".glyphmap")
-
-
-def write_glyphmap_rule(nw, glyphmap_generator):
+def write_glyphmap_rule(nw: NinjaWriter, glyphmap_generator: str) -> None:
     module_rule(
         nw,
         glyphmap_generator,
@@ -144,12 +137,12 @@ def write_glyphmap_rule(nw, glyphmap_generator):
 @functools.lru_cache()
 def _chrome_command() -> str:
     cmd, validator = {
-        "Linux": ("google-chrome", shutil.which),
+        "Linux": ("google-chrome", lambda s: shutil.which(s) is not None),
         "Darwin": (
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             lambda s: Path(s).is_file(),
         ),
-        "Windows": ("chrome", shutil.which),
+        "Windows": ("chrome", lambda s: shutil.which(s) is not None),
     }[platform.system()]
 
     if not validator(cmd):
@@ -158,7 +151,7 @@ def _chrome_command() -> str:
     return shell_quote(cmd)
 
 
-def write_preamble(nw):
+def write_preamble(nw: NinjaWriter) -> None:
     nw.rule(
         f"picosvg_unclipped",
         f"picosvg "
@@ -296,7 +289,7 @@ def diff_bitmap_dir() -> Path:
     return build_dir() / "imagediff" / "diff"
 
 
-def _dest_for_src(scope_fn, out_dir: Path, input_svg: Path, suffix: str) -> Path:
+def _dest_for_src(scope_fn: Any, out_dir: Path, input_svg: Path, suffix: str) -> Path:
     if not hasattr(scope_fn, "names_seen"):
         scope_fn.names_seen = {}
     names_seen = scope_fn.names_seen
@@ -401,7 +394,7 @@ def write_bitmap_builds(
     clipped: bool,
     resolutions: Set[int],
     master: MasterConfig,
-):
+) -> None:
     os.makedirs(str(bitmap_dir()), exist_ok=True)
     for svg_file in master.sources:
         for resolution in resolutions:
@@ -424,7 +417,7 @@ def write_compressed_bitmap_builds(
     infile_fn: Callable[[Path, int], Path],
     outfile_fn: Callable[[Path, int], Path],
     variables: Optional[Mapping[str, Any]] = None,
-):
+) -> None:
     if variables is None:
         variables = {}
 
@@ -440,7 +433,7 @@ def write_compressed_bitmap_builds(
             )
 
 
-def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
+def write_fea_build(nw: NinjaWriter, font_config: FontConfig) -> None:
     nw.build(
         rel_build(_fea_file(font_config)),
         "write_fea",
@@ -451,7 +444,7 @@ def write_fea_build(nw: NinjaWriter, font_config: FontConfig):
 
 def write_svg_font_diff_build(
     nw: NinjaWriter, font_dest: str, svg_files: Sequence[Path], resolutions: Set[int]
-):
+) -> None:
     # render each svg => png
     for svg_file in svg_files:
         for resolution in sorted(resolutions):
@@ -500,7 +493,7 @@ def write_svg_font_diff_build(
 
 
 def _input_files(font_config: FontConfig, master: MasterConfig) -> List[Path]:
-    input_files = []
+    input_files: List[Path] = []
     if font_config.has_picosvgs:
         input_files.extend(
             picosvg_dest(font_config.clip_to_viewbox, f) for f in master.sources
@@ -540,7 +533,7 @@ def write_glyphmap_build(
     nw: NinjaWriter,
     font_config: FontConfig,
     master: MasterConfig,
-):
+) -> None:
     nw.build(
         rel_build(_glyphmap_file(font_config, master)),
         _glyphmap_rule(font_config),
@@ -560,7 +553,9 @@ def _variables_for_font_build(
     }
 
 
-def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConfig):
+def write_ufo_build(
+    nw: NinjaWriter, font_config: FontConfig, master: MasterConfig
+) -> None:
     ufo_config = font_config._replace(output_file=master.output_ufo, masters=(master,))
     ufo_config = _update_sources(ufo_config)
     ufo_config_file = _ufo_config(font_config, master)
@@ -576,7 +571,7 @@ def write_ufo_build(nw: NinjaWriter, font_config: FontConfig, master: MasterConf
     nw.newline()
 
 
-def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
+def write_static_font_build(nw: NinjaWriter, font_config: FontConfig) -> None:
     assert len(font_config.masters) == 1
     variables = _variables_for_font_build(
         font_config, font_config.default(), _config_file(font_config)
@@ -590,7 +585,7 @@ def write_static_font_build(nw: NinjaWriter, font_config: FontConfig):
     nw.newline()
 
 
-def write_variable_font_build(nw: NinjaWriter, font_config: FontConfig):
+def write_variable_font_build(nw: NinjaWriter, font_config: FontConfig) -> None:
     nw.build(
         font_config.output_file,
         "write_variable_font",
@@ -601,7 +596,7 @@ def write_variable_font_build(nw: NinjaWriter, font_config: FontConfig):
     nw.newline()
 
 
-def _write_config_for_build(font_config: FontConfig):
+def _write_config_for_build(font_config: FontConfig) -> None:
     # Dump config with defaults, CLI args, etc resolved to build
     # and sources updated to point to build picosvgs
     font_config = _update_sources(font_config)
@@ -610,7 +605,7 @@ def _write_config_for_build(font_config: FontConfig):
     logging.info(f"Wrote {config_file.relative_to(build_dir().parent)}")
 
 
-def _run(argv):
+def _run(argv: Sequence[str]) -> None:
     additional_srcs = tuple(Path(f) for f in argv if f.endswith(".svg"))
     font_configs = config.load_configs(
         tuple(Path(f) for f in argv if f.endswith(".toml")),
@@ -669,7 +664,9 @@ def _run(argv):
                 for master in font_config.masters:
                     write_glyphmap_build(nw, font_config, master)
 
-            picosvg_builds = set()  # svgs for which we already made a picosvg
+            picosvg_builds: Set[Path] = (
+                set()
+            )  # svgs for which we already made a picosvg
             part_files = set()
             for font_config in font_configs:
                 for master in font_config.masters:
@@ -690,7 +687,7 @@ def _run(argv):
                 sorted(part_files),
             )
 
-            bitmap_builds = set()  # svgs for which we already made a bitmap
+            bitmap_builds: Set[Path] = set()  # svgs for which we already made a bitmap
             for font_config in font_configs:
                 if font_config.has_bitmaps:
                     assert not font_config.is_vf
@@ -703,8 +700,12 @@ def _run(argv):
                     )
             nw.newline()
 
-            zopflipng_builds = set()  # svgs for which we already made a zopflipng
-            pngquant_builds = set()  # svgs for which we already made a pngquant
+            zopflipng_builds: Set[Path] = (
+                set()
+            )  # svgs for which we already made a zopflipng
+            pngquant_builds: Set[Path] = (
+                set()
+            )  # svgs for which we already made a pngquant
             for font_config in font_configs:
                 if not font_config.has_bitmaps or not (
                     font_config.use_zopflipng or font_config.use_pngquant
@@ -766,7 +767,7 @@ def _run(argv):
     maybe_run_ninja(build_file)
 
 
-def main():
+def main() -> None:
     # We don't seem to be __main__ when run as cli tool installed by setuptools
     app.run(_run)
 

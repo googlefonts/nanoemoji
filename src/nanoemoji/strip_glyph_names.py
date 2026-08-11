@@ -17,6 +17,7 @@
 from absl import app
 from absl import flags
 from absl import logging
+from typing import Sequence
 from fontTools import ttLib
 from pathlib import Path
 
@@ -31,7 +32,7 @@ flags.DEFINE_string(
 )
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     logging.set_verbosity(FLAGS.log_level)
 
     assert len(argv) == 3, "Expected 2 args, input font and output font"

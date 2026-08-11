@@ -14,10 +14,11 @@
 
 from absl import app
 from pathlib import Path
+from typing import Sequence
 import shutil
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     assert len(argv) == 3, "Expected 2 args, input font and output"
 
     input_file = Path(argv[1])

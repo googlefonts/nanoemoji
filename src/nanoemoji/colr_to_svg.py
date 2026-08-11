@@ -48,7 +48,7 @@ from fontTools import ttLib
 from fontTools.ttLib.tables import C_P_A_L_
 from picosvg.geometric_types import Point, Rect
 from lxml import etree
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, cast
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
@@ -67,9 +67,16 @@ def map_font_space_to_viewbox(view_box: Rect, glyph_region: Rect) -> Affine2D:
     assert descender <= 0
     width = glyph_region.w
 
-    return color_glyph.map_viewbox_to_font_space(
-        view_box, ascender, descender, width, Affine2D.identity()
-    ).inverse()
+    return cast(
+        Affine2D,
+        color_glyph.map_viewbox_to_font_space(
+            view_box,
+            round(ascender),
+            round(descender),
+            round(width),
+            Affine2D.identity(),
+        ).inverse(),
+    )
 
 
 def _svg_root(view_box: Rect) -> etree.Element:
@@ -84,7 +91,7 @@ def _draw_svg_path(
     glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     glyph_name: str,
     font_to_vbox: Affine2D,
-):
+) -> None:
     # use glyph set to resolve references in composite glyphs
     svg_pen = SVGPathPen(glyph_set)
     # wrap svg pen with "filter" pen mapping coordinates from UPEM to SVG space
@@ -96,17 +103,19 @@ def _draw_svg_path(
     svg_path.attrib["d"] = svg_pen.path.d
 
 
-def _default_cpal_palette(ttfont: ttLib.TTFont) -> List[C_P_A_L_.Color]:
+def _default_cpal_palette(ttfont: ttLib.TTFont) -> List[Any]:
     # Return the first palette as the default
     try:
-        return ttfont["CPAL"].palettes[0]
+        return cast(List[Any], ttfont["CPAL"].palettes[0])
     except KeyError:
         raise ValueError("No CPAL table found in font")
     except IndexError:
         raise ValueError("At least one CPAL palette is required, but none was found")
 
 
-def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
+def _color(
+    ttfont: ttLib.TTFont, palette_index: int, alpha: float = 1.0
+) -> colors.Color:
     if palette_index == _FOREGROUND_COLOR_INDEX:
         return colors.Color.fromstring("currentColor", alpha=alpha)
 
@@ -119,7 +128,7 @@ def _color(ttfont: ttLib.TTFont, palette_index, alpha=1.0) -> colors.Color:
         red=cpal_color.red,
         green=cpal_color.green,
         blue=cpal_color.blue,
-        alpha=alpha * cpal_color.alpha / 255,
+        alpha=alpha * cpal_color.alpha / 255.0,
         palette_index=palette_index if len(ttfont["CPAL"].palettes) > 1 else None,
     )
 
@@ -161,7 +170,7 @@ def _apply_solid_ot_paint(
     svg_path: etree.Element,
     ttfont: ttLib.TTFont,
     ot_paint: otTables.Paint,
-):
+) -> None:
     color = _color(ttfont, ot_paint.PaletteIndex, ot_paint.Alpha)
     _apply_solid_paint(svg_path, PaintSolid(color))
 
@@ -174,7 +183,7 @@ def _apply_gradient_ot_paint(
     ot_paint: otTables.Paint,
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
-):
+) -> None:
     paint = _gradient_paint(ttfont, ot_paint)
     # For radial gradients we want to keep cirlces as such, so we must decompose into
     # a uniform scale+translate plus a remainder to encode as gradientTransform.
@@ -215,7 +224,7 @@ def _apply_transform(
     transform: Affine2D, font_to_vbox: Affine2D, el: etree.Element
 ) -> Affine2D:
     if transform == Affine2D.identity():
-        return Affine2D.identity()
+        return cast(Affine2D, Affine2D.identity())
 
     svg_transform = Affine2D.compose_ltr(
         (font_to_vbox.inverse(), transform, font_to_vbox)
@@ -225,7 +234,7 @@ def _apply_transform(
     # attribute on a <path>, since that already affects the gradients used
     # and we don't want the transform to be applied twice to gradients:
     # https://github.com/googlefonts/nanoemoji/issues/334
-    return Affine2D.identity()
+    return cast(Affine2D, Affine2D.identity())
 
 
 def _colr_v1_paint_to_svg(
@@ -237,8 +246,8 @@ def _colr_v1_paint_to_svg(
     ot_paint: otTables.Paint,
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
-):
-    def descend(parent: etree.Element, paint: otTables.Paint):
+) -> None:
+    def descend(parent: etree.Element, paint: otTables.Paint) -> None:
         _colr_v1_paint_to_svg(
             ttfont,
             glyph_set,

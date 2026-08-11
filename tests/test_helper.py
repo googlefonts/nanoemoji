@@ -32,6 +32,7 @@ from picosvg.svg import SVG
 import pytest
 import shutil
 import tempfile
+from typing import List, Optional, Set, Tuple
 
 TEST_DATA_DIR = Path(__file__).parent
 
@@ -102,14 +103,16 @@ def color_font_config(
     has_picosvgs = font_config.has_picosvgs
     has_bitmaps = font_config.has_bitmaps
 
-    svg_inputs = [(None, None)] * len(svgs)
+    svg_inputs: List[Tuple[Optional[Path], Optional[SVG]]] = [(None, None)] * len(svgs)
     if has_svgs:
         svg_inputs = [
             (Path(os.path.relpath(svg)), parse_svg(svg, topicosvg=has_picosvgs))
             for svg in svgs
         ]
 
-    bitmap_inputs = [(None, None)] * len(svgs)
+    bitmap_inputs: List[Tuple[Optional[Path], Optional[PNG]]] = [(None, None)] * len(
+        svgs
+    )
     if has_bitmaps:
         bitmap_inputs = []
         for resolution in font_config.bitmap_resolutions:
@@ -271,9 +274,11 @@ def svg_diff(actual_svg: SVG, expected_svg: SVG):
 def run(cmd):
     cmd = tuple(str(c) for c in cmd)
     print("subprocess:", " ".join(cmd))  # very useful on failure
+    nanoemoji_bin = shutil.which("nanoemoji")
+    nanoemoji_path = str(Path(nanoemoji_bin).parent) if nanoemoji_bin else ""
     env = {
         # We may need to find nanoemoji and other pip-installed cli tools
-        "PATH": str(Path(shutil.which("nanoemoji")).parent),
+        "PATH": nanoemoji_path,
         # We may need to find test modules
         "PYTHONPATH": os.pathsep.join((str(Path(__file__).parent),)),
     }
@@ -302,7 +307,7 @@ def run_nanoemoji(args, tmp_dir=None):
     return tmp_dir
 
 
-_TEMPORARY_DIRS = set()
+_TEMPORARY_DIRS: Set[Path] = set()
 
 
 def active_temp_dirs():

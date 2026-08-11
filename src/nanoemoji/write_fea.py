@@ -17,6 +17,7 @@
 # TODO if this is a qualified sequence create the unqualified version and vice versa
 
 
+from typing import Sequence
 from absl import app
 from absl import flags
 from nanoemoji import glyphmap
@@ -28,7 +29,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     with util.file_printer(FLAGS.output_file) as print:
         sequences = sorted(
             {

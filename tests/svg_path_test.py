@@ -34,7 +34,7 @@ def test_addComponent_decompose():
 
 def test_addComponent_decompose_with_transform():
     pen = SVGPathPen(glyphSet={"a": DummyGlyph()})
-    pen.addComponent("a", Affine2D(2, 0, 0, 2, 0, 0))
+    pen.addComponent("a", Affine2D(2, 0, 0, 2, 0, 0))  # type: ignore[call-arg]
 
     assert pen.path.d == (
         "M0,0 L0,20 L20,20 L20,0 Z "

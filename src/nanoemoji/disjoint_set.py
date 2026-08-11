@@ -1,24 +1,27 @@
 # https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 
 import collections
-from typing import FrozenSet, Generic, Generator, Tuple, TypeVar
+from typing import Dict, FrozenSet, Generic, Generator, Tuple, TypeVar
 
 T = TypeVar("T")
 
 
 class DisjointSet(Generic[T]):
-    def __init__(self):
+    parent: Dict[T, T]
+    rank: Dict[T, int]
+
+    def __init__(self) -> None:
         self.parent = {}
         self.rank = {}
 
-    def make_set(self, e: T):
+    def make_set(self, e: T) -> None:
         if e in self.parent:
             return
         self.parent[e] = e
         self.rank[e] = 0
 
     # find with path compression
-    def find(self, e: T):
+    def find(self, e: T) -> T:
         self.make_set(e)
         prev = e
         while self.parent[e] != e:
@@ -28,7 +31,7 @@ class DisjointSet(Generic[T]):
         return e
 
     # union by rank
-    def union(self, x: T, y: T):
+    def union(self, x: T, y: T) -> None:
         x_root = self.find(x)
         y_root = self.find(y)
         if x_root == y_root:
@@ -48,4 +51,4 @@ class DisjointSet(Generic[T]):
 
     def sorted(self) -> Tuple[Tuple[T, ...], ...]:
         """Sorted tuple of sorted tuples edition of sets()."""
-        return tuple(sorted(tuple(sorted(s)) for s in self.sets()))
+        return tuple(sorted(tuple(sorted(s)) for s in self.sets()))  # type: ignore[type-var]

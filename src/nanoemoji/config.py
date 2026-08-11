@@ -15,15 +15,26 @@
 from absl import flags
 
 try:
-    import importlib.resources as resources  # pytype: disable=import-error
+    import importlib.resources as resources
 except ImportError:
-    import importlib_resources as resources  # pytype: disable=import-error
+    import importlib_resources as resources  # type: ignore[no-redef]
 
 import itertools
 from pathlib import Path
 from picosvg.svg_transform import Affine2D
 import toml
-from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Iterable,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from nanoemoji import util
 
@@ -179,11 +190,11 @@ class FontConfig(NamedTuple):
     masters: Tuple[MasterConfig, ...] = ()
     source_names: Tuple[str, ...] = ()
 
-    def _has_any(self, *color_formats) -> bool:
+    def _has_any(self, *color_formats: str) -> bool:
         return bool(set(color_formats).intersection(self.color_format.split("_")))
 
     @property
-    def output_format(self):
+    def output_format(self) -> str:
         return Path(self.output_file).suffix
 
     @property
@@ -209,11 +220,13 @@ class FontConfig(NamedTuple):
     @property
     def is_ot_svg(self) -> bool:
         return self._has_any(
-            "".join(p)
-            for p in itertools.product(("picosvg", "untouchedsvg"), ("", "z"))
+            *(
+                "".join(p)
+                for p in itertools.product(("picosvg", "untouchedsvg"), ("", "z"))
+            )
         )
 
-    def validate(self):
+    def validate(self) -> "FontConfig":
         for attr_name in (
             "upem",
             "width",
@@ -250,7 +263,7 @@ class FontConfig(NamedTuple):
         raise ValueError("Must have a default master")
 
 
-def write(dest: Path, config: FontConfig):
+def write(dest: Path, config: FontConfig) -> None:
     toml_cfg = {
         "family": config.family,
         "output_file": config.output_file,
@@ -345,7 +358,8 @@ def _pop_flag(
 
 
 def load(
-    config_file: Optional[Path] = None, additional_srcs: Optional[Tuple[Path]] = None
+    config_file: Optional[Path] = None,
+    additional_srcs: Optional[Tuple[Path, ...]] = None,
 ) -> FontConfig:
     config_dir, config = _resolve_config(config_file)
 
@@ -374,14 +388,15 @@ def load(
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
 
     # restore legacy flag if relevant
-    bitmap_resolutions = set()
+    bitmap_resolutions: Tuple[int, ...] = ()
     if FLAGS.bitmap_resolution is None:
+        bitmap_resolutions_set: Set[int] = set()
         if "bitmap_resolution" in config:
-            bitmap_resolutions.add(config.pop("bitmap_resolution"))
+            bitmap_resolutions_set.add(config.pop("bitmap_resolution"))
         if "bitmap_resolutions" in config:
             for bitmap_resolution in config.pop("bitmap_resolutions"):
-                bitmap_resolutions.add(bitmap_resolution)
-        bitmap_resolutions = tuple(sorted(bitmap_resolutions))
+                bitmap_resolutions_set.add(bitmap_resolution)
+        bitmap_resolutions = tuple(sorted(bitmap_resolutions_set))
     if not bitmap_resolutions:
         bitmap_resolutions = tuple(
             int(v) for v in _pop_flag(config, "bitmap_resolutions", "bitmap_resolution")
@@ -404,18 +419,18 @@ def load(
             raise ValueError(f"Unexpected '{axis_tag}' config: {axis_config}")
 
     masters = []
-    source_names = set()
+    source_names: Set[str] = set()
     for master_name, master_config in config.pop("master").items():
         positions = tuple(
             sorted(AxisPosition(k, v) for k, v in master_config.pop("position").items())
         )
-        srcs = set()
+        srcs: Set[Path] = set()
         if "srcs" in master_config:
             for src in master_config.pop("srcs"):
                 srcs.update(_resolve_src(config_dir, src))
         if additional_srcs is not None:
             srcs.update(additional_srcs)
-        srcs = tuple(sorted(util.abspath(p) for p in srcs))
+        sorted_srcs = tuple(sorted(util.abspath(p) for p in srcs))
 
         master = MasterConfig(
             master_name,
@@ -428,7 +443,7 @@ def load(
                 )
             ),
             positions,
-            srcs,
+            sorted_srcs,
         )
         if master_config:
             raise ValueError(f"Unexpected '{master_name}' config: {master_config}")
@@ -441,7 +456,7 @@ def load(
         if not source_names:
             source_names = master_source_names
         elif source_names != master_source_names:
-            raise ValueError(f"{fonts[i].name} srcs don't match {fonts[0].name}")
+            raise ValueError(f"{master_name} srcs don't match {masters[0].name}")
 
     if not masters:
         raise ValueError("Must have at least one master")
@@ -479,8 +494,8 @@ def load(
 
 
 def load_configs(
-    config_files: Sequence[Path], additional_srcs: Optional[Tuple[Path]] = None
-) -> Tuple[FontConfig]:
+    config_files: Sequence[Path], additional_srcs: Optional[Tuple[Path, ...]] = None
+) -> Tuple[FontConfig, ...]:
     configs = tuple(load(f, additional_srcs) for f in config_files)
     output_files = {c.output_file for c in configs}
     assert len(configs) == len(

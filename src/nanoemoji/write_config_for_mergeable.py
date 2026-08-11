@@ -16,6 +16,7 @@
 
 from absl import app
 from absl import flags
+from typing import Sequence
 from fontTools import ttLib
 from nanoemoji import config
 from nanoemoji import util
@@ -25,7 +26,7 @@ import textwrap
 FLAGS = flags.FLAGS
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     font_file = util.only(argv, lambda a: a.endswith(".ttf"))
     config_file = Path(util.only(argv, lambda a: a.endswith(".toml")))
     font = ttLib.TTFont(font_file)
@@ -34,7 +35,9 @@ def main(argv):
     descender = font["OS/2"].sTypoDescender
 
     with open(config_file, "w") as f:
-        f.write(textwrap.dedent(f"""
+        f.write(
+            textwrap.dedent(
+                f"""
             output_file = "COLR.ttf"
             color_format = "{FLAGS.color_format}"
             upem = {upem}
@@ -54,7 +57,9 @@ def main(argv):
 
             [master.regular.position]
             wght = 400
-            """))
+            """
+            )
+        )
 
 
 if __name__ == "__main__":

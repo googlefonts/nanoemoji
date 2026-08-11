@@ -27,17 +27,31 @@ from pathlib import Path
 import shlex
 import subprocess
 import sys
-from typing import Any, Callable, Deque, Iterable, List, NamedTuple, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
+
+_T = TypeVar("_T")
 
 
-def only(iterable, filter_fn=lambda v: v):
+def only(iterable: Iterable[_T], filter_fn: Callable[[_T], Any] = lambda v: v) -> _T:
     it = filter(filter_fn, iterable)
     result = next(it)
     assert next(it, None) is None
     return result
 
 
-def expand_ninja_response_files(argv: List[str]) -> List[str]:
+def expand_ninja_response_files(argv: Sequence[str]) -> List[str]:
     """
     Extend argument list with MSVC-style '@'-prefixed response files.
 
@@ -83,7 +97,7 @@ def abspath(path: Path) -> Path:
 
 
 @contextlib.contextmanager
-def file_printer(filename):
+def file_printer(filename: Union[str, Path]) -> Iterator[Callable[..., None]]:
     if filename == "-":  # conventionally means print to stdout
         yield print
     else:
@@ -91,13 +105,13 @@ def file_printer(filename):
             yield partial(print, file=f)
 
 
-def require_fully_loaded(font: ttLib.TTFont):
+def require_fully_loaded(font: ttLib.TTFont) -> None:
     not_loaded = sorted(t for t in font.keys() if not font.isLoaded(t))
     if not_loaded:
         raise ValueError(f"Everything should be loaded, following aren't: {not_loaded}")
 
 
-def _reload(font: ttLib.TTFont, lazy: bool = True):
+def _reload(font: ttLib.TTFont, lazy: bool = True) -> ttLib.TTFont:
     # Stream font to memory and load it back again
     tmp = BytesIO()
     font.save(tmp)

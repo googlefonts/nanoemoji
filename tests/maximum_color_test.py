@@ -102,7 +102,7 @@ def test_build_maximum_font(color_format, expected_new_tables, bitmaps, input_fi
 def test_build_colrv0_from_svg(colr_version):
     initial_font_file = _build_initial_font("picosvg")
 
-    additional_flags = ()
+    additional_flags: Tuple[str, ...] = ()
     if colr_version is not None:
         additional_flags = ("--colr_version", str(colr_version))
 

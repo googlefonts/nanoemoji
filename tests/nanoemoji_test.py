@@ -19,7 +19,8 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
 from functools import lru_cache
 import io
-from lxml import etree  # pytype: disable=import-error
+from lxml import etree
+from typing import Dict, Tuple
 from nanoemoji import config
 from nanoemoji.glyph import glyph_name
 from nanoemoji.util import only
@@ -176,7 +177,7 @@ def test_build_sbix_font_3res():
     font = generate_font_memoized(config_file)
     assert "sbix" in font
     sbix = font["sbix"]
-    count_by_ppem_resolution = defaultdict(int)
+    count_by_ppem_resolution: Dict[Tuple[int, int], int] = defaultdict(int)
     for ppem, strike in sbix.strikes.items():
         for glyph_name, glyph in strike.glyphs.items():
             if glyph.imageData is None:
@@ -200,7 +201,7 @@ def test_build_sbix_font_hires():
     font = generate_font_memoized(config_file)
     assert "sbix" in font
     sbix = font["sbix"]
-    count_by_ppem_resolution = defaultdict(int)
+    count_by_ppem_resolution: Dict[Tuple[int, int], int] = defaultdict(int)
     for ppem, strike in sbix.strikes.items():
         for glyph_name, glyph in strike.glyphs.items():
             if glyph.imageData is None:

@@ -23,7 +23,7 @@ from fontTools.ttLib.tables import otTables as ot
 from nanoemoji.util import bfs_base_table, require_fully_loaded, SubTablePath
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _COVERAGE_ATTR = "Coverage"  # tables that have one coverage use this name
 
@@ -32,7 +32,7 @@ def _sort_by_gid(
     get_glyph_id: Callable[[str], int],
     glyphs: List[str],
     parallel_list: Optional[List[Any]],
-):
+) -> None:
     if parallel_list:
         reordered = sorted(
             ((g, e) for g, e in zip(glyphs, parallel_list)),
@@ -114,7 +114,7 @@ class ReorderList(ReorderRule):
 
 # (Type, Optional Format) => List[ReorderRule]
 # Encodes the relationships Cosimo identified
-_REORDER_RULES = {
+_REORDER_RULES: Dict[Tuple[Any, Optional[int]], List[ReorderRule]] = {
     # GPOS
     (ot.SinglePos, 1): [ReorderCoverage()],
     (ot.SinglePos, 2): [ReorderCoverage(parallel_list_attr="Value")],
@@ -205,7 +205,7 @@ _REORDER_RULES = {
 }
 
 
-def _access_path(path: SubTablePath):
+def _access_path(path: SubTablePath) -> str:
     path_parts = []
     for entry in path:
         path_part = entry.name
@@ -215,7 +215,7 @@ def _access_path(path: SubTablePath):
     return ".".join(path_parts)
 
 
-def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]):
+def reorder_glyphs(font: ttLib.TTFont, new_glyph_order: List[str]) -> None:
     old_glyph_order = font.getGlyphOrder()
     if len(new_glyph_order) != len(old_glyph_order):
         raise ValueError(

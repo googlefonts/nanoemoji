@@ -95,11 +95,10 @@ def test_sort_parallel_list():
 def test_reorder_actual_font():
     def _pair_pos(font):
         # Initial state should be we have a GPOS with PairPos lookup for ab, ac
-        pair_pos = only(
-            reduce(
-                lambda a, c: a + c.SubTable, font["GPOS"].table.LookupList.Lookup, []
-            )
-        )
+        subtables = []
+        for lookup in font["GPOS"].table.LookupList.Lookup:
+            subtables.extend(lookup.SubTable)
+        pair_pos = only(subtables)
         return tuple(
             (
                 pair_pos.Coverage.glyphs[i],
@@ -141,6 +140,7 @@ def test_reorder_actual_font():
             codepoint_fn=lambda svg_file, _: (ord(svg_file.stem),),
         )
         _, font = write_font._generate_color_font(config, glyph_inputs)
+        assert font is not None
 
         # Initial state
         assert _pair_pos(font) == (("a", [("b", -12)]), ("b", [("b", -14), ("c", -16)]))

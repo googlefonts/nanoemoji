@@ -22,7 +22,8 @@ See:
 from absl import app
 from absl import flags
 from absl import logging
-from PIL import Image, ImageChops, ImageStat
+from PIL import Image, ImageChops
+from typing import Any, Iterable, Sequence, cast
 import os
 
 FLAGS = flags.FLAGS
@@ -31,18 +32,18 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("output_file", None, "File contining the diff.")
 
 
-def _diff_pixel(p):
+def _diff_pixel(p: Any) -> Any:
     if p != (0, 0, 0, 0):
         return (255, 0, 233, 255)
     return p
 
 
-def _pink_diff_file():
+def _pink_diff_file() -> str:
     base, ext = os.path.splitext(FLAGS.output_file)
     return f"{base}.pink{ext}"
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     lhs_file, rhs_file = argv[1:]
     lhs, rhs = Image.open(lhs_file), Image.open(rhs_file)
     diff = ImageChops.difference(lhs, rhs)
@@ -50,7 +51,7 @@ def main(argv):
     diff.save(FLAGS.output_file)
 
     # The default diff is really hard; make it more obvoius
-    diff.putdata([_diff_pixel(p) for p in diff.getdata()])
+    diff.putdata([_diff_pixel(p) for p in cast(Iterable[Any], diff.getdata())])
 
     diff.save(_pink_diff_file())
 

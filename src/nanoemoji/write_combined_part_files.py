@@ -16,6 +16,7 @@
 
 from absl import app
 from absl import flags
+from typing import Sequence
 from nanoemoji.parts import ReusableParts
 from nanoemoji import util
 from pathlib import Path
@@ -23,7 +24,7 @@ from pathlib import Path
 FLAGS = flags.FLAGS
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     input_files = util.expand_ninja_response_files(argv[1:])
 
     combined_parts = ReusableParts()

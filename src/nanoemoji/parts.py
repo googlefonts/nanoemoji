@@ -33,6 +33,7 @@ from picosvg.svg_reuse import affine_between, normalize
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath, SVGShape
 from typing import (
+    Any,
     Iterable,
     List,
     MutableMapping,
@@ -55,7 +56,7 @@ def _default_tolerence() -> float:
     return FontConfig().reuse_tolerance
 
 
-def _is_iterable_of(thing, desired_type) -> bool:
+def _is_iterable_of(thing: Any, desired_type: type) -> bool:
     try:
         it = iter(thing)
     except TypeError:
@@ -130,41 +131,45 @@ class ReusableParts:
             norm = NormalizedShape(path)
         return norm
 
-    def _add_norm_path(self, norm: NormalizedShape, shape: Shape):
+    def _add_norm_path(self, norm: NormalizedShape, shape: Shape) -> None:
         if norm not in self.shape_sets:
             self.shape_sets[norm] = ShapeSet(set())
         self.shape_sets[norm].add(shape)
         self._donor_cache.pop(norm, None)
 
-    def _add(self, shape: Shape):
+    def _add(self, shape: Shape) -> None:
         norm = self.normalize(shape)
         self._add_norm_path(norm, shape)
 
-    def add(self, source: PathSource):
+    def add(self, source: PathSource) -> None:
         """Combine two sets of parts. Source shapes will be scaled to dest viewbox."""
+        shapes: Tuple[Union[Shape, SVGPath], ...]
         if isinstance(source, ReusableParts):
             transform = Affine2D.rect_to_rect(source.view_box, self.view_box)
             shapes = tuple(
-                reduce(lambda a, c: a | c, source.shape_sets.values(), set())
+                s for shape_set in source.shape_sets.values() for s in shape_set
             )
         elif isinstance(source, SVG):
             source.checkpicosvg()
             source_box = source.view_box()
+            assert source_box is not None
             transform = scale_viewbox_to_font_metrics(
-                self.view_box, source_box.h, 0, source_box.w
+                self.view_box, round(source_box.h), 0, round(source_box.w)
             )
             shapes = tuple(s.as_path() for s in source.shapes())
         else:
             raise ValueError(f"Unknown part source: {type(source)}")
 
-        for shape in shapes:
-            if isinstance(shape, str):
-                shape = SVGPath(d=shape)
+        for raw_shape in shapes:
+            if isinstance(raw_shape, str):
+                shape_path = SVGPath(d=raw_shape)
+            else:
+                shape_path = raw_shape
             if transform != Affine2D.identity():
-                shape = shape.apply_transform(transform)
-            self._add(as_shape(shape))
+                shape_path = shape_path.apply_transform(transform)
+            self._add(as_shape(shape_path))
 
-    def _compute_donor(self, norm: NormalizedShape):
+    def _compute_donor(self, norm: NormalizedShape) -> None:
         self._donor_cache[norm] = None  # no solution
 
         # try to select a donor that can fulfil every member of the set
@@ -179,10 +184,10 @@ class ReusableParts:
         # A fancier implementation would factor in the # of occurences and the cost
         # based on which shape is selected as donor if there are many possibilities.
 
-        svg_paths = sorted(
+        raw_shapes: List[Shape] = sorted(
             self.shape_sets[norm], key=lambda s: (_bbox_area(s), s), reverse=True
         )
-        svg_paths = [SVGPath(d=s) for s in svg_paths]
+        svg_paths: List[SVGPath] = [SVGPath(d=s) for s in raw_shapes]
 
         if self.reuse_tolerance == -1:
             # No reuse across different shapes; all paths in the set are identical
@@ -200,44 +205,44 @@ class ReusableParts:
                 self._donor_cache[norm] = Shape(svg_path.d)
                 break
 
-    def compute_donors(self):
+    def compute_donors(self) -> None:
         self._donor_cache.clear()
         for norm in self.shape_sets:
             self._compute_donor(norm)
 
     def is_reused(self, shape: SVGPath) -> bool:
-        shape = as_shape(shape)
-        norm = self.normalize(shape)
+        shape_str = as_shape(shape)
+        norm = self.normalize(shape_str)
         if norm not in self.shape_sets:
             return False
         if len(self.shape_sets[norm]) < 2:
             return False
         if norm not in self._donor_cache:
             self._compute_donor(norm)
-        return shape == self._donor_cache[norm]  # this shape provides!
+        return shape_str == self._donor_cache[norm]  # this shape provides!
 
     def try_reuse(self, shape: SVGPath) -> Optional[ReuseResult]:
         """Returns the shape and transform to use to build the input shape."""
-        shape = as_shape(shape)
+        shape_str = as_shape(shape)
         if self.reuse_tolerance == -1:
-            return ReuseResult(Affine2D.identity(), shape)
+            return ReuseResult(Affine2D.identity(), shape_str)
 
-        norm = self.normalize(shape)
+        norm = self.normalize(shape_str)
 
         # The whole point is to pre-add, doing it on the fly reduces reuse
         if norm not in self.shape_sets:
             print(self.to_json())
             raise ValueError(
-                f"You MUST pre-add your shapes. No set matches normalization {norm} for {shape}."
+                f"You MUST pre-add your shapes. No set matches normalization {norm} for {shape_str}."
             )
 
-        if shape not in self.shape_sets[norm]:
+        if shape_str not in self.shape_sets[norm]:
             print(self.to_json())
-            raise ValueError(f"You MUST pre-add your shapes. {shape} is new to us.")
+            raise ValueError(f"You MUST pre-add your shapes. {shape_str} is new to us.")
 
         if norm not in self._donor_cache:
             assert (
-                shape in self.shape_sets[norm]
+                shape_str in self.shape_sets[norm]
             ), f"The input shape must be in the group"
             self._compute_donor(norm)
 
@@ -247,14 +252,14 @@ class ReusableParts:
             return None
 
         affine = affine_between(
-            SVGPath(d=donor), SVGPath(d=shape), self.reuse_tolerance
+            SVGPath(d=donor), SVGPath(d=shape_str), self.reuse_tolerance
         )
         assert (
             affine is not None
         ), f"Should only get here with a solution. Epic fail on {donor}, {shape.d}"
         return ReuseResult(affine, donor)
 
-    def to_json(self):
+    def to_json(self) -> str:
         json_dict = {
             "version": ".".join(str(v) for v in self.version),
             "reuse_tolerance": self.reuse_tolerance,
@@ -274,7 +279,9 @@ class ReusableParts:
     def from_json(cls, string: str) -> "ReusableParts":
         json_dict = json.loads(string)
         parts = ReusableParts()
-        parts.version = tuple(int(v) for v in json_dict.pop("version").split("."))
+        version_parts = tuple(int(v) for v in json_dict.pop("version").split("."))
+        assert len(version_parts) == 3
+        parts.version = (version_parts[0], version_parts[1], version_parts[2])
         assert parts.version == (1, 0, 0), f"Bad version {parts.version}"
         parts.view_box = Rect(*(int(v) for v in json_dict.pop("view_box").split(" ")))
         assert parts.view_box[:2] == (

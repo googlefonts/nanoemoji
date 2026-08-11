@@ -18,6 +18,7 @@ from absl import app
 from absl import flags
 from nanoemoji.parts import ReusableParts
 from nanoemoji import util
+from typing import Sequence
 from pathlib import Path
 from picosvg.geometric_types import Rect
 from picosvg.svg import SVG
@@ -29,7 +30,7 @@ flags.DEFINE_integer("wh", None, "The width and height to use.")
 flags.DEFINE_bool("compute_donors", False, "Whether to compute donors.")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     if len(argv) != 2:
         raise ValueError("Specify exactly one input")
 

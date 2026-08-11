@@ -14,13 +14,13 @@
 
 from setuptools import setup, find_packages
 
-extras_require={
+extras_require = {
     "test": [
         "pytest",
     ],
     "lint": [
         "black",
-        "pytype",
+        "mypy",
     ],
 }
 extras_require["dev"] = extras_require["test"] + extras_require["lint"]
@@ -30,10 +30,12 @@ setup(
     use_scm_version={"write_to": "src/nanoemoji/_version.py"},
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    entry_points={"console_scripts": [
-        "nanoemoji=nanoemoji.nanoemoji:main",
-        "maximum_color=nanoemoji.maximum_color:main",
-    ]},
+    entry_points={
+        "console_scripts": [
+            "nanoemoji=nanoemoji.nanoemoji:main",
+            "maximum_color=nanoemoji.maximum_color:main",
+        ]
+    },
     setup_requires=["setuptools_scm"],
     include_package_data=True,
     install_requires=[
@@ -54,11 +56,9 @@ setup(
     ],
     extras_require=extras_require,
     python_requires=">=3.8",
-
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18
-    package_data={"picosvg": ["py.typed"]},
-
+    package_data={"nanoemoji": ["py.typed"]},
     # metadata to display on PyPI
     author="Rod S",
     author_email="rsheeter@google.com",

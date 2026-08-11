@@ -16,6 +16,7 @@ from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.config import FontConfig
 from nanoemoji.paint import *
+from picosvg.geometric_types import Point
 from picosvg.svg import SVG
 from picosvg.svg_transform import Affine2D
 import dataclasses
@@ -40,6 +41,12 @@ def _test_file(filename):
     return os.path.join(os.path.dirname(__file__), filename)
 
 
+def _svg_to_str(svg):
+    stream = io.BytesIO()
+    svg.write(stream, pretty_print=False)
+    return stream.getvalue()
+
+
 def _nsvg(filename):
     return SVG.parse(_test_file(filename)).topicosvg()
 
@@ -54,9 +61,25 @@ def _pprint(thing):
     "view_box, upem, width, ascender, descender, expected_transform, expected_width",
     [
         # same upem, flip y
-        ("0 0 1024 1024", 1024, 1024, 1024, 0, Affine2D(1, 0, 0, -1, 0, 1024), 1024),
+        (
+            "0 0 1024 1024",
+            1024,
+            1024,
+            1024,
+            0,
+            Affine2D(1, 0, 0, -1, 0, 1024),  # type: ignore[call-arg]
+            1024,
+        ),
         # noto emoji norm. scale, flip y
-        ("0 0 128 128", 1024, 1024, 1024, 0, Affine2D(8, 0, 0, -8, 0, 1024), 1024),
+        (
+            "0 0 128 128",
+            1024,
+            1024,
+            1024,
+            0,
+            Affine2D(8, 0, 0, -8, 0, 1024),  # type: ignore[call-arg]
+            1024,
+        ),
         # noto emoji emoji_u26be.svg viewBox. Scale, flip y and translate
         (
             "-151 297 128 128",
@@ -64,7 +87,7 @@ def _pprint(thing):
             1024,
             1024,
             0,
-            Affine2D(8, 0, 0, -8, 1208, 3400),
+            Affine2D(8, 0, 0, -8, 1208, 3400),  # type: ignore[call-arg]
             1024,
         ),
         # made up example. Scale, translate, flip y, center horizontally
@@ -74,7 +97,7 @@ def _pprint(thing):
             100,
             100,
             0,
-            Affine2D(a=4.761905, b=0, c=0, d=-4.761905, e=-45.238095, f=152.380952),
+            Affine2D(4.761905, 0, 0, -4.761905, -45.238095, 152.380952),  # type: ignore[call-arg]
             100,
         ),
         # noto emoji width, ascender, descender
@@ -84,7 +107,7 @@ def _pprint(thing):
             1275,
             950,
             -250,
-            Affine2D(1.171875, 0, 0, -1.171875, 37.5, 950),
+            Affine2D(1.171875, 0, 0, -1.171875, 37.5, 950),  # type: ignore[call-arg]
             1275,
         ),
         # wider than tall: uniformly scale by height and stretch advance width to fit
@@ -94,7 +117,7 @@ def _pprint(thing):
             100,
             100,
             0,
-            Affine2D(a=10, b=0, c=0, d=-10, e=0, f=100),
+            Affine2D(10, 0, 0, -10, 0, 100),  # type: ignore[call-arg]
             200,
         ),
         # taller than wide: uniformly scale by height, center within advance width
@@ -104,7 +127,7 @@ def _pprint(thing):
             100,
             100,
             0,
-            Affine2D(a=5, b=0, c=0, d=-5, e=25, f=100),
+            Affine2D(5, 0, 0, -5, 25, 100),  # type: ignore[call-arg]
             100,
         ),
     ],
@@ -123,7 +146,7 @@ def test_transform_and_width(
     ).validate()
     ufo = _ufo(config)
     color_glyph = ColorGlyph.create(
-        config, ufo, "duck", 1, "glyph_name", [0x0042], SVG.fromstring(svg_str)
+        config, ufo, "duck", 1, "glyph_name", (0x0042,), SVG.fromstring(svg_str)
     )
 
     assert color_glyph.transform_for_font_space() == pytest.approx(expected_transform)
@@ -136,7 +159,11 @@ def _round_coords(paint, prec=5):
             paint,
             p0=Point(round(paint.p0.x, prec), round(paint.p0.y, prec)),
             p1=Point(round(paint.p1.x, prec), round(paint.p1.y, prec)),
-            p2=Point(round(paint.p2.x, prec), round(paint.p2.y, prec)),
+            p2=(
+                Point(round(paint.p2.x, prec), round(paint.p2.y, prec))
+                if paint.p2 is not None
+                else None
+            ),
         )
     if isinstance(paint, PaintRadialGradient):
         return dataclasses.replace(
@@ -467,7 +494,7 @@ def _round_coords(paint, prec=5):
 def test_color_glyph_layers(svg_in, expected_paints):
     config = FontConfig(upem=1000, ascender=1000, descender=0, width=1000)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config), "duck", 1, "g_name", [0x0042], _nsvg(svg_in)
+        config, _ufo(config), "duck", 1, "g_name", (0x0042,), _nsvg(svg_in)
     ).mutating_traverse(_round_coords)
 
     actual_paints = color_glyph.painted_layers
@@ -482,8 +509,9 @@ def test_color_glyph_layers(svg_in, expected_paints):
 def test_rgb_rgba_svg():
     config = FontConfig(upem=1000, ascender=1000, descender=0, width=1000)
     color_glyph = ColorGlyph.create(
-        config, _ufo(config), "duck", 1, "g_name", [0x0042], _nsvg("rgb_rgba.svg")
+        config, _ufo(config), "duck", 1, "g_name", (0x0042,), _nsvg("rgb_rgba.svg")
     ).mutating_traverse(_round_coords)
+    assert color_glyph.painted_layers is not None
     assert len(color_glyph.painted_layers) == 1
     paint_glyph = color_glyph.painted_layers[0]
     assert isinstance(paint_glyph, PaintGlyph)

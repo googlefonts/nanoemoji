@@ -44,7 +44,7 @@ from nanoemoji.ninja import (
 )
 from nanoemoji.util import only
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
@@ -166,7 +166,7 @@ def bitmap_dest(input_svg: Path) -> Path:
     return bitmap_dir() / input_svg.with_suffix(".png").name
 
 
-def _write_preamble(nw: NinjaWriter):
+def _write_preamble(nw: NinjaWriter) -> None:
     module_rule(
         nw,
         "extract_svgs_from_otsvg",
@@ -268,7 +268,7 @@ def _write_preamble(nw: NinjaWriter):
     nw.newline()
 
 
-def _write_font(nw: NinjaWriter, output_file: Path, inputs: WriteFontInputs):
+def _write_font(nw: NinjaWriter, output_file: Path, inputs: WriteFontInputs) -> None:
     nw.build(
         output_file, "write_font", implicit=list(inputs), variables=inputs._asdict()
     )
@@ -277,7 +277,7 @@ def _write_font(nw: NinjaWriter, output_file: Path, inputs: WriteFontInputs):
 
 def _write_config_for_mergeable(
     nw: NinjaWriter, config_file: Path, input_font: Path, color_format: str
-):
+) -> None:
     nw.build(
         config_file,
         "write_config_for_mergeable",
@@ -423,7 +423,7 @@ def _generate_cbdt(
     font: ttLib.TTFont,
     color_font: Path,
     picosvg_files: List[Path],
-):
+) -> Path:
     # generate bitmaps
     bitmap_files = [rel_build(bitmap_dest(s)) for s in picosvg_files]
     for picosvg, bitmap in zip(picosvg_files, bitmap_files):
@@ -437,7 +437,7 @@ def _generate_cbdt(
     return output_file
 
 
-def _keep_glyph_names(nw: NinjaWriter, input_file: Path) -> ttLib.TTFont:
+def _keep_glyph_names(nw: NinjaWriter, input_file: Path) -> Path:
     # The whole concept is we keep glyph name stable until the end so
     # make sure we start with stable names. Doesn't matter what they are,
     # just that they don't change.
@@ -451,7 +451,7 @@ def _keep_glyph_names(nw: NinjaWriter, input_file: Path) -> ttLib.TTFont:
     return output_file
 
 
-def _strip_glyph_names(nw: NinjaWriter, input_file: Path, output_file: Path):
+def _strip_glyph_names(nw: NinjaWriter, input_file: Path, output_file: Path) -> None:
     nw.build(
         output_file,
         "strip_glyph_names",
@@ -460,7 +460,7 @@ def _strip_glyph_names(nw: NinjaWriter, input_file: Path, output_file: Path):
     nw.newline()
 
 
-def _run(argv):
+def _run(argv: Sequence[str]) -> None:
     if len(argv) != 2:
         raise ValueError("Must have one argument, a font file")
 
@@ -510,7 +510,7 @@ def _run(argv):
     maybe_run_ninja(build_file)
 
 
-def main():
+def main() -> None:
     # We don't seem to be __main__ when run as cli tool installed by setuptools
     app.run(_run)
 

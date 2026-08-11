@@ -37,9 +37,10 @@ from nanoemoji.paint import (
     PaintColrGlyph,
     PaintComposite,
     PaintColrLayers,
+    PaintTraverseContext,
     is_transform,
 )
-from picosvg.geometric_types import Rect
+from picosvg.geometric_types import Rect, Vector
 from nanoemoji.reorder_glyphs import reorder_glyphs
 from picosvg.svg import to_element, SVG, SVGTraverseContext
 from picosvg import svg_meta
@@ -47,8 +48,11 @@ from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
 from picosvg.svg_types import SVGPath
 from typing import (
+    Any,
     cast,
     ClassVar,
+    Dict,
+    List,
     Mapping,
     MutableMapping,
     NamedTuple,
@@ -91,9 +95,9 @@ class ReuseCache:
     def add_glyph(
         self,
         glyph_name: str,
-        context: SVGTraverseContext,
+        context: PaintTraverseContext,
         reuse_result: Optional[ReuseResult] = SKIP_REUSE,
-    ):
+    ) -> None:
         assert glyph_name not in self.glyph_elements, f"Second addition of {glyph_name}"
         if not isinstance(context.paint, PaintGlyph):
             raise ValueError(f"Not a PaintGlyph {context}")
@@ -105,7 +109,7 @@ class ReuseCache:
         self.glyph_elements[glyph_name] = to_element(SVGPath(d=context.paint.glyph))
 
 
-def _ensure_has_id(el: etree.Element):
+def _ensure_has_id(el: etree.Element) -> None:
     if "id" in el.attrib:
         return
     nth_child = 0
@@ -131,7 +135,7 @@ def _glyph_groups(
 
     # If the color glyphs contain '.notdef', we want to keep it the first glyph, so
     # we must avoid grouping it with the rest, as they get reshuffled later on.
-    initial_glyphs = ()
+    initial_glyphs: Tuple[Tuple[str, ...], ...] = ()
     for color_glyph in color_glyphs:
         if color_glyph.ufo_glyph_name == ".notdef":
             assert color_glyph.glyph_id == 0
@@ -144,31 +148,32 @@ def _glyph_groups(
         if color_glyph.ufo_glyph_name != ".notdef":
             reuse_groups.make_set(color_glyph.ufo_glyph_name)
         nth_paint_glyph = 0
-        for root in color_glyph.painted_layers:
-            for context in root.breadth_first():
-                # Group glyphs based on common shapes
-                if not isinstance(context.paint, PaintGlyph):
-                    continue
+        if color_glyph.painted_layers:
+            for root in color_glyph.painted_layers:
+                for context in root.breadth_first():
+                    # Group glyphs based on common shapes
+                    if not isinstance(context.paint, PaintGlyph):
+                        continue
 
-                glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
+                    glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
 
-                # we still need to add the .notdef layers to reuse_cache even if not reused,
-                # as later code expects all glyph elements to be there.
-                if color_glyph.ufo_glyph_name == ".notdef":
-                    reuse_cache.add_glyph(glyph_name, context)
-                else:
-                    reuse_result = reuse_cache.glyph_cache.try_reuse(
-                        context.paint.glyph  # pytype: disable=attribute-error
-                    )
-                    reuse_cache.add_glyph(glyph_name, context, reuse_result)
-                    if reuse_result:
-                        # This entire color glyph and the one we share a shape with go in one svg doc
-                        reuse_groups.union(
-                            color_glyph.ufo_glyph_name,
-                            _color_glyph_name(reuse_result.glyph_name),
+                    # we still need to add the .notdef layers to reuse_cache even if not reused,
+                    # as later code expects all glyph elements to be there.
+                    if color_glyph.ufo_glyph_name == ".notdef":
+                        reuse_cache.add_glyph(glyph_name, context)
+                    else:
+                        reuse_result = reuse_cache.glyph_cache.try_reuse(
+                            context.paint.glyph
                         )
+                        reuse_cache.add_glyph(glyph_name, context, reuse_result)
+                        if reuse_result:
+                            # This entire color glyph and the one we share a shape with go in one svg doc
+                            reuse_groups.union(
+                                color_glyph.ufo_glyph_name,
+                                _color_glyph_name(reuse_result.glyph_name),
+                            )
 
-                nth_paint_glyph += 1
+                    nth_paint_glyph += 1
 
     return initial_glyphs + reuse_groups.sorted()
 
@@ -179,10 +184,10 @@ def _ntos(n: float) -> str:
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def _svg_matrix(transform: Affine2D) -> str:
-    return transform.round(_DEFAULT_ROUND_NDIGITS).tostring()
+    return str(transform.round(_DEFAULT_ROUND_NDIGITS).tostring())
 
 
-def _apply_solid_paint(el: etree.Element, paint: PaintSolid):
+def _apply_solid_paint(el: etree.Element, paint: PaintSolid) -> None:
     if etree.QName(el.tag).localname == "g":
         assert paint.color.opaque() == Color.fromstring(
             "black"
@@ -202,7 +207,7 @@ def _apply_gradient_paint(
     paint: _GradientPaint,
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
-):
+) -> None:
     if reuse_cache is None:
         grad_id = _define_gradient(svg_defs, paint, transform)
     else:
@@ -212,12 +217,15 @@ def _apply_gradient_paint(
         # normalize them before adding to the cache, thus increasing the chance
         # of a reuse.
         if not transform.almost_equals(Affine2D.identity()):
-            paint = paint.apply_transform(transform, check_overflows=False)
+            transformed_paint = paint.apply_transform(transform, check_overflows=False)
             transform = Affine2D.identity()
-            if is_transform(paint):
-                paint = cast(_BasePaintTransform, paint)
-                transform, paint = paint.gettransform(), paint.paint
-        paint = cast(_GradientPaint, paint)
+            if is_transform(transformed_paint):
+                transform = cast(_BasePaintTransform, transformed_paint).gettransform()
+                paint = cast(
+                    _GradientPaint, cast(_BasePaintTransform, transformed_paint).paint
+                )
+            else:
+                paint = cast(_GradientPaint, transformed_paint)
         paint = paint.round(_DEFAULT_ROUND_NDIGITS)
         transform = transform.round(_DEFAULT_ROUND_NDIGITS)
         reuse_key = GradientReuseKey(paint, transform)
@@ -247,7 +255,7 @@ def _apply_gradient_common_parts(
     gradient: etree.Element,
     paint: _GradientPaint,
     transform: Affine2D = Affine2D.identity(),
-):
+) -> None:
     gradient.attrib["gradientUnits"] = "userSpaceOnUse"
     for stop in paint.stops:
         stop_el = etree.SubElement(gradient, "stop")
@@ -281,6 +289,7 @@ def _define_linear_gradient(
     gradient_id = gradient.attrib["id"] = f"g{len(svg_defs)}"
 
     p0, p1, p2 = paint.p0, paint.p1, paint.p2
+    assert p2 is not None
     # P2 allows to rotate the linear gradient independently of the end points P0 and P1.
     # Below we compute P3 which is the orthogonal projection of P1 onto a line passing
     # through P0 and perpendicular to the "normal" or "rotation vector" from P0 and P2.
@@ -289,7 +298,7 @@ def _define_linear_gradient(
     # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
     # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
     # and the gradient degenerates to a solid paint (the last color stop).
-    p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
+    p3 = p0 + cast(Any, p1 - p0).projection(cast(Any, p2 - p0).perpendicular())
 
     x1, y1 = p0
     x2, y2 = p3
@@ -333,6 +342,7 @@ def _map_gradient_coordinates(
     paint: _GradientPaint, affine: Affine2D
 ) -> _GradientPaint:
     if isinstance(paint, PaintLinearGradient):
+        assert paint.p2 is not None
         return dataclasses.replace(
             paint,
             p0=affine.map_point(paint.p0),
@@ -375,7 +385,7 @@ def _apply_paint(
     upem_to_vbox: Affine2D,
     reuse_cache: ReuseCache,
     transform: Affine2D = Affine2D.identity(),
-):
+) -> None:
     # If you modify the attributes _apply_paint can set also modify _PAINT_ATTRIB_APPLY_PAINT_MAY_SET
     if isinstance(paint, PaintSolid):
         _apply_solid_paint(el, paint)
@@ -390,8 +400,8 @@ def _apply_paint(
             )
         _apply_gradient_paint(svg_defs, el, paint, reuse_cache, transform)
     elif is_transform(paint):
-        transform @= paint.gettransform()
-        child = paint.paint  # pytype: disable=attribute-error
+        transform @= cast(_BasePaintTransform, paint).gettransform()
+        child = cast(_BasePaintTransform, paint).paint
         _apply_paint(svg_defs, el, child, upem_to_vbox, reuse_cache, transform)
     else:
         raise NotImplementedError(type(paint))
@@ -413,11 +423,11 @@ def _migrate_to_defs(
     reused_el: etree.Element,
     reuse_cache: ReuseCache,
     reuse_result: ReuseResult,
-):
+) -> Optional[etree.Element]:
     svg_defs = svg.xpath_one("//svg:defs")
 
     if reused_el in svg_defs:
-        return  # nop
+        return None  # nop
 
     tag = etree.QName(reused_el.tag).localname
     assert tag == "path", f"expected 'path', found '{tag}'"
@@ -457,13 +467,14 @@ def _create_use_element(
     return svg_use
 
 
-def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
+def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache) -> None:
     svg_defs = svg.xpath_one("//svg:defs")
 
     # each glyph gets a group of its very own
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
 
+    assert color_glyph.svg is not None
     view_box = color_glyph.svg.view_box()
     if view_box is None:
         raise ValueError(f"{color_glyph.svg_filename} must declare view box")
@@ -477,117 +488,118 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     upem_to_vbox = vbox_to_upem.inverse()
 
     # copy the shapes into our svg
-    el_by_path = {(): svg_g}
-    complete_paths = set()
+    el_by_path: Dict[Tuple[Any, ...], etree.Element] = {(): svg_g}
+    complete_paths: Set[Tuple[Any, ...]] = set()
     nth_paint_glyph = 0
 
-    for root in color_glyph.painted_layers:
-        for context in root.breadth_first():
-            if any(c == context.path[: len(c)] for c in complete_paths):
-                continue
+    if color_glyph.painted_layers:
+        for root in color_glyph.painted_layers:
+            for context in root.breadth_first():
+                if any(c == context.path[: len(c)] for c in complete_paths):
+                    continue
 
-            parent_el = svg_g
-            path = context.path
-            while path:
-                if path in el_by_path:
-                    parent_el = el_by_path[path]
-                    break
-                path = path[:-1]
+                parent_el = svg_g
+                path = context.path
+                while path:
+                    if path in el_by_path:
+                        parent_el = el_by_path[path]
+                        break
+                    path = path[:-1]
 
-            if isinstance(context.paint, PaintGlyph):
-                glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
-                assert (
-                    glyph_name in reuse_cache.glyph_elements
-                ), f"Missing entry for {glyph_name}"
+                if isinstance(context.paint, PaintGlyph):
+                    glyph_name = _paint_glyph_name(color_glyph, nth_paint_glyph)
+                    assert (
+                        glyph_name in reuse_cache.glyph_elements
+                    ), f"Missing entry for {glyph_name}"
 
-                reuse_result = reuse_cache.reuse_results.get(glyph_name, None)
+                    reuse_result = reuse_cache.reuse_results.get(glyph_name, None)
 
-                if reuse_result:
-                    reused_glyph_name = reuse_result.glyph_name
-                    reused_el = reuse_cache.glyph_elements[reused_glyph_name]
-                    reused_el_tag = etree.QName(reused_el.tag).localname
-                    if reused_el_tag == "use":
-                        # if reused_el is a <use> it means _migrate_to_defs has already
-                        # replaced a parent-less <path> with a <use> pointing to it, and
-                        # has appended the reused path to <defs>. Assert that's the case
-                        assert _use_href(reused_el) == reused_glyph_name
-                        reused_el = svg.xpath_one(
-                            f'//svg:defs/svg:path[@id="{reused_glyph_name}"]',
+                    if reuse_result:
+                        reused_glyph_name = reuse_result.glyph_name
+                        reused_el = reuse_cache.glyph_elements[reused_glyph_name]
+                        reused_el_tag = etree.QName(reused_el.tag).localname
+                        if reused_el_tag == "use":
+                            # if reused_el is a <use> it means _migrate_to_defs has already
+                            # replaced a parent-less <path> with a <use> pointing to it, and
+                            # has appended the reused path to <defs>. Assert that's the case
+                            assert _use_href(reused_el) == reused_glyph_name
+                            reused_el = svg.xpath_one(
+                                f'//svg:defs/svg:path[@id="{reused_glyph_name}"]',
+                            )
+                        elif reused_el_tag == "path":
+                            # we need to refer to you, it's important you have identity
+                            reused_el.attrib["id"] = reused_glyph_name
+                        else:
+                            raise AssertionError(reused_el_tag)
+
+                        svg_use = _create_use_element(svg, parent_el, reuse_result)
+
+                        # We must apply the inverse of the reuse transform to the children
+                        # paints to discount its effect on them, since these refer to the
+                        # original pre-reuse paths. _apply_paint expects 'transform' to be
+                        # in UPEM space, whereas reuse_result.transform is in SVG space, so
+                        # we remap the (inverse of the) latter from SVG to UPEM.
+                        inverse_reuse_transform = Affine2D.compose_ltr(
+                            (
+                                upem_to_vbox,
+                                reuse_result.transform.inverse(),
+                                upem_to_vbox.inverse(),
+                            )
                         )
-                    elif reused_el_tag == "path":
-                        # we need to refer to you, it's important you have identity
-                        reused_el.attrib["id"] = reused_glyph_name
-                    else:
-                        raise AssertionError(reused_el_tag)
 
-                    svg_use = _create_use_element(svg, parent_el, reuse_result)
-
-                    # We must apply the inverse of the reuse transform to the children
-                    # paints to discount its effect on them, since these refer to the
-                    # original pre-reuse paths. _apply_paint expects 'transform' to be
-                    # in UPEM space, whereas reuse_result.transform is in SVG space, so
-                    # we remap the (inverse of the) latter from SVG to UPEM.
-                    inverse_reuse_transform = Affine2D.compose_ltr(
-                        (
+                        _apply_paint(
+                            svg_defs,
+                            svg_use,
+                            context.paint.paint,
                             upem_to_vbox,
-                            reuse_result.transform.inverse(),
-                            upem_to_vbox.inverse(),
+                            reuse_cache,
+                            inverse_reuse_transform,
                         )
-                    )
 
-                    _apply_paint(
-                        svg_defs,
-                        svg_use,
-                        context.paint.paint,  # pytype: disable=attribute-error
-                        upem_to_vbox,
-                        reuse_cache,
-                        inverse_reuse_transform,
-                    )
+                        # In two cases, we need to push the reused element to the outer
+                        # <defs> and replace its first occurence with a <use>:
+                        # 1) If reuse spans multiple glyphs, as Adobe Illustrator
+                        #    doesn't support direct references between glyphs:
+                        #    https://github.com/googlefonts/nanoemoji/issues/264
+                        # 2) If the reused_el has attributes <use> cannot override
+                        #    https://github.com/googlefonts/nanoemoji/issues/337
+                        if color_glyph.ufo_glyph_name != _color_glyph_name(
+                            reused_glyph_name
+                        ) or _attrib_apply_paint_uses(reused_el):
+                            _migrate_to_defs(svg, reused_el, reuse_cache, reuse_result)
 
-                    # In two cases, we need to push the reused element to the outer
-                    # <defs> and replace its first occurence with a <use>:
-                    # 1) If reuse spans multiple glyphs, as Adobe Illustrator
-                    #    doesn't support direct references between glyphs:
-                    #    https://github.com/googlefonts/nanoemoji/issues/264
-                    # 2) If the reused_el has attributes <use> cannot override
-                    #    https://github.com/googlefonts/nanoemoji/issues/337
-                    if color_glyph.ufo_glyph_name != _color_glyph_name(
-                        reused_glyph_name
-                    ) or _attrib_apply_paint_uses(reused_el):
-                        _migrate_to_defs(svg, reused_el, reuse_cache, reuse_result)
+                    else:
+                        el = reuse_cache.glyph_elements[glyph_name]
+                        _apply_paint(
+                            svg_defs,
+                            el,
+                            context.paint.paint,
+                            upem_to_vbox,
+                            reuse_cache,
+                        )
+                        parent_el.append(el)
+
+                    # don't update el_by_path because we're declaring this path complete
+                    complete_paths.add(context.path + (context.paint,))
+                    nth_paint_glyph += 1
+
+                elif isinstance(context.paint, PaintColrLayers):
+                    pass
+
+                elif isinstance(context.paint, PaintSolid):
+                    _apply_solid_paint(parent_el, context.paint)
+
+                elif _is_svg_supported_composite(context.paint):
+                    el = etree.SubElement(parent_el, f"{{{svg_meta.svgns()}}}g")
+                    el_by_path[context.path + (context.paint,)] = el
+
+                # TODO: support transform types, either by introducing <g> or by applying context.transform to Paint
 
                 else:
-                    el = reuse_cache.glyph_elements[glyph_name]
-                    _apply_paint(
-                        svg_defs,
-                        el,
-                        context.paint.paint,  # pytype: disable=attribute-error
-                        upem_to_vbox,
-                        reuse_cache,
-                    )
-                    parent_el.append(el)  # pytype: disable=attribute-error
-
-                # don't update el_by_path because we're declaring this path complete
-                complete_paths.add(context.path + (context.paint,))
-                nth_paint_glyph += 1
-
-            elif isinstance(context.paint, PaintColrLayers):
-                pass
-
-            elif isinstance(context.paint, PaintSolid):
-                _apply_solid_paint(parent_el, context.paint)
-
-            elif _is_svg_supported_composite(context.paint):
-                el = etree.SubElement(parent_el, f"{{{svg_meta.svgns()}}}g")
-                el_by_path[context.path + (context.paint,)] = el
-
-            # TODO: support transform types, either by introducing <g> or by applying context.transform to Paint
-
-            else:
-                raise ValueError(f"What do we do with {context}")
+                    raise ValueError(f"What do we do with {context}")
 
 
-def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
+def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont) -> None:
     # A TTFont might be opened lazily and some tables only partially decompiled.
     # So for this to work on any TTFont, we first compile everything to a temporary
     # stream then reload with lazy=False. Input font is modified in-place.
@@ -608,8 +620,8 @@ def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
 def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
     ttfont: ttLib.TTFont,
-    reuse_groups: Tuple[Tuple[str, ...]],
-):
+    reuse_groups: Tuple[Tuple[str, ...], ...],
+) -> None:
     # svg requires glyphs in same doc have sequential gids; reshuffle to make this true.
 
     # We kept glyph names stable when saving a font for svg so it's safe to match on
@@ -619,12 +631,14 @@ def _ensure_groups_grouped_in_glyph_order(
     old_glyph_order = ttfont.getGlyphOrder()
     assert old_glyph_order[0] == ".notdef", f"1st glyph not named '.notdef'"
     if ".notdef" in color_glyphs:
-        first_group, *reuse_groups = reuse_groups
+        first_group = reuse_groups[0]
+        reuse_groups = reuse_groups[1:]
         assert first_group == (".notdef",)
         assert color_glyphs[".notdef"].glyph_id == 0
 
     # everything that *isn't* shuffling
-    group_glyphs = reduce(lambda a, c: a | set(c), reuse_groups, set())
+    initial_set: Set[str] = set()
+    group_glyphs = reduce(lambda a, c: a | set(c), reuse_groups, initial_set)
     glyph_order = [g for g in old_glyph_order if g not in group_glyphs]
 
     # plus everything that is shuffling, in the order it needs to stay in
@@ -646,13 +660,13 @@ def _ensure_groups_grouped_in_glyph_order(
     reorder_glyphs(ttfont, glyph_order)
 
 
-def _use_href(use_el):
-    ref = use_el.attrib[_XLINK_HREF_ATTR_NAME]
+def _use_href(use_el: etree.Element) -> str:
+    ref = str(use_el.attrib[_XLINK_HREF_ATTR_NAME])
     assert ref.startswith("#"), f"Only use #fragment supported, reject {ref}"
     return ref[1:]
 
 
-def _tidy_use_elements(svg: SVG):
+def _tidy_use_elements(svg: SVG) -> None:
     use_els = sorted(svg.xpath("//use"), key=_use_href)
     targets = {}
 
@@ -672,14 +686,16 @@ def _tidy_use_elements(svg: SVG):
 
     # If all <use> have the same paint attr migrate it from use to target
     for ref, uses in groupby(use_els, key=_use_href):
-        uses = list(uses)
+        uses_list = list(uses)
         target = targets[ref]
         for attr_name in sorted(_PAINT_ATTRIB_APPLY_PAINT_MAY_SET):
-            values = [use.attrib[attr_name] for use in uses if attr_name in use.attrib]
+            values = [
+                use.attrib[attr_name] for use in uses_list if attr_name in use.attrib
+            ]
             unique_values = set(values)
-            if len(values) == len(uses) and len(unique_values) == 1:
+            if len(values) == len(uses_list) and len(unique_values) == 1:
                 target.attrib[attr_name] = values[0]
-                for use in uses:
+                for use in uses_list:
                     del use.attrib[attr_name]
 
 
@@ -690,8 +706,10 @@ def _picosvg_docs(
         config.reuse_tolerance, GlyphReuseCache(config.reuse_tolerance)
     )
     reuse_groups = _glyph_groups(config, color_glyphs, reuse_cache)
-    color_glyphs = {c.ufo_glyph_name: c for c in color_glyphs}
-    _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
+    color_glyphs_map: Dict[str, ColorGlyph] = {
+        c.ufo_glyph_name: c for c in color_glyphs
+    }
+    _ensure_groups_grouped_in_glyph_order(color_glyphs_map, ttfont, reuse_groups)
 
     doc_list = []
     for group in reuse_groups:
@@ -706,7 +724,7 @@ def _picosvg_docs(
         defs = etree.SubElement(root, f"{{{svg_meta.svgns()}}}defs", nsmap=root.nsmap)
         svg = SVG(root)
 
-        for color_glyph in (color_glyphs[g] for g in group):
+        for color_glyph in (color_glyphs_map[g] for g in group):
             if color_glyph.painted_layers:
                 _add_glyph(svg, color_glyph, reuse_cache)
 
@@ -723,7 +741,7 @@ def _picosvg_docs(
         if len(root) == 0:
             continue
 
-        gids = tuple(color_glyphs[g].glyph_id for g in group)
+        gids = tuple(color_glyphs_map[g].glyph_id for g in group)
         doc_list.append(
             (svg.tostring(pretty_print=config.pretty_print), min(gids), max(gids))
         )
@@ -736,6 +754,7 @@ def _rawsvg_docs(
 ) -> Sequence[Tuple[str, int, int]]:
     doc_list = []
     for color_glyph in color_glyphs:
+        assert color_glyph.svg is not None
         svg = (
             # all the scaling and positioning happens in "transform" below
             color_glyph.svg.remove_attributes(("width", "height", "viewBox"))
@@ -771,7 +790,7 @@ def make_svg_table(
     color_glyphs: Sequence[ColorGlyph],
     picosvg: bool,
     compressed: bool = False,
-):
+) -> None:
     """Build an SVG table optimizing for reuse of shapes.
 
     Reuse here requires putting shapes into a single svg doc. Use of large svg docs

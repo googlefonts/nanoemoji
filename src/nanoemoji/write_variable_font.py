@@ -21,6 +21,7 @@ from absl import flags
 from absl import logging
 from fontTools import designspaceLib
 from nanoemoji import config
+from typing import Sequence
 from pathlib import Path
 import ufo2ft
 import ufoLib2
@@ -31,7 +32,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("config_file", None, "Config filename.")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     ufos = tuple(a for a in argv[1:] if a.endswith(".ufo"))
 
     config_file = None

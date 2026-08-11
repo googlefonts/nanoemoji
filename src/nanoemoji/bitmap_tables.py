@@ -36,7 +36,9 @@ from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.png import PNG
 from nanoemoji.util import only
 from typing import (
+    Dict,
     List,
+    Mapping,
     NamedTuple,
     Sequence,
     Tuple,
@@ -153,6 +155,7 @@ def _cbdt_bitmapdata_offsets(
     offsets = []
     offset = initial_offset
     for color_glyph in color_glyphs:
+        assert color_glyph.bitmap is not None
         offsets.append(offset)
         offset += _cbdt_record_size(image_format, color_glyph.bitmap)
     offsets.append(offset)  # capture end of stream
@@ -176,12 +179,13 @@ def make_sbix_table(
     config: FontConfig,
     ttfont: ttLib.TTFont,
     color_glyphs: Sequence[ColorGlyph],
-):
+) -> None:
     sbix = ttLib.newTable("sbix")
     ttfont[sbix.tableTag] = sbix
 
     glyphs_by_bitmap_size = defaultdict(list)
     for color_glyph in color_glyphs:
+        assert color_glyph.bitmap is not None
         glyphs_by_bitmap_size[color_glyph.bitmap.size[1]].append(color_glyph)
 
     for bitmap_pixel_height in sorted(glyphs_by_bitmap_size.keys()):
@@ -195,6 +199,7 @@ def make_sbix_table(
         for color_glyph in glyphs_by_bitmap_size[bitmap_pixel_height]:
             # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
             image_data = color_glyph.bitmap
+            assert image_data is not None
             metrics = BitmapMetrics.create(
                 config,
                 bitmap_pixel_height,
@@ -220,13 +225,15 @@ def _make_cbdt_strike(
     ttfont: ttLib.TTFont,
     data_offset: int,
     color_glyphs: Sequence[ColorGlyph],
-):
+) -> Tuple[CblcStrike, Dict[str, CbdtBitmapFormat17]]:
     min_gid, max_gid = color_glyphs[0].glyph_id, color_glyphs[-1].glyph_id
     assert max_gid - min_gid + 1 == len(
         color_glyphs
     ), "Below assumes color gyphs gids are consecutive"
 
-    bitmap_pixel_height = only({c.bitmap.size[1] for c in color_glyphs})
+    for c in color_glyphs:
+        assert c.bitmap is not None
+    bitmap_pixel_height = only({c.bitmap.size[1] for c in color_glyphs if c.bitmap})
     ppem = _ppem(config, bitmap_pixel_height)
 
     strike = CblcStrike()
@@ -255,7 +262,7 @@ def _make_cbdt_strike(
         c.glyph_id: BitmapMetrics.create(
             config,
             only(config.bitmap_resolutions),
-            c.bitmap,
+            c.bitmap,  # type: ignore[arg-type]
             ppem,
             _INT8_RANGE,
             _UINT8_RANGE,
@@ -264,7 +271,7 @@ def _make_cbdt_strike(
     }
     data = {
         ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
-            config, metrics[c.glyph_id], c.bitmap
+            config, metrics[c.glyph_id], c.bitmap  # type: ignore[arg-type]
         )
         for c in color_glyphs
     }
@@ -298,9 +305,13 @@ def _make_cbdt_strike(
     return strike, data
 
 
-def raise_if_too_big_for_cbdt(color_glyphs: Sequence[ColorGlyph]):
+def raise_if_too_big_for_cbdt(color_glyphs: Sequence[ColorGlyph]) -> None:
     too_big = sorted(
-        (c for c in color_glyphs if max(c.bitmap.size) not in _UINT8_RANGE),
+        (
+            c
+            for c in color_glyphs
+            if c.bitmap is not None and max(c.bitmap.size) not in _UINT8_RANGE
+        ),
         key=lambda c: c.bitmap_filename,
     )
     if not too_big:
@@ -315,12 +326,12 @@ def make_cbdt_table(
     config: FontConfig,
     ttfont: ttLib.TTFont,
     color_glyphs: Sequence[ColorGlyph],
-):
+) -> None:
     # CBDT is a wee bit limited in pixel size
     raise_if_too_big_for_cbdt(color_glyphs)
 
     # bitmap tables don't like it when we're out of order
-    color_glyphs = sorted(color_glyphs, key=lambda c: c.glyph_id)
+    sorted_color_glyphs = sorted(color_glyphs, key=lambda c: c.glyph_id)
 
     cbdt = ttLib.newTable("CBDT")
     ttfont[cbdt.tableTag] = cbdt
@@ -335,17 +346,18 @@ def make_cbdt_table(
 
     data_offset = CBDT_HEADER_SIZE
 
-    while color_glyphs:
+    while sorted_color_glyphs:
         # grab the next run w/consecutive gids
-        min_gid = color_glyphs[0].glyph_id
+        min_gid = sorted_color_glyphs[0].glyph_id
         end = 1
         while (
-            len(color_glyphs) > end
-            and color_glyphs[end].glyph_id == color_glyphs[end - 1].glyph_id + 1
+            len(sorted_color_glyphs) > end
+            and sorted_color_glyphs[end].glyph_id
+            == sorted_color_glyphs[end - 1].glyph_id + 1
         ):
             end += 1
-        color_glyph_run = color_glyphs[:end]
-        color_glyphs = color_glyphs[end:]
+        color_glyph_run = sorted_color_glyphs[:end]
+        sorted_color_glyphs = sorted_color_glyphs[end:]
 
         strike, data = _make_cbdt_strike(config, ttfont, data_offset, color_glyph_run)
         for sub_table in strike.indexSubTables:

@@ -25,16 +25,28 @@ from fontTools.ttLib.tables import otTables as ot
 from graphviz import Digraph  # pytype: disable=import-error
 from lxml import etree  # pytype: disable=import-error
 from nanoemoji.colors import Color
-from typing import Mapping, NamedTuple, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 FLAGS = flags.FLAGS
 
 
 class Node(NamedTuple):
     node_id: str
-    node_label: str = None
+    node_label: Optional[str] = None
 
-    def label(self):
+    def label(self) -> str:
         if self.node_label:
             return self.node_label
         return self.node_id
@@ -42,11 +54,11 @@ class Node(NamedTuple):
 
 class DAG:
     graph: Digraph
-    edges: Set[Tuple[str, str]]
-    nth_of_type: Mapping[str, int]
-    count_of_type: Counter
+    edges: Set[Tuple[Optional[str], str]]
+    nth_of_type: Dict[str, int]
+    count_of_type: Counter[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.graph = Digraph(
             "unix", directory="build", format="svg", graph_attr={"rankdir": "LR"}
         )
@@ -54,10 +66,10 @@ class DAG:
         self.nth_of_type = {}
         self.count_of_type = Counter()
 
-    def visited(self, node_id):
+    def visited(self, node_id: str) -> bool:
         return node_id in self.nth_of_type
 
-    def edge(self, src, dest):
+    def edge(self, src: Optional[str], dest: str) -> bool:
         if not self.visited(dest):
             dest_type = dest
             if "_" in dest:
@@ -74,24 +86,24 @@ class DAG:
         return new_edge
 
 
-def _base_glyphs(font, filter_fn):
+def _base_glyphs(font: ttLib.TTFont, filter_fn: Callable[[Any], bool]) -> Iterator[Any]:
     for base_glyph in font["COLR"].table.BaseGlyphList.BaseGlyphPaintRecord:
         if filter_fn(base_glyph):
             yield base_glyph
 
 
-def _only(seq):
+def _only(seq: Sequence[Any]) -> Any:
     seq = tuple(seq)
     if len(seq) != 1:
         raise ValueError(f"Need 1 entry, got {len(seq)}")
     return seq[0]
 
 
-def _indent(depth):
+def _indent(depth: int) -> str:
     return depth * "  "
 
 
-def _color_index_node(palette, color_index):
+def _color_index_node(palette: Any, color_index: Any) -> Node:
     color = Color.fromstring(palette[color_index.PaletteIndex].hex())
     ci_alpha = color_index.Alpha.value
     node_id = f"{ci_alpha:.2f}.{color.opaque().to_string()}.{color.alpha:.2f}"
@@ -101,7 +113,7 @@ def _color_index_node(palette, color_index):
     )
 
 
-def _color_line_node(palette, color_line):
+def _color_line_node(palette: Any, color_line: Any) -> Node:
     id_parts = ["ColorLine", color_line.Extend.name]
     name_parts = id_parts[:]
     for stop in color_line.ColorStop:
@@ -111,7 +123,8 @@ def _color_line_node(palette, color_line):
     return Node(node_id="_".join(id_parts), node_label=" ".join(name_parts))
 
 
-def _paint_node(glyph_order, palette, paint) -> Node:
+def _paint_node(glyph_order: Sequence[str], palette: Any, paint: Any) -> Node:
+    id_parts: Tuple[str, ...]
     if paint.Format == ot.Paint.Format.PaintColrLayers:
         return Node(
             node_id=(
@@ -177,7 +190,9 @@ def _paint_node(glyph_order, palette, paint) -> Node:
     raise NotImplementedError(f"id for format {paint.Format} ({dir(paint)})")
 
 
-def _paint(dag, parent, font, paint, depth):
+def _paint(
+    dag: DAG, parent: Optional[str], font: ttLib.TTFont, paint: Any, depth: int
+) -> None:
     if depth > 256:
         raise NotImplementedError("Too deep, something wrong?")
     palette = font["CPAL"].palettes[0]
@@ -220,7 +235,13 @@ def _paint(dag, parent, font, paint, depth):
             raise ValueError(f"Unsupported: {paint.Format}")
 
 
-def _glyph(dag, parent, font, base_glyph, depth=0):
+def _glyph(
+    dag: DAG,
+    parent: Optional[str],
+    font: ttLib.TTFont,
+    base_glyph: Any,
+    depth: int = 0,
+) -> None:
     name = "Base_" + base_glyph.BaseGlyph
     dag.edge(parent, name)
 
@@ -228,7 +249,7 @@ def _glyph(dag, parent, font, base_glyph, depth=0):
     _paint(dag, name, font, base_glyph.Paint, depth + 1)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     if len(argv) > 2:
         raise ValueError("Only expected non-flag is font file")
     font = ttLib.TTFont(argv[1])

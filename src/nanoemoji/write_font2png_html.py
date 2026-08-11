@@ -17,6 +17,7 @@
 from absl import app
 from absl import flags
 from nanoemoji import codepoints, util
+from typing import Sequence
 from pathlib import Path
 import textwrap
 
@@ -26,7 +27,7 @@ flags.DEFINE_string("output_file", "-", "Output filename ('-' means stdout)")
 flags.DEFINE_integer("resolution", None, "Resolution in px")
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     assert len(argv) == 3
     font_file = Path(argv[1]).name
     activation = "".join(
@@ -77,7 +78,9 @@ def main(argv):
 
                 }
             </script>
-        """.replace("FONT_LOCATION", font_file)
+        """.replace(
+                    "FONT_LOCATION", font_file
+                )
                 .replace("RESOLUTION", str(FLAGS.resolution))
                 .replace("ACTIVATION", activation)
             )

@@ -14,32 +14,34 @@
 
 """Helps deal with emoji codepoints."""
 
+from pathlib import Path
+from typing import Iterable, Tuple, Union
 import os
 import regex
 import absl
 
 
-def from_filename(filename):
-    match = regex.search(r"(?:^emoji_u)?(?:[-_]?([0-9a-fA-F]{1,}))+", filename)
+def from_filename(filename: Union[str, Path]) -> Tuple[int, ...]:
+    match = regex.search(r"(?:^emoji_u)?(?:[-_]?([0-9a-fA-F]{1,}))+", str(filename))
     if not match:
         raise ValueError(f"Bad filename {filename}; unable to extract codepoints")
     return tuple(int(s, 16) for s in match.captures(1))
 
 
-def string(codepoints):
+def string(codepoints: Iterable[int]) -> str:
     return ",".join("%04x" % c for c in codepoints)
 
 
-def csv_line(filename):
-    filename = os.path.basename(filename)
-    return f"{filename},{string(from_filename(filename))}"
+def csv_line(filename: Union[str, Path]) -> str:
+    filename_str = os.path.basename(str(filename))
+    return f"{filename_str},{string(from_filename(filename_str))}"
 
 
-def parse_csv_line(line):
+def parse_csv_line(line: str) -> Tuple[str, Tuple[int, ...]]:
     parts = line.split(",")
     return (parts[0], tuple(int(p, 16) for p in parts[1:]))
 
 
-def parse_csv(filename):
+def parse_csv(filename: Union[str, Path]) -> Tuple[Tuple[str, Tuple[int, ...]], ...]:
     with open(filename) as f:
         return tuple(parse_csv_line(l) for l in f)

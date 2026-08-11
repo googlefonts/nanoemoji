@@ -33,7 +33,7 @@ from nanoemoji.glyphmap import GlyphMapping
 from nanoemoji import codepoints
 from nanoemoji import util
 from pathlib import Path
-from typing import Iterator, Sequence, Tuple
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 FLAGS = flags.FLAGS
 
@@ -47,7 +47,7 @@ class InputFileSuffix(enum.Enum):
 
 def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
     # group .svg and/or .png files with the same filename stem
-    sources_by_stem = {}
+    sources_by_stem: Dict[str, List[Optional[Path]]] = {}
     suffix_index = {InputFileSuffix.SVG: 0, InputFileSuffix.PNG: 1}
     for filename in input_files:
         input_file = Path(filename)
@@ -55,10 +55,10 @@ def _glyphmappings(input_files: Sequence[str]) -> Iterator[GlyphMapping]:
         sources_by_stem.setdefault(input_file.stem, [None, None])[i] = input_file
     for source_stem, files in sources_by_stem.items():
         cps = tuple(codepoints.from_filename(source_stem))
-        yield GlyphMapping(*files, cps, glyph_name(cps))
+        yield GlyphMapping(files[0], files[1], cps, glyph_name(cps))
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     input_files = util.expand_ninja_response_files(argv[1:])
     with util.file_printer(FLAGS.output_file) as print:
         for gm in _glyphmappings(input_files):

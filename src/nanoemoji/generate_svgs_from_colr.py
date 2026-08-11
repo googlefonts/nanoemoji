@@ -20,6 +20,7 @@ from absl import logging
 from fontTools import ttLib
 from nanoemoji.colr_to_svg import colr_to_svg, glyph_region, map_font_space_to_viewbox
 from nanoemoji import util
+from typing import Sequence
 from pathlib import Path
 from picosvg.geometric_types import Rect
 
@@ -40,7 +41,7 @@ def _view_box(font: ttLib.TTFont, glyph_name: str) -> Rect:
     return glyph_region(font, glyph_name)
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     logging.set_verbosity(FLAGS.log_level)
 
     font_file = util.only(argv, lambda a: a.endswith(".ttf"))

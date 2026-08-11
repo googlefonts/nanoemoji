@@ -1,3 +1,4 @@
+from typing import Any
 from nanoemoji.disjoint_set import DisjointSet
 import pytest
 
@@ -23,7 +24,7 @@ import pytest
     ],
 )
 def test_disjoint_set(items, unions, expected_sets):
-    dj = DisjointSet()
+    dj: DisjointSet[Any] = DisjointSet()
     for item in items:
         dj.make_set(item)
     for union in unions:

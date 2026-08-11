@@ -24,10 +24,10 @@ from test_helper import *
 
 def test_bitmap_data_for_non_square_image():
     font_config = config.load()
-    image_bytes = BytesIO()
-    Image.new("RGBA", (90, 120), color="red").save(image_bytes, format="png")
-    image_bytes.seek(0)
-    image_bytes = image_bytes.read()
+    image_stream = BytesIO()
+    Image.new("RGBA", (90, 120), color="red").save(image_stream, format="png")
+    image_stream.seek(0)
+    image_bytes = image_stream.read()
     png = PNG(image_bytes)
 
     metrics = BitmapMetrics.create(

@@ -17,6 +17,7 @@
 from absl import app
 from absl import flags
 from absl import logging
+from typing import Sequence
 from fontTools import ttLib
 from pathlib import Path
 
@@ -31,7 +32,7 @@ flags.DEFINE_string(
 )
 
 
-def keep_glyph_names(font: ttLib.TTFont):
+def keep_glyph_names(font: ttLib.TTFont) -> None:
     # ref https://github.com/googlefonts/ufo2ft/blob/ad28eea062e0dd48678309bd9ef86dfcc85fa85a/Lib/ufo2ft/postProcessor.py#L281-L285
     if "post" not in font:
         raise ValueError(f"No post table")
@@ -41,7 +42,7 @@ def keep_glyph_names(font: ttLib.TTFont):
     post.mapping = {}
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> None:
     logging.set_verbosity(FLAGS.log_level)
 
     assert len(argv) == 3, "Expected 2 args, input font and output font"

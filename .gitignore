@@ -1,5 +1,8 @@
 *.egg-info/
-.pytype/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
 __pycache__/
 .venv/
 venv/
