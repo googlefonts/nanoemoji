@@ -187,6 +187,22 @@ def color_name(rgb) -> Optional[str]:
     return None
 
 
+def _parse_rgb_channel(val: str) -> int:
+    if val.endswith("%"):
+        v = float(val[:-1]) * 255.0 / 100.0
+    else:
+        v = float(val)
+    return max(0, min(255, round(v)))
+
+
+def _parse_alpha_channel(val: str) -> float:
+    if val.endswith("%"):
+        v = float(val[:-1]) / 100.0
+    else:
+        v = float(val)
+    return max(0.0, min(1.0, v))
+
+
 @dataclasses.dataclass(frozen=True, order=True)
 class Color(Sequence):
     red: int
@@ -198,6 +214,18 @@ class Color(Sequence):
     # the default color is optional but for now we require one for simplicity
     _COLOR_VARIABLE_RE: ClassVar[re.Pattern] = re.compile(
         r"var\s*\(\s*--color([0-9]+)\s*,\s*(#?\w+)\s*\)"
+    )
+    _NUM_OR_PCT: ClassVar[str] = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?"
+    _COLOR_RGB_RE: ClassVar[re.Pattern] = re.compile(
+        rf"^rgba?\(\s*"
+        rf"({_NUM_OR_PCT})"
+        rf"(?:"
+        rf"(?:\s*,\s*({_NUM_OR_PCT})\s*,\s*({_NUM_OR_PCT})(?:\s*,\s*({_NUM_OR_PCT}))?)"
+        rf"|"
+        rf"(?:\s+({_NUM_OR_PCT})\s+({_NUM_OR_PCT})(?:\s*(?:\/|\s)\s*({_NUM_OR_PCT}))?)"
+        rf")"
+        rf"\s*\)$",
+        re.IGNORECASE,
     )
 
     def __getitem__(self, i):
@@ -247,18 +275,20 @@ class Color(Sequence):
                 raise ValueError(f"expected 3, 4, 6, or 8 hex digits, found {s!r}")
         elif s in _CSS_COLORS:
             red, green, blue = _CSS_COLORS[s]
-        elif s.startswith("rgb(") and s.endswith(")"):
-            ss = s[4:-1]
-            # accept either commas or space, not both
-            values = [v for v in ss.split("," if "," in ss else " ") if v]
-            if len(values) != 3:
-                raise ValueError(f"expected 3 rgb() values, found {len(values)}: {s!r}")
-            # round floats and clamp to [0..255] range
-            red, green, blue = (
-                max(0, min(255, i)) for i in (round(float(v)) for v in values)
-            )
         else:
-            raise ValueError(f"invalid or unsupported color string: {s!r}")
+            m = cls._COLOR_RGB_RE.match(s)
+            if m:
+                r_str = m.group(1)
+                g_str = m.group(2) or m.group(5)
+                b_str = m.group(3) or m.group(6)
+                a_str = m.group(4) or m.group(7)
+                red = _parse_rgb_channel(r_str)
+                green = _parse_rgb_channel(g_str)
+                blue = _parse_rgb_channel(b_str)
+                if a_str is not None:
+                    alpha = _parse_alpha_channel(a_str)
+            else:
+                raise ValueError(f"invalid or unsupported color string: {s!r}")
         return cls(red, green, blue, alpha)
 
     def to_ufo_color(self) -> Tuple[float, float, float, float]:
