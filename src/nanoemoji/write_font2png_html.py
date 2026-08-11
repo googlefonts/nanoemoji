@@ -77,9 +77,7 @@ def main(argv):
 
                 }
             </script>
-        """.replace(
-                    "FONT_LOCATION", font_file
-                )
+        """.replace("FONT_LOCATION", font_file)
                 .replace("RESOLUTION", str(FLAGS.resolution))
                 .replace("ACTIVATION", activation)
             )

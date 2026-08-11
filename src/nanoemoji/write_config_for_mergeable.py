@@ -34,9 +34,7 @@ def main(argv):
     descender = font["OS/2"].sTypoDescender
 
     with open(config_file, "w") as f:
-        f.write(
-            textwrap.dedent(
-                f"""
+        f.write(textwrap.dedent(f"""
             output_file = "COLR.ttf"
             color_format = "{FLAGS.color_format}"
             upem = {upem}
@@ -56,9 +54,7 @@ def main(argv):
 
             [master.regular.position]
             wght = 400
-            """
-            )
-        )
+            """))
 
 
 if __name__ == "__main__":

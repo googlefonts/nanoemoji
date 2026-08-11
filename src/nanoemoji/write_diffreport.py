@@ -52,9 +52,7 @@ def main(argv):
     )
     diff_files = sorted(diff_files, key=_diff_value, reverse=True)
     with open(FLAGS.output_file, "w") as f:
-        f.write(
-            dedent(
-                """
+        f.write(dedent("""
         <!DOCTYPE html>
         <html>
         <head>
@@ -82,9 +80,7 @@ def main(argv):
                 <span class="title">Pink Diff</span>
                 <span class="title">COLRv1</span>
             </div>
-        """
-            )
-        )
+        """))
         for diff_file in diff_files[: FLAGS.report_max_entries]:
             logging.info("%s %s", diff_file.name, _diff_value(diff_file))
             pink_diff = diff_file.parent / (diff_file.stem + ".pink" + diff_file.suffix)
@@ -95,9 +91,7 @@ def main(argv):
                 "diff_file2": str(pink_diff),
                 "filename": diff_file.name,
             }
-            f.write(
-                dedent(
-                    """
+            f.write(dedent("""
             <div class="row">
                 <div class="filename">{filename}</div>
                 <img src="{lhs_file}">
@@ -105,21 +99,13 @@ def main(argv):
                 <img src="{diff_file2}">
                 <img src="{rhs_file}">
             </div>
-            """.format(
-                        **vars
-                    )
-                )
-            )
+            """.format(**vars)))
 
-        f.write(
-            dedent(
-                """
+        f.write(dedent("""
         </body>
 
         </html>
-        """
-            )
-        )
+        """))
 
 
 if __name__ == "__main__":
