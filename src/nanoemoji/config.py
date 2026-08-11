@@ -441,7 +441,7 @@ def load(
         if not source_names:
             source_names = master_source_names
         elif source_names != master_source_names:
-            raise ValueError(f"{fonts[i].name} srcs don't match {fonts[0].name}")
+            raise ValueError(f"{master.name} srcs don't match {masters[0].name}")
 
     if not masters:
         raise ValueError("Must have at least one master")
