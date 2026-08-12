@@ -39,7 +39,6 @@ setup(
     install_requires=[
         "absl-py>=0.9.0",
         "fonttools[ufo]>=4.36.0",
-        "importlib_resources>=3.3.0; python_version < '3.9'",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
         "picosvg>=0.22.1",
@@ -53,7 +52,7 @@ setup(
         "pngquant-cli>=2.17.0.post5",
     ],
     extras_require=extras_require,
-    python_requires=">=3.8",
+    python_requires=">=3.10",
 
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18

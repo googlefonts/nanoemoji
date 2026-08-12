@@ -14,10 +14,7 @@
 
 from absl import flags
 
-try:
-    import importlib.resources as resources  # pytype: disable=import-error
-except ImportError:
-    import importlib_resources as resources  # pytype: disable=import-error
+import importlib.resources as resources
 
 import itertools
 from pathlib import Path
