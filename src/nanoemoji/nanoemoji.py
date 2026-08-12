@@ -467,7 +467,9 @@ def write_svg_font_diff_build(
     font_for_screenshots = font2png_dir() / "Font.ttf"
     nw.build(font_for_screenshots, "copy_font_to_screenshot_dir", font_dest)
 
-    # make an html container for each input in the font
+    # make an html container for each input in the font; font2png_html_dest()
+    # isn't resolution-specific, so render at the highest requested resolution
+    max_resolution = max(resolutions)
     for svg_file in svg_files:
         inputs = [
             font_for_screenshots,
@@ -477,7 +479,7 @@ def write_svg_font_diff_build(
             font2png_html_dest(svg_file),
             "write_font2png_html",
             inputs,
-            variables={"res": resolution},
+            variables={"res": max_resolution},
         )
     nw.newline()
 
