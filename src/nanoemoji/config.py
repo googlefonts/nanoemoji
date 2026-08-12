@@ -342,7 +342,8 @@ def _pop_flag(
 
 
 def load(
-    config_file: Optional[Path] = None, additional_srcs: Optional[Tuple[Path]] = None
+    config_file: Optional[Path] = None,
+    additional_srcs: Optional[Tuple[Path, ...]] = None,
 ) -> FontConfig:
     config_dir, config = _resolve_config(config_file)
 
@@ -371,14 +372,15 @@ def load(
     glyphmap_generator = _pop_flag(config, "glyphmap_generator")
 
     # restore legacy flag if relevant
-    bitmap_resolutions = set()
+    bitmap_resolutions: Tuple[int, ...] = ()
     if FLAGS.bitmap_resolution is None:
+        configured_resolutions = set()
         if "bitmap_resolution" in config:
-            bitmap_resolutions.add(config.pop("bitmap_resolution"))
+            configured_resolutions.add(config.pop("bitmap_resolution"))
         if "bitmap_resolutions" in config:
             for bitmap_resolution in config.pop("bitmap_resolutions"):
-                bitmap_resolutions.add(bitmap_resolution)
-        bitmap_resolutions = tuple(sorted(bitmap_resolutions))
+                configured_resolutions.add(bitmap_resolution)
+        bitmap_resolutions = tuple(sorted(configured_resolutions))
     if not bitmap_resolutions:
         bitmap_resolutions = tuple(
             int(v) for v in _pop_flag(config, "bitmap_resolutions", "bitmap_resolution")
@@ -476,8 +478,8 @@ def load(
 
 
 def load_configs(
-    config_files: Sequence[Path], additional_srcs: Optional[Tuple[Path]] = None
-) -> Tuple[FontConfig]:
+    config_files: Sequence[Path], additional_srcs: Optional[Tuple[Path, ...]] = None
+) -> Tuple[FontConfig, ...]:
     configs = tuple(load(f, additional_srcs) for f in config_files)
     output_files = {c.output_file for c in configs}
     assert len(configs) == len(

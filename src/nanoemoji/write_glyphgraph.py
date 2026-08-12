@@ -22,17 +22,17 @@ from absl import logging
 from collections import Counter
 from fontTools import ttLib
 from fontTools.ttLib.tables import otTables as ot
-from graphviz import Digraph  # pytype: disable=import-error
-from lxml import etree  # pytype: disable=import-error
+from graphviz import Digraph  # pyrefly: ignore  # optional, not a declared dependency
+from lxml import etree
 from nanoemoji.colors import Color
-from typing import Mapping, NamedTuple, Set, Tuple
+from typing import MutableMapping, NamedTuple, Optional, Set, Tuple
 
 FLAGS = flags.FLAGS
 
 
 class Node(NamedTuple):
     node_id: str
-    node_label: str = None
+    node_label: Optional[str] = None
 
     def label(self):
         if self.node_label:
@@ -43,7 +43,7 @@ class Node(NamedTuple):
 class DAG:
     graph: Digraph
     edges: Set[Tuple[str, str]]
-    nth_of_type: Mapping[str, int]
+    nth_of_type: MutableMapping[str, int]
     count_of_type: Counter
 
     def __init__(self):

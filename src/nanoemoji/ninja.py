@@ -22,7 +22,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import MutableSequence
+from typing import Any, Dict, MutableSequence
 
 FLAGS = flags.FLAGS
 
@@ -70,9 +70,12 @@ class NinjaWriter:
         variables = {
             k: quote_if_path(v) for k, v in kwargs.pop("variables", {}).items()
         }
+        # _str_paths returns whatever shape it was given (list or dict), which
+        # says nothing useful about the individual build() keyword arguments
+        str_kwargs: Dict[str, Any] = {k: _str_paths(v) for k, v in kwargs.items()}
         self._nw.build(
             *_str_paths(args),
-            **{k: _str_paths(v) for k, v in kwargs.items()},
+            **str_kwargs,
             variables=variables,
         )
 

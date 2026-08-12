@@ -32,7 +32,7 @@ from nanoemoji.paint import (
     PaintSolid,
 )
 from nanoemoji.png import PNG
-from picosvg.geometric_types import Point, Rect
+from picosvg.geometric_types import Point, Rect, Vector
 from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
@@ -43,14 +43,23 @@ from picosvg.svg_types import (
     SVGRadialGradient,
     intersection,
 )
-from typing import Generator, NamedTuple, Optional, Sequence, Tuple
+from typing import (
+    cast,
+    Any,
+    Dict,
+    Generator,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+)
 import ufoLib2
 from ufoLib2.objects.glyph import Glyph as UfoGlyph
 import pathops
 
 
 def scale_viewbox_to_font_metrics(
-    view_box: Rect, ascender: int, descender: int, width: int
+    view_box: Rect, ascender: float, descender: float, width: float
 ):
     assert descender <= 0
     # scale height to (ascender - descender)
@@ -67,7 +76,11 @@ def scale_viewbox_to_font_metrics(
 
 
 def map_viewbox_to_font_space(
-    view_box: Rect, ascender: int, descender: int, width: int, user_transform: Affine2D
+    view_box: Rect,
+    ascender: float,
+    descender: float,
+    width: float,
+    user_transform: Affine2D,
 ) -> Affine2D:
     return Affine2D.compose_ltr(
         [
@@ -81,7 +94,11 @@ def map_viewbox_to_font_space(
 
 # https://docs.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
 def map_viewbox_to_otsvg_space(
-    view_box: Rect, ascender: int, descender: int, width: int, user_transform: Affine2D
+    view_box: Rect,
+    ascender: float,
+    descender: float,
+    width: float,
+    user_transform: Affine2D,
 ) -> Affine2D:
     return Affine2D.compose_ltr(
         [
@@ -131,7 +148,9 @@ def _parse_linear_gradient(
     p1 = Point(gradient.x2, gradient.y2)
 
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
-    p2 = p0 + (p1 - p0).perpendicular()
+    # Point.__sub__ is annotated Point | Vector; subtracting two Points
+    # always yields a Vector
+    p2 = p0 + cast(Vector, p1 - p0).perpendicular()
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
 
@@ -139,9 +158,9 @@ def _parse_linear_gradient(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    return PaintLinearGradient(  # pytype: disable=wrong-arg-types
-        p0=p0, p1=p1, p2=p2, **common_args
-    ).apply_transform(transform)
+    return PaintLinearGradient(p0=p0, p1=p1, p2=p2, **common_args).apply_transform(
+        transform
+    )
 
 
 def _parse_radial_gradient(
@@ -159,16 +178,14 @@ def _parse_radial_gradient(
     c1 = Point(gradient.cx, gradient.cy)
     r1 = gradient.r
 
-    gradient_args = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
+    gradient_args: Dict[str, Any] = {"c0": c0, "c1": c1, "r0": r0, "r1": r1}
     gradient_args.update(_common_gradient_parts(grad_el, shape_opacity))
 
     transform = _get_gradient_transform(
         config, grad_el, shape_bbox, view_box, glyph_width
     )
 
-    return PaintRadialGradient(  # pytype: disable=wrong-arg-types
-        **gradient_args
-    ).apply_transform(transform)
+    return PaintRadialGradient(**gradient_args).apply_transform(transform)
 
 
 _GRADIENT_INFO = {
@@ -196,6 +213,14 @@ def _common_gradient_parts(el, shape_opacity=1.0):
     }
 
 
+def _view_box(picosvg: SVG) -> Rect:
+    view_box = picosvg.view_box()
+    # a picosvg always has a viewBox; SVG.view_box() is Optional for the
+    # general case of an arbitrary svg
+    assert view_box is not None, "picosvg must have a viewBox"
+    return view_box
+
+
 def _paint(
     debug_hint: str, config: FontConfig, picosvg: SVG, shape: SVGPath, glyph_width: int
 ) -> Paint:
@@ -206,7 +231,7 @@ def _paint(
                 config,
                 el,
                 shape.bounding_box(),
-                picosvg.view_box(),
+                _view_box(picosvg),
                 glyph_width,
                 shape.opacity,
             )
@@ -234,7 +259,7 @@ def _paint_glyph(
                 config,
                 fill_el,
                 shape.bounding_box(),
-                picosvg.view_box(),
+                _view_box(picosvg),
                 glyph_width,
                 shape.opacity,
             )
@@ -367,10 +392,9 @@ def _mutating_traverse(paint, mutator):
 
     changes = {}
     for field in fields:
-        try:
-            is_paint = issubclass(field.type, Paint)
-        except TypeError:  # typing.Tuple and friends helpfully fail issubclass
-            is_paint = False
+        # field.type may be a typing construct (Tuple and friends) or, under
+        # PEP 563, a plain string; neither is a class issubclass will accept
+        is_paint = isinstance(field.type, type) and issubclass(field.type, Paint)
         if is_paint:
             current = getattr(paint, field.name)
             modified = _mutating_traverse(current, mutator)
@@ -402,7 +426,7 @@ class ColorGlyph(NamedTuple):
     )
     glyph_id: int
     codepoints: Tuple[int, ...]
-    painted_layers: Optional[Tuple[Paint, ...]]  # None for untouched and bitmap formats
+    painted_layers: Tuple[Paint, ...]  # empty for untouched and bitmap formats
     svg: Optional[SVG]  # None for bitmap formats
     user_transform: Affine2D
     bitmap: Optional[PNG]  # None for vector formats
@@ -446,6 +470,7 @@ class ColorGlyph(NamedTuple):
         painted_layers = ()
         if not font_config.transform.is_degenerate():
             if font_config.has_picosvgs:
+                assert svg is not None, f"{svg_filename} has no picosvg"
                 painted_layers = tuple(
                     _painted_layers(svg_filename, font_config, svg, base_glyph.width)
                 )
@@ -463,7 +488,7 @@ class ColorGlyph(NamedTuple):
             bitmap,
         )
 
-    def _has_viewbox_for_transform(self) -> bool:
+    def _viewbox_for_transform(self) -> Optional[Rect]:
         view_box = None
         if self.svg:
             view_box = self.svg.view_box()
@@ -471,13 +496,14 @@ class ColorGlyph(NamedTuple):
             logging.warning(
                 f"{self.ufo.info.familyName} has no viewBox; no transform will be applied"
             )
-        return view_box is not None
+        return view_box
 
     def _transform(self, map_fn):
-        if not self._has_viewbox_for_transform():
+        view_box = self._viewbox_for_transform()
+        if view_box is None:
             return Affine2D.identity()
         return map_fn(
-            self.svg.view_box(),
+            view_box,
             self.ufo.info.ascender,
             self.ufo.info.descender,
             self.ufo_glyph.width,

@@ -58,6 +58,13 @@ _CBDT_SMALL_METRIC_PNGS = 17
 _CBDT_SMALL_METRIC_PNG_HEADER_SIZE = 5 + 4
 
 
+def _bitmap(color_glyph: ColorGlyph) -> PNG:
+    # ColorGlyph.bitmap is None for the vector formats; everything in here runs
+    # only for cbdt/sbix, where a bitmap is always present.
+    assert color_glyph.bitmap is not None, f"{color_glyph.ufo_glyph_name} has no bitmap"
+    return color_glyph.bitmap
+
+
 def _nudge_into_range(arange: range, value: int, max_move: int = 1) -> int:
     if value in arange:
         return value
@@ -154,7 +161,7 @@ def _cbdt_bitmapdata_offsets(
     offset = initial_offset
     for color_glyph in color_glyphs:
         offsets.append(offset)
-        offset += _cbdt_record_size(image_format, color_glyph.bitmap)
+        offset += _cbdt_record_size(image_format, _bitmap(color_glyph))
     offsets.append(offset)  # capture end of stream
     return list(zip(offsets, offsets[1:]))
 
@@ -182,7 +189,7 @@ def make_sbix_table(
 
     glyphs_by_bitmap_size = defaultdict(list)
     for color_glyph in color_glyphs:
-        glyphs_by_bitmap_size[color_glyph.bitmap.size[1]].append(color_glyph)
+        glyphs_by_bitmap_size[_bitmap(color_glyph).size[1]].append(color_glyph)
 
     for bitmap_pixel_height in sorted(glyphs_by_bitmap_size.keys()):
         ppem = _ppem(config, bitmap_pixel_height)
@@ -194,7 +201,7 @@ def make_sbix_table(
 
         for color_glyph in glyphs_by_bitmap_size[bitmap_pixel_height]:
             # TODO: if we've seen these bytes before set graphicType "dupe", referenceGlyphName <name of glyph>
-            image_data = color_glyph.bitmap
+            image_data = _bitmap(color_glyph)
             metrics = BitmapMetrics.create(
                 config,
                 bitmap_pixel_height,
@@ -226,7 +233,7 @@ def _make_cbdt_strike(
         color_glyphs
     ), "Below assumes color gyphs gids are consecutive"
 
-    bitmap_pixel_height = only({c.bitmap.size[1] for c in color_glyphs})
+    bitmap_pixel_height = only({_bitmap(c).size[1] for c in color_glyphs})
     ppem = _ppem(config, bitmap_pixel_height)
 
     strike = CblcStrike()
@@ -255,7 +262,7 @@ def _make_cbdt_strike(
         c.glyph_id: BitmapMetrics.create(
             config,
             only(config.bitmap_resolutions),
-            c.bitmap,
+            _bitmap(c),
             ppem,
             _INT8_RANGE,
             _UINT8_RANGE,
@@ -264,7 +271,7 @@ def _make_cbdt_strike(
     }
     data = {
         ttfont.getGlyphName(c.glyph_id): _cbdt_bitmap_data(
-            config, metrics[c.glyph_id], c.bitmap
+            config, metrics[c.glyph_id], _bitmap(c)
         )
         for c in color_glyphs
     }
@@ -300,7 +307,7 @@ def _make_cbdt_strike(
 
 def raise_if_too_big_for_cbdt(color_glyphs: Sequence[ColorGlyph]):
     too_big = sorted(
-        (c for c in color_glyphs if max(c.bitmap.size) not in _UINT8_RANGE),
+        (c for c in color_glyphs if max(_bitmap(c).size) not in _UINT8_RANGE),
         key=lambda c: c.bitmap_filename,
     )
     if not too_big:

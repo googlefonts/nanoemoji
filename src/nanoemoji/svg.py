@@ -19,7 +19,7 @@ from io import BytesIO
 from itertools import groupby
 from fontTools import ttLib
 from functools import reduce
-from lxml import etree  # pytype: disable=import-error
+from lxml import etree
 from nanoemoji.colors import Color
 from nanoemoji.color_glyph import ColorGlyph
 from nanoemoji.config import FontConfig
@@ -37,11 +37,12 @@ from nanoemoji.paint import (
     PaintColrGlyph,
     PaintComposite,
     PaintColrLayers,
+    PaintTraverseContext,
     is_transform,
 )
-from picosvg.geometric_types import Rect
+from picosvg.geometric_types import Rect, Vector
 from nanoemoji.reorder_glyphs import reorder_glyphs
-from picosvg.svg import to_element, SVG, SVGTraverseContext
+from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
@@ -49,6 +50,7 @@ from picosvg.svg_types import SVGPath
 from typing import (
     cast,
     ClassVar,
+    Dict,
     Mapping,
     MutableMapping,
     NamedTuple,
@@ -91,7 +93,7 @@ class ReuseCache:
     def add_glyph(
         self,
         glyph_name: str,
-        context: SVGTraverseContext,
+        context: PaintTraverseContext,
         reuse_result: Optional[ReuseResult] = SKIP_REUSE,
     ):
         assert glyph_name not in self.glyph_elements, f"Second addition of {glyph_name}"
@@ -158,7 +160,7 @@ def _glyph_groups(
                     reuse_cache.add_glyph(glyph_name, context)
                 else:
                     reuse_result = reuse_cache.glyph_cache.try_reuse(
-                        context.paint.glyph  # pytype: disable=attribute-error
+                        context.paint.glyph
                     )
                     reuse_cache.add_glyph(glyph_name, context, reuse_result)
                     if reuse_result:
@@ -212,11 +214,17 @@ def _apply_gradient_paint(
         # normalize them before adding to the cache, thus increasing the chance
         # of a reuse.
         if not transform.almost_equals(Affine2D.identity()):
-            paint = paint.apply_transform(transform, check_overflows=False)
+            transformed_paint: Paint = paint.apply_transform(
+                transform, check_overflows=False
+            )
             transform = Affine2D.identity()
-            if is_transform(paint):
-                paint = cast(_BasePaintTransform, paint)
-                transform, paint = paint.gettransform(), paint.paint
+            if is_transform(transformed_paint):
+                paint_transform = cast(_BasePaintTransform, transformed_paint)
+                transform, transformed_paint = (
+                    paint_transform.gettransform(),
+                    paint_transform.paint,
+                )
+            paint = cast(_GradientPaint, transformed_paint)
         paint = cast(_GradientPaint, paint)
         paint = paint.round(_DEFAULT_ROUND_NDIGITS)
         transform = transform.round(_DEFAULT_ROUND_NDIGITS)
@@ -289,7 +297,9 @@ def _define_linear_gradient(
     # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
     # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
     # and the gradient degenerates to a solid paint (the last color stop).
-    p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
+    # Point.__sub__ is annotated Point | Vector; subtracting two Points
+    # always yields a Vector
+    p3 = p0 + cast(Vector, p1 - p0).projection(cast(Vector, p2 - p0).perpendicular())
 
     x1, y1 = p0
     x2, y2 = p3
@@ -391,7 +401,7 @@ def _apply_paint(
         _apply_gradient_paint(svg_defs, el, paint, reuse_cache, transform)
     elif is_transform(paint):
         transform @= paint.gettransform()
-        child = paint.paint  # pytype: disable=attribute-error
+        child = cast(_BasePaintTransform, paint).paint
         _apply_paint(svg_defs, el, child, upem_to_vbox, reuse_cache, transform)
     else:
         raise NotImplementedError(type(paint))
@@ -464,6 +474,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     svg_g = svg.append_to("/svg:svg", etree.Element("g"))
     svg_g.attrib["id"] = f"glyph{color_glyph.glyph_id}"
 
+    assert color_glyph.svg is not None, f"{color_glyph.ufo_glyph_name} has no svg"
     view_box = color_glyph.svg.view_box()
     if view_box is None:
         raise ValueError(f"{color_glyph.svg_filename} must declare view box")
@@ -477,7 +488,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
     upem_to_vbox = vbox_to_upem.inverse()
 
     # copy the shapes into our svg
-    el_by_path = {(): svg_g}
+    el_by_path: Dict[Tuple[Paint, ...], etree.Element] = {(): svg_g}
     complete_paths = set()
     nth_paint_glyph = 0
 
@@ -538,7 +549,7 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     _apply_paint(
                         svg_defs,
                         svg_use,
-                        context.paint.paint,  # pytype: disable=attribute-error
+                        context.paint.paint,
                         upem_to_vbox,
                         reuse_cache,
                         inverse_reuse_transform,
@@ -561,11 +572,11 @@ def _add_glyph(svg: SVG, color_glyph: ColorGlyph, reuse_cache: ReuseCache):
                     _apply_paint(
                         svg_defs,
                         el,
-                        context.paint.paint,  # pytype: disable=attribute-error
+                        context.paint.paint,
                         upem_to_vbox,
                         reuse_cache,
                     )
-                    parent_el.append(el)  # pytype: disable=attribute-error
+                    parent_el.append(el)
 
                 # don't update el_by_path because we're declaring this path complete
                 complete_paths.add(context.path + (context.paint,))
@@ -608,7 +619,7 @@ def _ensure_ttfont_fully_decompiled(ttfont: ttLib.TTFont):
 def _ensure_groups_grouped_in_glyph_order(
     color_glyphs: MutableMapping[str, ColorGlyph],
     ttfont: ttLib.TTFont,
-    reuse_groups: Tuple[Tuple[str, ...]],
+    reuse_groups: Tuple[Tuple[str, ...], ...],
 ):
     # svg requires glyphs in same doc have sequential gids; reshuffle to make this true.
 
@@ -618,19 +629,20 @@ def _ensure_groups_grouped_in_glyph_order(
     # .notdef must always be the first glyph in the font or Bad Things happen
     old_glyph_order = ttfont.getGlyphOrder()
     assert old_glyph_order[0] == ".notdef", f"1st glyph not named '.notdef'"
+    remaining_groups: Sequence[Tuple[str, ...]] = reuse_groups
     if ".notdef" in color_glyphs:
-        first_group, *reuse_groups = reuse_groups
+        first_group, *remaining_groups = reuse_groups
         assert first_group == (".notdef",)
         assert color_glyphs[".notdef"].glyph_id == 0
 
     # everything that *isn't* shuffling
-    group_glyphs = reduce(lambda a, c: a | set(c), reuse_groups, set())
+    group_glyphs = reduce(lambda a, c: a | set(c), remaining_groups, set())
     glyph_order = [g for g in old_glyph_order if g not in group_glyphs]
 
     # plus everything that is shuffling, in the order it needs to stay in
     # update color glyph gid as we go
     gid = len(glyph_order)
-    for group in reuse_groups:
+    for group in remaining_groups:
         for glyph_name in group:
             glyph_order.append(glyph_name)
             color_glyphs[glyph_name] = color_glyphs[glyph_name]._replace(glyph_id=gid)
@@ -690,8 +702,8 @@ def _picosvg_docs(
         config.reuse_tolerance, GlyphReuseCache(config.reuse_tolerance)
     )
     reuse_groups = _glyph_groups(config, color_glyphs, reuse_cache)
-    color_glyphs = {c.ufo_glyph_name: c for c in color_glyphs}
-    _ensure_groups_grouped_in_glyph_order(color_glyphs, ttfont, reuse_groups)
+    color_glyphs_by_name = {c.ufo_glyph_name: c for c in color_glyphs}
+    _ensure_groups_grouped_in_glyph_order(color_glyphs_by_name, ttfont, reuse_groups)
 
     doc_list = []
     for group in reuse_groups:
@@ -706,7 +718,7 @@ def _picosvg_docs(
         defs = etree.SubElement(root, f"{{{svg_meta.svgns()}}}defs", nsmap=root.nsmap)
         svg = SVG(root)
 
-        for color_glyph in (color_glyphs[g] for g in group):
+        for color_glyph in (color_glyphs_by_name[g] for g in group):
             if color_glyph.painted_layers:
                 _add_glyph(svg, color_glyph, reuse_cache)
 
@@ -723,7 +735,7 @@ def _picosvg_docs(
         if len(root) == 0:
             continue
 
-        gids = tuple(color_glyphs[g].glyph_id for g in group)
+        gids = tuple(color_glyphs_by_name[g].glyph_id for g in group)
         doc_list.append(
             (svg.tostring(pretty_print=config.pretty_print), min(gids), max(gids))
         )
@@ -736,6 +748,7 @@ def _rawsvg_docs(
 ) -> Sequence[Tuple[str, int, int]]:
     doc_list = []
     for color_glyph in color_glyphs:
+        assert color_glyph.svg is not None, f"{color_glyph.ufo_glyph_name} has no svg"
         svg = (
             # all the scaling and positioning happens in "transform" below
             color_glyph.svg.remove_attributes(("width", "height", "viewBox"))

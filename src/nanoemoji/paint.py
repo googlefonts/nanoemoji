@@ -32,11 +32,13 @@ from nanoemoji.fixed import (
     MIN_UINT16,
     MAX_UINT16,
 )
-from picosvg.geometric_types import Point, almost_equal
+from picosvg.geometric_types import Point, Vector, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
+    cast,
     Any,
     ClassVar,
+    Dict,
     Generator,
     Iterable,
     Mapping,
@@ -114,13 +116,13 @@ class ColorStop:
 
 
 class Paint(ABC):
-    format: ClassVar[int] = -1  # so pytype knows all Paint have format
+    format: ClassVar[int] = -1  # so the type checker knows all Paint have format
 
     @abstractmethod
     def colors(self) -> Generator[Color, None, None]: ...
 
     @abstractmethod
-    def to_ufo_paint(self, colors: Sequence[Color]): ...
+    def to_ufo_paint(self, colors: Sequence[Color]) -> Dict[str, Any]: ...
 
     def breadth_first(self) -> Generator[PaintTraverseContext, None, None]:
         frontier = [PaintTraverseContext((), self, Affine2D.identity())]
@@ -175,7 +177,7 @@ class PaintColrLayers(Paint):
         for p in self.layers:
             yield from p.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         return {
             "Format": self.format,
             "Layers": [p.to_ufo_paint(colors) for p in self.layers],
@@ -193,7 +195,7 @@ class PaintSolid(Paint):
     def colors(self):
         yield self.color
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         return {
             "Format": self.format,
             "PaletteIndex": self.color.opaque().index_from(colors),
@@ -222,19 +224,23 @@ class PaintLinearGradient(Paint):
     stops: Tuple[ColorStop, ...] = tuple()
     p0: Point = Point()
     p1: Point = Point()
+    # None is a sentinel meaning "not yet computed"; always a Point once __post_init__ runs
+    # pyrefly: ignore [bad-assignment]
     p2: Point = None  # if normal undefined, default to P1 rotated 90° cc'wise
 
     def __post_init__(self):
         if self.p2 is None:
             p0, p1 = Point(*self.p0), Point(*self.p1)
             # use object.__setattr__ as the dataclass is frozen
-            object.__setattr__(self, "p2", p0 + (p1 - p0).perpendicular())
+            # Point.__sub__ is annotated Point | Vector; subtracting two Points
+            # always yields a Vector
+            object.__setattr__(self, "p2", p0 + cast(Vector, p1 - p0).perpendicular())
 
     def colors(self):
         for stop in self.stops:
             yield stop.color
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         return {
             "Format": self.format,
             "ColorLine": _ufoColorLine(self, colors),
@@ -323,7 +329,7 @@ class PaintRadialGradient(Paint):
         for stop in self.stops:
             yield stop.color
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "ColorLine": _ufoColorLine(self, colors),
@@ -405,7 +411,7 @@ class PaintGlyph(Paint):
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Glyph": self.glyph,
@@ -422,11 +428,12 @@ class PaintColrGlyph(Paint):
     format: ClassVar[int] = int(ot.PaintFormat.PaintColrGlyph)
     glyph: str
 
-    def to_ufo_paint(self, _):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {"Format": self.format, "Glyph": self.glyph}
         return paint
 
 
+@dataclasses.dataclass(frozen=True)
 class _BasePaintTransform(Paint):
     paint: Paint
 
@@ -438,12 +445,11 @@ class _BasePaintTransform(Paint):
 class PaintTransform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTransform)
     transform: Tuple[float, float, float, float, float, float]
-    paint: Paint
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Transform": self.transform,
@@ -461,14 +467,15 @@ class PaintTransform(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintTranslate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintTranslate)
-    paint: Paint
-    dx: int
-    dy: int
+    # int16 in COLR; callers check int16_safe, which allows the near-integral
+    # floats that fall out of Affine2D decomposition
+    dx: float
+    dy: float
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -487,14 +494,13 @@ class PaintTranslate(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintScale(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScale)
-    paint: Paint
     scaleX: float = 1.0
     scaleY: float = 1.0
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -513,7 +519,6 @@ class PaintScale(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintScaleAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleAroundCenter)
-    paint: Paint
     scaleX: float = 1.0
     scaleY: float = 1.0
     center: Point = Point()
@@ -521,7 +526,7 @@ class PaintScaleAroundCenter(_BasePaintTransform):
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -547,13 +552,12 @@ class PaintScaleAroundCenter(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintScaleUniform(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniform)
-    paint: Paint
     scale: float = 1.0
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -571,14 +575,13 @@ class PaintScaleUniform(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintScaleUniformAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintScaleUniformAroundCenter)
-    paint: Paint
     scale: float = 1.0
     center: Point = Point()
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -603,13 +606,12 @@ class PaintScaleUniformAroundCenter(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintRotate(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotate)
-    paint: Paint
     angle: float = 0.0
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -627,14 +629,13 @@ class PaintRotate(_BasePaintTransform):
 @dataclasses.dataclass(frozen=True)
 class PaintRotateAroundCenter(_BasePaintTransform):
     format: ClassVar[int] = int(ot.PaintFormat.PaintRotateAroundCenter)
-    paint: Paint
     angle: float = 0.0
     center: Point = Point()
 
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -663,7 +664,7 @@ class PaintSkew(Paint):
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -692,7 +693,7 @@ class PaintSkewAroundCenter(Paint):
     def colors(self):
         yield from self.paint.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "Paint": self.paint.to_ufo_paint(colors),
@@ -726,7 +727,7 @@ class PaintComposite(Paint):
         yield from self.source.colors()
         yield from self.backdrop.colors()
 
-    def to_ufo_paint(self, colors):
+    def to_ufo_paint(self, colors: Sequence[Color]):
         paint = {
             "Format": self.format,
             "CompositeMode": self.mode.name.lower(),

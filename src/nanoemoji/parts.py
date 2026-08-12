@@ -150,6 +150,7 @@ class ReusableParts:
         elif isinstance(source, SVG):
             source.checkpicosvg()
             source_box = source.view_box()
+            assert source_box is not None, "picosvg must have a viewBox"
             transform = scale_viewbox_to_font_metrics(
                 self.view_box, source_box.h, 0, source_box.w
             )
@@ -206,38 +207,38 @@ class ReusableParts:
             self._compute_donor(norm)
 
     def is_reused(self, shape: SVGPath) -> bool:
-        shape = as_shape(shape)
-        norm = self.normalize(shape)
+        shape_key = as_shape(shape)
+        norm = self.normalize(shape_key)
         if norm not in self.shape_sets:
             return False
         if len(self.shape_sets[norm]) < 2:
             return False
         if norm not in self._donor_cache:
             self._compute_donor(norm)
-        return shape == self._donor_cache[norm]  # this shape provides!
+        return shape_key == self._donor_cache[norm]  # this shape provides!
 
     def try_reuse(self, shape: SVGPath) -> Optional[ReuseResult]:
         """Returns the shape and transform to use to build the input shape."""
-        shape = as_shape(shape)
+        shape_key = as_shape(shape)
         if self.reuse_tolerance == -1:
-            return ReuseResult(Affine2D.identity(), shape)
+            return ReuseResult(Affine2D.identity(), shape_key)
 
-        norm = self.normalize(shape)
+        norm = self.normalize(shape_key)
 
         # The whole point is to pre-add, doing it on the fly reduces reuse
         if norm not in self.shape_sets:
             print(self.to_json())
             raise ValueError(
-                f"You MUST pre-add your shapes. No set matches normalization {norm} for {shape}."
+                f"You MUST pre-add your shapes. No set matches normalization {norm} for {shape_key}."
             )
 
-        if shape not in self.shape_sets[norm]:
+        if shape_key not in self.shape_sets[norm]:
             print(self.to_json())
-            raise ValueError(f"You MUST pre-add your shapes. {shape} is new to us.")
+            raise ValueError(f"You MUST pre-add your shapes. {shape_key} is new to us.")
 
         if norm not in self._donor_cache:
             assert (
-                shape in self.shape_sets[norm]
+                shape_key in self.shape_sets[norm]
             ), f"The input shape must be in the group"
             self._compute_donor(norm)
 
@@ -247,7 +248,7 @@ class ReusableParts:
             return None
 
         affine = affine_between(
-            SVGPath(d=donor), SVGPath(d=shape), self.reuse_tolerance
+            SVGPath(d=donor), SVGPath(d=shape_key), self.reuse_tolerance
         )
         assert (
             affine is not None
@@ -274,7 +275,8 @@ class ReusableParts:
     def from_json(cls, string: str) -> "ReusableParts":
         json_dict = json.loads(string)
         parts = ReusableParts()
-        parts.version = tuple(int(v) for v in json_dict.pop("version").split("."))
+        major, minor, patch = (int(v) for v in json_dict.pop("version").split("."))
+        parts.version = (major, minor, patch)
         assert parts.version == (1, 0, 0), f"Bad version {parts.version}"
         parts.view_box = Rect(*(int(v) for v in json_dict.pop("view_box").split(" ")))
         assert parts.view_box[:2] == (
