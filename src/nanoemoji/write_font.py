@@ -29,7 +29,7 @@ from fontTools.ttLib.tables import otTables as ot
 from fontTools.pens.boundsPen import ControlBoundsPen
 from fontTools.pens.transformPen import TransformPen
 from itertools import chain
-from lxml import etree  # pytype: disable=import-error
+from lxml import etree
 from nanoemoji.bitmap_tables import make_cbdt_table, make_sbix_table
 from nanoemoji import codepoints, config, glyphmap
 from nanoemoji.colors import Color, uniq_sort_cpal_colors
@@ -70,6 +70,7 @@ from typing import (
     Callable,
     Generator,
     Iterable,
+    List,
     Mapping,
     MutableSequence,
     NamedTuple,
@@ -113,54 +114,101 @@ class ColorGenerator(NamedTuple):
     font_ext: str  # extension for font binary, .ttf or .otf
 
 
+def _no_op_ufo(
+    config: FontConfig, ufo: ufoLib2.Font, color_glyphs: Tuple[ColorGlyph, ...]
+) -> None:
+    pass
+
+
+def _no_op_ttfont(
+    config: FontConfig,
+    ufo: ufoLib2.Font,
+    color_glyphs: Tuple[ColorGlyph, ...],
+    ttfont: ttLib.TTFont,
+) -> None:
+    pass
+
+
+# The writer functions are defined further down, so the dict entries have to
+# call them from inside a lambda. Name the lambda parameters rather than
+# forwarding *args: that's what lets the type checker match each lambda against
+# ColorGenerator's signature instead of inferring an unusable union.
 _COLOR_FORMAT_GENERATORS = {
-    "glyf": ColorGenerator(lambda *args: _glyf_ufo(*args), lambda *_: None, ".ttf"),
+    "glyf": ColorGenerator(
+        lambda config, ufo, color_glyphs: _glyf_ufo(config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".ttf",
+    ),
     "glyf_colr_0": ColorGenerator(
-        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".ttf"
+        lambda config, ufo, color_glyphs: _colr_ufo(0, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".ttf",
     ),
     "glyf_colr_1": ColorGenerator(
-        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".ttf"
+        lambda config, ufo, color_glyphs: _colr_ufo(1, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".ttf",
     ),
     "cff_colr_0": ColorGenerator(
-        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".otf"
+        lambda config, ufo, color_glyphs: _colr_ufo(0, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".otf",
     ),
     "cff_colr_1": ColorGenerator(
-        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
+        lambda config, ufo, color_glyphs: _colr_ufo(1, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".otf",
     ),
     "cff2_colr_0": ColorGenerator(
-        lambda *args: _colr_ufo(0, *args), lambda *_: None, ".otf"
+        lambda config, ufo, color_glyphs: _colr_ufo(0, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".otf",
     ),
     "cff2_colr_1": ColorGenerator(
-        lambda *args: _colr_ufo(1, *args), lambda *_: None, ".otf"
+        lambda config, ufo, color_glyphs: _colr_ufo(1, config, ufo, color_glyphs),
+        _no_op_ttfont,
+        ".otf",
     ),
     "picosvg": ColorGenerator(
-        lambda *_: None,
-        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=False),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _svg_ttfont(
+            config, ufo, color_glyphs, ttfont, picosvg=True, compressed=False
+        ),
         ".ttf",
     ),
     "picosvgz": ColorGenerator(
-        lambda *_: None,
-        lambda *args: _svg_ttfont(*args, picosvg=True, compressed=True),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _svg_ttfont(
+            config, ufo, color_glyphs, ttfont, picosvg=True, compressed=True
+        ),
         ".ttf",
     ),
     "untouchedsvg": ColorGenerator(
-        lambda *_: None,
-        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=False),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _svg_ttfont(
+            config, ufo, color_glyphs, ttfont, picosvg=False, compressed=False
+        ),
         ".ttf",
     ),
     "untouchedsvgz": ColorGenerator(
-        lambda *_: None,
-        lambda *args: _svg_ttfont(*args, picosvg=False, compressed=True),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _svg_ttfont(
+            config, ufo, color_glyphs, ttfont, picosvg=False, compressed=True
+        ),
         ".ttf",
     ),
     "cbdt": ColorGenerator(
-        lambda *args: None,
-        lambda *args: _cbdt_ttfont(*args),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _cbdt_ttfont(
+            config, ufo, color_glyphs, ttfont
+        ),
         ".ttf",
     ),
     "sbix": ColorGenerator(
-        lambda *args: None,
-        lambda *args: _sbix_ttfont(*args),
+        _no_op_ufo,
+        lambda config, ufo, color_glyphs, ttfont: _sbix_ttfont(
+            config, ufo, color_glyphs, ttfont
+        ),
         ".ttf",
     ),
 }
@@ -267,7 +315,7 @@ def _create_glyph(
     glyph = _init_glyph(color_glyph)
     ufo = color_glyph.ufo
     draw_svg_path(SVGPath(d=path_in_font_space), glyph.getPen())
-    ufo.glyphOrder += [glyph.name]
+    ufo.glyphOrder += [_glyph_name(glyph)]
     return glyph
 
 
@@ -379,12 +427,12 @@ def _glyf_ufo(
     config: FontConfig, ufo: ufoLib2.Font, color_glyphs: Tuple[ColorGlyph, ...]
 ):
     # We want to mutate our view of color_glyphs
-    color_glyphs = list(color_glyphs)
+    mutable_color_glyphs = list(color_glyphs)
 
     # glyphs by reuse_key
     glyph_cache = GlyphReuseCache(config.reuse_tolerance)
     glyph_uses = Counter()
-    for i, color_glyph in enumerate(color_glyphs):
+    for i, color_glyph in enumerate(mutable_color_glyphs):
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
@@ -394,7 +442,7 @@ def _glyf_ufo(
         parent_glyph = color_glyph.ufo_glyph
 
         # generate glyphs for PaintGlyph's and assign glyph names
-        color_glyphs[i] = color_glyph = _migrate_paths_to_ufo_glyphs(
+        mutable_color_glyphs[i] = color_glyph = _migrate_paths_to_ufo_glyphs(
             color_glyph, glyph_cache
         )
 
@@ -405,27 +453,35 @@ def _glyf_ufo(
                     continue
                 paint_glyph = cast(PaintGlyph, context.paint)
                 glyph = ufo.get(paint_glyph.glyph)
+                assert glyph is not None, f"{paint_glyph.glyph} missing from ufo"
+                glyph_name = _glyph_name(glyph)
                 parent_glyph.components.append(
-                    Component(baseGlyph=glyph.name, transformation=context.transform)
+                    Component(baseGlyph=glyph_name, transformation=context.transform)
                 )
-                glyph_uses[glyph.name] += 1
+                glyph_uses[glyph_name] += 1
 
     # No great reason to keep single-component glyphs around (unless reused)
-    for color_glyph in color_glyphs:
+    for color_glyph in mutable_color_glyphs:
         parent_glyph = color_glyph.ufo_glyph
         if (
             len(parent_glyph.components) == 1
             and glyph_uses[parent_glyph.components[0].baseGlyph] == 1
         ):
             component = ufo[parent_glyph.components[0].baseGlyph]
-            del ufo[component.name]
+            del ufo[parent_glyph.components[0].baseGlyph]
             component.unicode = parent_glyph.unicode
             ufo[color_glyph.ufo_glyph_name] = component
             assert component.name == color_glyph.ufo_glyph_name
 
 
-def _name_prefix(color_glyph: ColorGlyph) -> Glyph:
+def _name_prefix(color_glyph: ColorGlyph) -> str:
     return f"{color_glyph.ufo_glyph_name}."
+
+
+def _glyph_name(glyph: Glyph) -> str:
+    # Glyph.name is Optional, but anything we make with newGlyph has one
+    assert glyph.name is not None, f"{glyph} has no name"
+    return glyph.name
 
 
 def _init_glyph(color_glyph: ColorGlyph) -> Glyph:
@@ -440,7 +496,7 @@ def _create_transformed_glyph(
 ) -> Glyph:
     glyph = _init_glyph(color_glyph)
     glyph.components.append(Component(baseGlyph=paint.glyph, transformation=transform))
-    color_glyph.ufo.glyphOrder += [glyph.name]
+    color_glyph.ufo.glyphOrder += [_glyph_name(glyph)]
     return glyph
 
 
@@ -451,11 +507,9 @@ def _colr0_layers(color_glyph: ColorGlyph, root: Paint, palette: Sequence[Color]
     ufo = color_glyph.ufo
     layers = []
     for context in root.breadth_first():
-        if context.paint.format != PaintGlyph.format:  # pytype: disable=attribute-error
+        if context.paint.format != PaintGlyph.format:
             continue
-        paint_glyph: PaintGlyph = (
-            context.paint
-        )  # pytype: disable=annotation-type-mismatch
+        paint_glyph = cast(PaintGlyph, context.paint)
         color = next(paint_glyph.colors())
         glyph_name = paint_glyph.glyph
 
@@ -527,7 +581,8 @@ def _bounds(
     # before quantizing to integer values > 1, we must first round floats to
     # int using the same rounding function (i.e. otRound) that fontTools
     # glyf table's compile method will use to round any float coordinates.
-    bounds = tuple(otRound(v) for v in bounds)
+    xmin, ymin, xmax, ymax = (otRound(v) for v in bounds)
+    bounds = (xmin, ymin, xmax, ymax)
     if quantize_factor > 1:
         return _quantize_bounding_rect(*bounds, factor=quantize_factor)
     return bounds
@@ -538,7 +593,7 @@ def _ufo_colr_layers(
 ):
     # The value for a COLOR_LAYERS_KEY entry per
     # https://github.com/googlefonts/ufo2ft/pull/359
-    colr_layers = []
+    colr_layers: List[Any] = []
 
     # accumulate layers in z-order
     for paint in color_glyph.painted_layers:
@@ -550,7 +605,7 @@ def _ufo_colr_layers(
             raise ValueError(f"Invalid color version {colr_version}")
 
     if colr_version > 0:
-        colr_layers = {
+        return {
             "Format": int(ot.PaintFormat.PaintColrLayers),
             "Layers": colr_layers,
         }
@@ -567,14 +622,14 @@ def _colr_ufo(
     black = Color(0, 0, 0, 1.0)
 
     # We want to mutate our view of color glyphs
-    color_glyphs = list(color_glyphs)
+    mutable_color_glyphs = list(color_glyphs)
 
     # We only store opaque colors in CPAL for COLRv1, as 'alpha' is
     # encoded separately.
     colors = uniq_sort_cpal_colors(
         (
             c if colr_version == 0 else c.opaque()
-            for c in chain.from_iterable(g.colors() for g in color_glyphs)
+            for c in chain.from_iterable(g.colors() for g in mutable_color_glyphs)
             if not c.is_current_color()
         )
     )
@@ -594,7 +649,7 @@ def _colr_ufo(
     if quantization is None:
         # by default, quantize clip boxes to an integer value 2% of the UPEM
         quantization = round(config.upem * 0.02)
-    for i, color_glyph in enumerate(color_glyphs):
+    for i, color_glyph in enumerate(mutable_color_glyphs):
         logging.debug(
             "%s %s %s",
             ufo.info.familyName,
@@ -603,7 +658,7 @@ def _colr_ufo(
         )
 
         # generate glyphs for PaintGlyph's and assign glyph names
-        color_glyphs[i] = color_glyph = _migrate_paths_to_ufo_glyphs(
+        mutable_color_glyphs[i] = color_glyph = _migrate_paths_to_ufo_glyphs(
             color_glyph, glyph_cache
         )
 

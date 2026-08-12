@@ -16,7 +16,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 from PIL import Image
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 
 class PNG(bytes):
@@ -24,6 +24,8 @@ class PNG(bytes):
     #   137 80 78 71 13 10 26 10
     # https://www.w3.org/TR/PNG-Structure.html
     SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+    _size: Optional[Tuple[int, int]]
 
     def __new__(cls, *args, **kwargs):
         self = super().__new__(cls, *args, **kwargs)

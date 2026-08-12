@@ -1,9 +1,12 @@
 # https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 
 import collections
-from typing import FrozenSet, Generic, Generator, Tuple, TypeVar
+from typing import FrozenSet, Generic, Generator, Tuple, TYPE_CHECKING, TypeVar
 
-T = TypeVar("T")
+if TYPE_CHECKING:
+    from _typeshed import SupportsRichComparison
+
+T = TypeVar("T", bound="SupportsRichComparison")
 
 
 class DisjointSet(Generic[T]):

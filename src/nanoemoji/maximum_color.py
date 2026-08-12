@@ -437,7 +437,7 @@ def _generate_cbdt(
     return output_file
 
 
-def _keep_glyph_names(nw: NinjaWriter, input_file: Path) -> ttLib.TTFont:
+def _keep_glyph_names(nw: NinjaWriter, input_file: Path) -> Path:
     # The whole concept is we keep glyph name stable until the end so
     # make sure we start with stable names. Doesn't matter what they are,
     # just that they don't change.

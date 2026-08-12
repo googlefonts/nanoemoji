@@ -48,7 +48,7 @@ from fontTools import ttLib
 from fontTools.ttLib.tables import C_P_A_L_
 from picosvg.geometric_types import Point, Rect
 from lxml import etree
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 from fontTools.pens import transformPen
 from fontTools.ttLib.tables import otTables
 
@@ -230,7 +230,7 @@ def _apply_transform(
 
 def _colr_v1_paint_to_svg(
     ttfont: ttLib.TTFont,
-    glyph_set: Mapping[str, Any],
+    glyph_set: ttLib.ttGlyphSet._TTGlyphSet,
     parent_el: etree.Element,
     svg_defs: etree.Element,
     font_to_vbox: Affine2D,

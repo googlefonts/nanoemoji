@@ -19,7 +19,7 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables as ot
 from functools import lru_cache
 import io
-from lxml import etree  # pytype: disable=import-error
+from lxml import etree
 from nanoemoji import config
 from nanoemoji.glyph import glyph_name
 from nanoemoji.util import only

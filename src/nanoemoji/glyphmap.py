@@ -44,7 +44,7 @@ class GlyphMapping:
         return f.getvalue()
 
 
-def load_from(file) -> Tuple[GlyphMapping]:
+def load_from(file) -> Tuple[GlyphMapping, ...]:
     results = []
     reader = csv.reader(file, skipinitialspace=True)
     for row in reader:
@@ -65,6 +65,6 @@ def load_from(file) -> Tuple[GlyphMapping]:
     return tuple(results)
 
 
-def parse_csv(filename) -> Tuple[GlyphMapping]:
+def parse_csv(filename) -> Tuple[GlyphMapping, ...]:
     with open(filename) as f:
         return load_from(f)

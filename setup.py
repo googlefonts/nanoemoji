@@ -20,7 +20,7 @@ extras_require={
     ],
     "lint": [
         "black",
-        "pytype",
+        "pyrefly",
     ],
 }
 extras_require["dev"] = extras_require["test"] + extras_require["lint"]
