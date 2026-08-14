@@ -32,10 +32,9 @@ from nanoemoji.fixed import (
     MIN_UINT16,
     MAX_UINT16,
 )
-from picosvg.geometric_types import Point, Vector, almost_equal
+from picosvg.geometric_types import Point, almost_equal
 from picosvg.svg_transform import Affine2D
 from typing import (
-    cast,
     Any,
     ClassVar,
     Dict,
@@ -232,9 +231,7 @@ class PaintLinearGradient(Paint):
         if self.p2 is None:
             p0, p1 = Point(*self.p0), Point(*self.p1)
             # use object.__setattr__ as the dataclass is frozen
-            # Point.__sub__ is annotated Point | Vector; subtracting two Points
-            # always yields a Vector
-            object.__setattr__(self, "p2", p0 + cast(Vector, p1 - p0).perpendicular())
+            object.__setattr__(self, "p2", p0 + (p1 - p0).perpendicular())
 
     def colors(self):
         for stop in self.stops:

@@ -40,7 +40,7 @@ from nanoemoji.paint import (
     PaintTraverseContext,
     is_transform,
 )
-from picosvg.geometric_types import Rect, Vector
+from picosvg.geometric_types import Rect
 from nanoemoji.reorder_glyphs import reorder_glyphs
 from picosvg.svg import to_element, SVG
 from picosvg import svg_meta
@@ -297,9 +297,7 @@ def _define_linear_gradient(
     # (projection of P1 onto perpendicular to normal) is == P1 itself thus no rotation.
     # When P2 is collinear to the P1-P0 gradient vector, then this projected P3 == P0
     # and the gradient degenerates to a solid paint (the last color stop).
-    # Point.__sub__ is annotated Point | Vector; subtracting two Points
-    # always yields a Vector
-    p3 = p0 + cast(Vector, p1 - p0).projection(cast(Vector, p2 - p0).perpendicular())
+    p3 = p0 + (p1 - p0).projection((p2 - p0).perpendicular())
 
     x1, y1 = p0
     x2, y2 = p3

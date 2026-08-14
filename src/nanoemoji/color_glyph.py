@@ -32,7 +32,7 @@ from nanoemoji.paint import (
     PaintSolid,
 )
 from nanoemoji.png import PNG
-from picosvg.geometric_types import Point, Rect, Vector
+from picosvg.geometric_types import Point, Rect
 from picosvg.svg_meta import number_or_percentage
 from picosvg.svg_reuse import normalize, affine_between
 from picosvg.svg_transform import Affine2D
@@ -44,7 +44,6 @@ from picosvg.svg_types import (
     intersection,
 )
 from typing import (
-    cast,
     Any,
     Dict,
     Generator,
@@ -148,9 +147,7 @@ def _parse_linear_gradient(
     p1 = Point(gradient.x2, gradient.y2)
 
     # Set P2 to P1 rotated 90 degrees counter-clockwise around P0
-    # Point.__sub__ is annotated Point | Vector; subtracting two Points
-    # always yields a Vector
-    p2 = p0 + cast(Vector, p1 - p0).perpendicular()
+    p2 = p0 + (p1 - p0).perpendicular()
 
     common_args = _common_gradient_parts(grad_el, shape_opacity)
 
