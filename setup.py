@@ -41,7 +41,7 @@ setup(
         "fonttools[ufo]>=4.36.0",
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
-        "picosvg>=0.22.1",
+        "picosvg>=0.23.0",
         "pillow>=7.2.0",
         "regex>=2020.4.4",
         "toml>=0.10.1",
