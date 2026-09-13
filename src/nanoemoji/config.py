@@ -19,7 +19,8 @@ import importlib.resources as resources
 import itertools
 from pathlib import Path
 from picosvg.svg_transform import Affine2D
-import toml
+import tomli_w
+import tomllib
 from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Tuple, Sequence
 
 from nanoemoji import util
@@ -247,6 +248,15 @@ class FontConfig(NamedTuple):
         raise ValueError("Must have a default master")
 
 
+def _drop_none(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    """Remove unset (None) values, which TOML cannot represent."""
+    return {
+        k: _drop_none(v) if isinstance(v, dict) else v
+        for k, v in data.items()
+        if v is not None
+    }
+
+
 def write(dest: Path, config: FontConfig):
     toml_cfg = {
         "family": config.family,
@@ -288,7 +298,8 @@ def write(dest: Path, config: FontConfig):
             for m in config.masters
         },
     }
-    dest.write_text(toml.dumps(toml_cfg))
+    with open(dest, "wb") as f:
+        tomli_w.dump(_drop_none(toml_cfg), f)
 
 
 def _resolve_config(
@@ -296,9 +307,11 @@ def _resolve_config(
 ) -> Tuple[Optional[Path], MutableMapping[str, Any]]:
     if config_file is None:
         with resources.path("nanoemoji.data", _DEFAULT_CONFIG_FILE) as config_file:
-            # no config_dir in this context; bad input if we need it
-            return None, toml.load(config_file)
-    return config_file.parent, toml.load(config_file)
+            with open(config_file, "rb") as f:
+                # no config_dir in this context; bad input if we need it
+                return None, tomllib.load(f)
+    with open(config_file, "rb") as f:
+        return config_file.parent, tomllib.load(f)
 
 
 def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
