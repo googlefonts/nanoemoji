@@ -52,7 +52,7 @@ setup(
         "pngquant-cli>=2.17.0.post5",
     ],
     extras_require=extras_require,
-    python_requires=">=3.10",
+    python_requires=">=3.11",
 
     # this is for type checker to use our inline type hints:
     # https://www.python.org/dev/peps/pep-0561/#id18
