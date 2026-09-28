@@ -54,9 +54,10 @@ setup(
     extras_require=extras_require,
     python_requires=">=3.11",
 
-    # this is for type checker to use our inline type hints:
-    # https://www.python.org/dev/peps/pep-0561/#id18
-    package_data={"picosvg": ["py.typed"]},
+    # Declare the default config explicitly: include_package_data=True only
+    # finds it when setuptools_scm can list the source files, which fails for
+    # a source tree without git metadata.
+    package_data={"nanoemoji": ["data/*.toml"]},
 
     # metadata to display on PyPI
     author="Rod S",
