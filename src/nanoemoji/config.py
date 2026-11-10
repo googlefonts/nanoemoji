@@ -17,6 +17,7 @@ from absl import flags
 import importlib.resources as resources
 
 import itertools
+import sys
 from pathlib import Path
 from picosvg.svg_transform import Affine2D
 import tomli_w
@@ -310,8 +311,11 @@ def _resolve_config(
             with open(config_file, "rb") as f:
                 # no config_dir in this context; bad input if we need it
                 return None, tomllib.load(f)
-    with open(config_file, "rb") as f:
-        return config_file.parent, tomllib.load(f)
+    try:
+        with open(config_file, "rb") as f:
+            return config_file.parent, tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        sys.exit(f"Invalid TOML in config file {config_file}: {e}")
 
 
 def _resolve_src(relative_base: Optional[Path], src: str) -> Iterable[Path]:
