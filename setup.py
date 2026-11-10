@@ -42,7 +42,7 @@ setup(
         "lxml>=4.0",
         "ninja>=1.10.0.post1",
         "picosvg>=0.23.0",
-        "pillow>=7.2.0",
+        "pillow>=12.3.0",
         "regex>=2020.4.4",
         "tomli-w>=1.0.0",
         "ufo2ft[cffsubr]>=2.24.0",
