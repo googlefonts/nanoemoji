@@ -46,6 +46,15 @@ def test_read_write_config(config_file):
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def test_malformed_config_reports_clean_error(tmp_path):
+    bad_config = tmp_path / "bad.toml"
+    bad_config.write_text("this is not toml [[[")
+    with pytest.raises(SystemExit) as exc_info:
+        config.load(bad_config)
+    assert "Invalid TOML" in str(exc_info.value.code)
+    assert str(bad_config) in str(exc_info.value.code)
+
+
 @pytest.mark.parametrize(
     "relative_base, src, expected_files",
     [
