@@ -253,7 +253,10 @@ class Color(Sequence):
             tmp = cls.fromstring(default_color, alpha=alpha)
             return tmp._replace(palette_index=palette_index)
 
-        if s == "currentColor":
+        # CSS keywords (named colors, currentColor) are ASCII case-insensitive:
+        # https://www.w3.org/TR/css-color-4/#named-colors
+        keyword = s.lower()
+        if keyword == "currentcolor":
             # For the 'currentColor' special keyword, we return a sentinel value (with
             # negative invalid R G B values) that we'll convert to the 0xFFFF foreground
             # CPAL color palette index.
@@ -273,8 +276,8 @@ class Color(Sequence):
                     alpha = int(ss[6:8], 16) / 255
             else:
                 raise ValueError(f"expected 3, 4, 6, or 8 hex digits, found {s!r}")
-        elif s in _CSS_COLORS:
-            red, green, blue = _CSS_COLORS[s]
+        elif keyword in _CSS_COLORS:
+            red, green, blue = _CSS_COLORS[keyword]
         else:
             m = cls._COLOR_RGB_RE.match(s)
             if m:
