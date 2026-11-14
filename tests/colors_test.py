@@ -29,6 +29,10 @@ import pytest
         ("#F1E2D366", Color(0xF1, 0xE2, 0xD3, 0.4)),
         # CSS named color
         ("wheat", Color(0xF5, 0xDE, 0xB3, 1.0)),
+        # CSS named colors are ASCII case-insensitive
+        ("Wheat", Color(0xF5, 0xDE, 0xB3, 1.0)),
+        ("RED", Color(255, 0, 0, 1.0)),
+        ("DarkSlateGray", Color(0x2F, 0x4F, 0x4F, 1.0)),
         # rgb(r,g,b)
         ("rgb(0, 256, -1)", Color(0, 255, 0, 1.0)),
         ("rgb(255, 140.5, 0)", Color(255, 140, 0, 1.0)),
@@ -59,8 +63,12 @@ import pytest
         ("#00A1DE\n", Color(0, 161, 222, 1.0)),
         # 'currentColor' is a special keyword
         ("currentColor", Color(-1, -1, -1, 1.0)),
+        # ... which is also ASCII case-insensitive
+        ("currentcolor", Color(-1, -1, -1, 1.0)),
+        ("CURRENTCOLOR", Color(-1, -1, -1, 1.0)),
         # CSS variables for CPAL palette entry indices
         ("var(--color0, red)", Color(255, 0, 0, 1.0, palette_index=0)),
+        ("var(--color0, Red)", Color(255, 0, 0, 1.0, palette_index=0)),
         ("var(--color123, #ABCDEF)", Color(0xAB, 0xCD, 0xEF, 1.0, palette_index=123)),
         # CSS variables with funky whitespace
         ("  var\t  ( --color1 ,   yellow ) ", Color(255, 255, 0, 1.0, palette_index=1)),
